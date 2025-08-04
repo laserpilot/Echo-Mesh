@@ -24,6 +24,32 @@ app.get('/api/ping', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
+// API route to get network IP addresses
+app.get('/api/network-info', (req, res) => {
+  const { networkInterfaces } = require('os');
+  const nets = networkInterfaces();
+  const addresses = [];
+  
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name]) {
+      // Skip internal and non-IPv4 addresses
+      if (net.family === 'IPv4' && !net.internal) {
+        addresses.push({
+          interface: name,
+          address: net.address,
+          clientUrl: `http://${net.address}:${PORT}/client.html`
+        });
+      }
+    }
+  }
+  
+  res.json({ 
+    port: PORT,
+    addresses: addresses,
+    primaryUrl: addresses.length > 0 ? addresses[0].clientUrl : `http://localhost:${PORT}/client.html`
+  });
+});
+
 // Store connected clients
 // Store connected clients
 const clients = new Map(); // Maps WebSocket to a client object { id, ws }
@@ -170,13 +196,13 @@ const createMessageHandler = (clientId) => (message) => {
         break;
 
       case 'sync':
-          // Immediately reply with the original t0 and the current server time
-          ws.send(JSON.stringify({
-            type: 'sync-reply',
-            t0: data.t0,
-            serverTime: performance.now()
-          }));
-          break;
+        // Immediately reply with the original t0 and the current server time
+        sendToClient(clientId, {
+          type: 'sync-reply',
+          t0: data.t0,
+          serverTime: performance.now()
+        });
+        break;
 
       default:
         console.log(`Unknown message type from ${clientId}: ${data.type}`);

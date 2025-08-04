@@ -801,26 +801,68 @@
             };
 
             // Detect server IP and update UI
-            const detectServerInfo = () => {
-                // Get the current URL
-                const currentUrl = window.location.href;
-                const url = new URL(currentUrl);
-                const host = url.host;
-                const clientUrl = `http://${host}/client.html`;
+            const detectServerInfo = async () => {
+                try {
+                    // Fetch network info from server API
+                    const response = await fetch('/api/network-info');
+                    const networkInfo = await response.json();
+                    
+                    if (networkInfo.addresses && networkInfo.addresses.length > 0) {
+                        // Use the first available network address
+                        const primaryAddress = networkInfo.addresses[0];
+                        const clientUrl = primaryAddress.clientUrl;
+                        
+                        serverIpElement.textContent = primaryAddress.address + ':' + networkInfo.port;
+                        clientUrlElement.textContent = clientUrl;
+                        
+                        // Update the display URL for QR code section
+                        const clientUrlDisplay = document.getElementById('clientUrlDisplay');
+                        if (clientUrlDisplay) {
+                            clientUrlDisplay.textContent = clientUrl;
+                        }
 
-                serverIpElement.textContent = host;
-                clientUrlElement.textContent = clientUrl;
-                
-                // Update the display URL for QR code section
-                const clientUrlDisplay = document.getElementById('clientUrlDisplay');
-                if (clientUrlDisplay) {
-                    clientUrlDisplay.textContent = clientUrl;
+                        // Generate QR code with network IP
+                        generateQRCode(clientUrl);
+                        
+                        logMessage(`Server detected at ${primaryAddress.address}:${networkInfo.port}`);
+                        
+                        // Log all available addresses
+                        if (networkInfo.addresses.length > 1) {
+                            logMessage(`Additional IPs available: ${networkInfo.addresses.slice(1).map(a => a.address).join(', ')}`);
+                        }
+                    } else {
+                        // Fallback to localhost if no network IPs found
+                        const fallbackUrl = networkInfo.primaryUrl || 'http://localhost:3000/client.html';
+                        serverIpElement.textContent = 'localhost:' + (networkInfo.port || 3000);
+                        clientUrlElement.textContent = fallbackUrl;
+                        
+                        const clientUrlDisplay = document.getElementById('clientUrlDisplay');
+                        if (clientUrlDisplay) {
+                            clientUrlDisplay.textContent = fallbackUrl;
+                        }
+                        
+                        generateQRCode(fallbackUrl);
+                        logMessage('No network IPs detected, using localhost');
+                    }
+                } catch (error) {
+                    console.error('Error fetching network info:', error);
+                    // Fallback to old method
+                    const currentUrl = window.location.href;
+                    const url = new URL(currentUrl);
+                    const host = url.host;
+                    const clientUrl = `http://${host}/client.html`;
+
+                    serverIpElement.textContent = host;
+                    clientUrlElement.textContent = clientUrl;
+                    
+                    const clientUrlDisplay = document.getElementById('clientUrlDisplay');
+                    if (clientUrlDisplay) {
+                        clientUrlDisplay.textContent = clientUrl;
+                    }
+
+                    generateQRCode(clientUrl);
+                    logMessage(`Fallback: Server detected at ${host}`);
                 }
-
-                // Generate QR code
-                generateQRCode(clientUrl);
-
-                logMessage(`Server detected at ${host}`);
             };
 
             const generateQRCode = (url) => {
