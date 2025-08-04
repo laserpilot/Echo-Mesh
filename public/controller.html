@@ -10,8 +10,11 @@
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 0;
             background-color: #f5f5f5;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
         }
 
         h1,
@@ -19,13 +22,130 @@
             color: #333;
         }
 
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
+        .sidebar {
+            width: 250px;
+            background-color: #2c3e50;
+            color: white;
+            padding: 0;
+            overflow-y: auto;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar-header {
             padding: 20px;
+            background-color: #34495e;
+            border-bottom: 1px solid #1a252f;
+        }
+
+        .sidebar-header h1 {
+            color: white;
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .nav-section {
+            padding: 10px 0;
+            border-bottom: 1px solid #34495e;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            border: none;
+            background: none;
+            color: white;
+            width: 100%;
+            text-align: left;
+        }
+
+        .nav-item:hover {
+            background-color: #34495e;
+        }
+
+        .nav-item.active {
+            background-color: #3498db;
+        }
+
+        .nav-item.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .nav-icon {
+            margin-right: 10px;
+            font-size: 16px;
+            width: 20px;
+        }
+
+        .status-panel {
+            padding: 15px 20px;
+            background-color: #1a252f;
+            margin-top: auto;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 5px 0;
+            font-size: 12px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-left: 5px;
+        }
+
+        .status-ready { background-color: #27ae60; }
+        .status-warning { background-color: #f39c12; }
+        .status-error { background-color: #e74c3c; }
+
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            background-color: #f5f5f5;
+        }
+
+        .content-section {
+            display: none;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        .section-header {
             background-color: white;
+            padding: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .section-header h2 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+        }
+
+        .section-description {
+            color: #7f8c8d;
+            margin: 0;
+        }
+
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
         }
 
         .status {
@@ -237,107 +357,206 @@
 </head>
 
 <body>
-    <div class="container">
-        <h1>Audio Controller</h1>
-
-        <div class="connection-info">
-            <h3>Connection Info</h3>
-            <p><strong>Server IP:</strong> <span id="serverIp">Detecting...</span></p>
-            <p><strong>Client URL:</strong> <span id="clientUrl">Detecting...</span></p>
-            <p>
-                <strong>WebSocket Status:</strong>
-                <span id="wsStatus">Not connected</span>
-                <button id="reconnectButton" class="button" style="margin-left: 10px;">Reconnect</button>
-                <button id="resyncButton" class="button" style="margin-left: 10px;">Re-sync Timing</button>
-            </p>
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h1>Audio Controller</h1>
+        </div>
+        
+        <div class="nav-section">
+            <button class="nav-item active" data-section="setup">
+                <span class="nav-icon">🔗</span>
+                Setup
+            </button>
+            <button class="nav-item disabled" data-section="test">
+                <span class="nav-icon">✓</span>
+                Test
+            </button>
+            <button class="nav-item disabled" data-section="compose">
+                <span class="nav-icon">🎵</span>
+                Compose
+            </button>
+            <button class="nav-item disabled" data-section="perform">
+                <span class="nav-icon">🎭</span>
+                Perform
+            </button>
         </div>
 
-        <div class="status">
-            <p><strong>Connected Clients:</strong> <span id="clientCount">0</span></p>
-            <div class="log" id="log">
-                <div class="log-entry">Initializing system...</div>
+        <div class="status-panel">
+            <div class="status-item">
+                <span>Server</span>
+                <span>
+                    <span id="serverStatus">Connecting</span>
+                    <div class="status-indicator status-warning" id="serverIndicator"></div>
+                </span>
+            </div>
+            <div class="status-item">
+                <span>Clients</span>
+                <span>
+                    <span id="clientCountStatus">0</span>
+                    <div class="status-indicator status-error" id="clientIndicator"></div>
+                </span>
+            </div>
+            <div class="status-item">
+                <span>Sync</span>
+                <span>
+                    <span id="syncStatus">No</span>
+                    <div class="status-indicator status-error" id="syncIndicator"></div>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+        <!-- Setup Section -->
+        <div class="content-section active" id="setup-section">
+            <div class="section-header">
+                <h2>🔗 Setup & Connection</h2>
+                <p class="section-description">Connect your mobile devices and establish the orchestra network</p>
+            </div>
+
+            <div class="container">
+                <h3>Connection Info</h3>
+                <p><strong>Server IP:</strong> <span id="serverIp">Detecting...</span></p>
+                <p><strong>Client URL:</strong> <span id="clientUrl">Detecting...</span></p>
+                <p>
+                    <strong>WebSocket Status:</strong>
+                    <span id="wsStatus">Not connected</span>
+                    <button id="reconnectButton" class="button" style="margin-left: 10px;">Reconnect</button>
+                    <button id="resyncButton" class="button" style="margin-left: 10px;">Re-sync Timing</button>
+                </p>
+            </div>
+
+            <div class="container">
+                <h3>Easy Client Connection</h3>
+                <p>Scan this QR code with your mobile devices to quickly connect:</p>
+                <div style="text-align: center; margin: 20px 0;">
+                    <canvas id="qrCode" style="border: 1px solid #ddd;"></canvas>
+                </div>
+                <p style="text-align: center; font-size: 0.9em; color: #666;">
+                    Or manually navigate to: <span id="clientUrlDisplay">Detecting...</span>
+                </p>
+            </div>
+
+            <div class="container">
+                <h3>System Status</h3>
+                <p><strong>Connected Clients:</strong> <span id="clientCount">0</span></p>
+                <div class="log" id="log">
+                    <div class="log-entry">Initializing system...</div>
+                </div>
             </div>
         </div>
 
-        <div class="controls">
-            <h3>Sequence Controls</h3>
-            <div class="sequence-controls">
-                <select id="soundType">
-                    <option value="sine">Sine Wave</option>
-                    <option value="square">Square Wave</option>
-                    <option value="sawtooth">Sawtooth Wave</option>
-                    <option value="triangle">Triangle Wave</option>
-                </select>
+        <!-- Test Section -->
+        <div class="content-section" id="test-section">
+            <div class="section-header">
+                <h2>✓ Test & Verify</h2>
+                <p class="section-description">Test individual clients and verify system functionality</p>
+            </div>
 
-                <label for="delayTime">Delay (ms):</label>
-                <input type="number" id="delayTime" value="500" min="100" max="2000">
+            <div class="container">
+                <h3>Connected Clients</h3>
+                <div class="clients-grid" id="clients-grid">
+                    <!-- Connected clients will appear here -->
+                    <div class="client-card">
+                        <div class="client-id">No clients yet</div>
+                        <p>Waiting for connections...</p>
+                    </div>
+                </div>
+            </div>
 
-                <button id="playSequenceButton" class="button">Play Sequence</button>
-                <button id="playReverseButton" class="button">Play Reverse</button>
-                <button id="playAllButton" class="button">Play All</button>
+            <div class="container">
+                <h3>System Test Controls</h3>
+                <div class="controls-grid">
+                    <button id="testSoundButton" class="button sound">Test Local Sound</button>
+                    <button id="refreshButton" class="button">Refresh Clients</button>
+                </div>
+            </div>
+
+            <div class="container">
+                <h3>Basic Sequence Test</h3>
+                <div class="sequence-controls">
+                    <select id="soundType">
+                        <option value="sine">Sine Wave</option>
+                        <option value="square">Square Wave</option>
+                        <option value="sawtooth">Sawtooth Wave</option>
+                        <option value="triangle">Triangle Wave</option>
+                    </select>
+
+                    <label for="delayTime">Delay (ms):</label>
+                    <input type="number" id="delayTime" value="500" min="100" max="2000">
+
+                    <button id="playSequenceButton" class="button">Play Test Sequence</button>
+                    <button id="playReverseButton" class="button">Play Reverse</button>
+                    <button id="playAllButton" class="button">Play All</button>
+                </div>
             </div>
         </div>
 
-        <div class="music-panel">
-            <h3>Musical Controls</h3>
-
-            <div class="key-controls">
-                <label for="musicalKey">Musical Key:</label>
-                <select id="musicalKey">
-                    <option value="C">C Major / A Minor</option>
-                    <option value="G">G Major / E Minor</option>
-                    <option value="D">D Major / B Minor</option>
-                    <option value="A">A Major / F# Minor</option>
-                    <option value="E">E Major / C# Minor</option>
-                    <option value="F">F Major / D Minor</option>
-                    <option value="Bb">Bb Major / G Minor</option>
-                </select>
-
-                <label for="scaleType">Scale:</label>
-                <select id="scaleType">
-                    <option value="major">Major</option>
-                    <option value="minor">Natural Minor</option>
-                    <option value="pentatonic">Major Pentatonic</option>
-                    <option value="minorPentatonic">Minor Pentatonic</option>
-                    <option value="blues">Blues</option>
-                </select>
-
-                <label for="octave">Base Octave:</label>
-                <select id="octave">
-                    <option value="3">Low (3)</option>
-                    <option value="4" selected>Medium (4)</option>
-                    <option value="5">High (5)</option>
-                </select>
+        <!-- Compose Section -->
+        <div class="content-section" id="compose-section">
+            <div class="section-header">
+                <h2>🎵 Compose & Configure</h2>
+                <p class="section-description">Set up musical parameters, scales, and composition tools</p>
             </div>
 
-            <div class="loop-controls">
-                <div class="loop-settings">
-                    <label for="loopDelayTime">Loop Interval (ms):</label>
-                    <input type="number" id="loopDelayTime" value="2000" min="500" max="10000" step="100">
+            <div class="container">
+                <h3>Musical Key & Scale</h3>
+                <div class="key-controls">
+                    <label for="musicalKey">Musical Key:</label>
+                    <select id="musicalKey">
+                        <option value="C">C Major / A Minor</option>
+                        <option value="G">G Major / E Minor</option>
+                        <option value="D">D Major / B Minor</option>
+                        <option value="A">A Major / F# Minor</option>
+                        <option value="E">E Major / C# Minor</option>
+                        <option value="F">F Major / D Minor</option>
+                        <option value="Bb">Bb Major / G Minor</option>
+                    </select>
 
-                    <label for="loopDuration">Note Duration (ms):</label>
-                    <input type="number" id="loopDuration" value="1000" min="100" max="5000" step="100">
+                    <label for="scaleType">Scale:</label>
+                    <select id="scaleType">
+                        <option value="major">Major</option>
+                        <option value="minor">Natural Minor</option>
+                        <option value="pentatonic">Major Pentatonic</option>
+                        <option value="minorPentatonic">Minor Pentatonic</option>
+                        <option value="blues">Blues</option>
+                    </select>
 
-                    <select id="loopPattern">
-                        <option value="sequence">Sequential</option>
-                        <option value="reverse">Reverse</option>
-                        <option value="random">Random</option>
-                        <option value="randomSubset">Random Subset</option>
-                        <option value="chord">All Together</option>
+                    <label for="octave">Base Octave:</label>
+                    <select id="octave">
+                        <option value="3">Low (3)</option>
+                        <option value="4" selected>Medium (4)</option>
+                        <option value="5">High (5)</option>
                     </select>
                 </div>
-
-                <button id="startLoopButton" class="button loop-button">Start Loop</button>
-                <button id="stopLoopButton" class="button loop-button"
-                    style="background-color: #F44336; display: none;">Stop Loop</button>
             </div>
 
-            <div class="pattern-buttons">
-                <button id="randomNoteButton" class="button">Play Random Notes</button>
-                <button id="arpeggiateButton" class="button">Arpeggiate</button>
+            <div class="container">
+                <h3>Per-Client Pitch Control</h3>
+                <button id="assignPitchesButton" class="button">Auto-Assign Pitches</button>
+                <button id="randomizePitchesButton" class="randomize-button">Randomize</button>
+
+                <div class="pitch-controls" id="pitch-controls">
+                    <!-- Pitch control cards will be added here dynamically -->
+                    <div class="pitch-card">
+                        <div class="pitch-header">
+                            <strong>No clients connected</strong>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="adsr-controls" style="margin-top: 20px;">
+            <div class="container">
+                <h3>Pattern Controls</h3>
+                <div class="pattern-buttons">
+                    <button id="randomNoteButton" class="button">Play Random Notes</button>
+                    <button id="arpeggiateButton" class="button">Arpeggiate</button>
+                </div>
+            </div>
+
+            <div class="container">
                 <h3>ADSR Envelope</h3>
                 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                     <div>
@@ -359,7 +578,7 @@
                 </div>
             </div>
 
-            <div class="lfo-controls" style="margin-top: 20px;">
+            <div class="container">
                 <h3>LFO (Low-Frequency Oscillator)</h3>
                 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                     <div>
@@ -389,7 +608,7 @@
                 </div>
             </div>
 
-            <div class="sequencer-panel" style="margin-top: 20px;">
+            <div class="container">
                 <h3>Step Sequencer</h3>
                 <div class="sequencer-controls">
                     <button id="sequencerPlayButton" class="button">Play</button>
@@ -400,20 +619,12 @@
                 <div id="sequencer-grid" style="margin-top: 10px; overflow-x: auto;"></div>
             </div>
 
-            <div class="spatial-panel" style="margin-top: 20px;">
+            <div class="container">
                 <h3>Spatial Panning</h3>
                 <canvas id="panning-canvas" width="500" height="200" style="border: 1px solid #ccc; cursor: grab;"></canvas>
             </div>
 
-            <div class="preset-panel" style="margin-top: 20px;">
-                <h3>Presets</h3>
-                <button id="savePresetButton" class="button">Save Preset</button>
-                <select id="presetList"></select>
-                <button id="loadPresetButton" class="button">Load Preset</button>
-                <button id="deletePresetButton" class="button" style="background-color: #F44336;">Delete Preset</button>
-            </div>
-
-            <div class="midi-controls" style="margin-top: 20px;">
+            <div class="container">
                 <h3>MIDI Playback</h3>
                 <input type="file" id="midiFileInput" accept=".mid,.midi" style="margin-bottom: 10px;">
                 <select id="distributionStrategy" style="margin-bottom: 10px;">
@@ -425,39 +636,55 @@
                 <button id="stopMidiButton" class="button" style="background-color: #F44336;">Stop MIDI</button>
             </div>
 
-            <h3>Per-Client Pitch Control</h3>
-            <button id="assignPitchesButton" class="button">Auto-Assign Pitches</button>
-            <button id="randomizePitchesButton" class="randomize-button">Randomize</button>
+            <div class="container">
+                <h3>Presets</h3>
+                <button id="savePresetButton" class="button">Save Preset</button>
+                <select id="presetList"></select>
+                <button id="loadPresetButton" class="button">Load Preset</button>
+                <button id="deletePresetButton" class="button" style="background-color: #F44336;">Delete Preset</button>
+            </div>
+        </div>
 
-            <div class="pitch-controls" id="pitch-controls">
-                <!-- Pitch control cards will be added here dynamically -->
-                <div class="pitch-card">
-                    <div class="pitch-header">
-                        <strong>No clients connected</strong>
-                    </div>
+        <!-- Perform Section -->
+        <div class="content-section" id="perform-section">
+            <div class="section-header">
+                <h2>🎭 Perform & Record</h2>
+                <p class="section-description">Live performance controls and recording capabilities</p>
+            </div>
+
+            <div class="container">
+                <h3>Loop Controls</h3>
+                <div class="loop-settings">
+                    <label for="loopDelayTime">Loop Interval (ms):</label>
+                    <input type="number" id="loopDelayTime" value="2000" min="500" max="10000" step="100">
+
+                    <label for="loopDuration">Note Duration (ms):</label>
+                    <input type="number" id="loopDuration" value="1000" min="100" max="5000" step="100">
+
+                    <select id="loopPattern">
+                        <option value="sequence">Sequential</option>
+                        <option value="reverse">Reverse</option>
+                        <option value="random">Random</option>
+                        <option value="randomSubset">Random Subset</option>
+                        <option value="chord">All Together</option>
+                    </select>
                 </div>
-            </div>
-        </div>
 
-        <h2>Connected Clients</h2>
-        <div class="clients-grid" id="clients-grid">
-            <!-- Connected clients will appear here -->
-            <div class="client-card">
-                <div class="client-id">No clients yet</div>
-                <p>Waiting for connections...</p>
+                <button id="startLoopButton" class="button loop-button">Start Loop</button>
+                <button id="stopLoopButton" class="button loop-button"
+                    style="background-color: #F44336; display: none;">Stop Loop</button>
             </div>
-        </div>
 
-        <div class="controls">
-            <h3>Test Controls</h3>
-            <div class="controls-grid">
-                <button id="testSoundButton" class="button sound">Test Local Sound</button>
-                <button id="refreshButton" class="button">Refresh Clients</button>
+            <div class="container">
+                <h3>Recording & Playback</h3>
+                <p><em>Recording functionality will be added in a future update to capture and save performances.</em></p>
             </div>
         </div>
     </div>
+    </div>
 
     <script src="https://unpkg.com/@tonejs/midi"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             console.log('Controller page loaded successfully');
@@ -495,6 +722,83 @@
             let ws = null;
             let serverTimeOffset = 0;
             let isSynced = false;
+            let lastRtt = 0;
+
+            // Status Management Functions
+            const updateSystemStatus = () => {
+                const serverStatusEl = document.getElementById('serverStatus');
+                const serverIndicatorEl = document.getElementById('serverIndicator');
+                const clientCountStatusEl = document.getElementById('clientCountStatus');
+                const clientIndicatorEl = document.getElementById('clientIndicator');
+                const syncStatusEl = document.getElementById('syncStatus');
+                const syncIndicatorEl = document.getElementById('syncIndicator');
+
+                // Update server status
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    serverStatusEl.textContent = 'Connected';
+                    serverIndicatorEl.className = 'status-indicator status-ready';
+                } else {
+                    serverStatusEl.textContent = 'Disconnected';
+                    serverIndicatorEl.className = 'status-indicator status-error';
+                }
+
+                // Update client count
+                clientCountStatusEl.textContent = clients.length;
+                if (clients.length > 0) {
+                    clientIndicatorEl.className = 'status-indicator status-ready';
+                } else {
+                    clientIndicatorEl.className = 'status-indicator status-error';
+                }
+
+                // Update sync status
+                if (isSynced) {
+                    syncStatusEl.textContent = 'Yes';
+                    syncIndicatorEl.className = 'status-indicator status-ready';
+                } else {
+                    syncStatusEl.textContent = 'No';
+                    syncIndicatorEl.className = 'status-indicator status-error';
+                }
+
+                // Progressive disclosure - enable/disable navigation
+                updateNavigationState();
+            };
+
+            const updateNavigationState = () => {
+                const testNav = document.querySelector('[data-section="test"]');
+                const composeNav = document.querySelector('[data-section="compose"]');
+                const performNav = document.querySelector('[data-section="perform"]');
+
+                console.log('Updating navigation state:', {
+                    wsConnected: ws && ws.readyState === WebSocket.OPEN,
+                    clientsLength: clients.length,
+                    isSynced: isSynced
+                });
+
+                // Enable Test section when server is connected
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    testNav.classList.remove('disabled');
+                } else {
+                    testNav.classList.add('disabled');
+                    composeNav.classList.add('disabled');
+                    performNav.classList.add('disabled');
+                    return;
+                }
+
+                // Enable Compose section when server is connected (relaxed requirement for testing)
+                // Original: if (clients.length > 0 && isSynced)
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    composeNav.classList.remove('disabled');
+                    console.log('Compose section enabled');
+                } else {
+                    composeNav.classList.add('disabled');
+                    performNav.classList.add('disabled');
+                    return;
+                }
+
+                // Enable Perform section when compose is enabled
+                performNav.classList.remove('disabled');
+                console.log('Perform section enabled');
+            };
 
             // Detect server IP and update UI
             const detectServerInfo = () => {
@@ -502,11 +806,43 @@
                 const currentUrl = window.location.href;
                 const url = new URL(currentUrl);
                 const host = url.host;
+                const clientUrl = `http://${host}/client.html`;
 
                 serverIpElement.textContent = host;
-                clientUrlElement.textContent = `http://${host}/client.html`;
+                clientUrlElement.textContent = clientUrl;
+                
+                // Update the display URL for QR code section
+                const clientUrlDisplay = document.getElementById('clientUrlDisplay');
+                if (clientUrlDisplay) {
+                    clientUrlDisplay.textContent = clientUrl;
+                }
+
+                // Generate QR code
+                generateQRCode(clientUrl);
 
                 logMessage(`Server detected at ${host}`);
+            };
+
+            const generateQRCode = (url) => {
+                try {
+                    const canvas = document.getElementById('qrCode');
+                    if (canvas && window.QRious) {
+                        const qr = new QRious({
+                            element: canvas,
+                            value: url,
+                            size: 200,
+                            background: 'white',
+                            foreground: 'black',
+                            level: 'M'
+                        });
+                        logMessage(`QR code generated for: ${url}`);
+                    } else {
+                        console.warn('QR code canvas not found or QRious library not loaded');
+                    }
+                } catch (error) {
+                    console.error('Error generating QR code:', error);
+                    logMessage('Failed to generate QR code');
+                }
             };
 
             // Add a log message
@@ -542,6 +878,7 @@
                     logMessage('WebSocket connected, sending registration...');
                     // Controller doesn't need a persistent ID, so we send null
                     ws.send(JSON.stringify({ type: 'register', id: null }));
+                    updateSystemStatus(); // Update status when connected
                 });
 
                 // Listen for messages
@@ -559,6 +896,7 @@
                     wsStatusElement.textContent = 'Disconnected';
                     logMessage('WebSocket connection closed');
                     isSynced = false; // Reset sync status
+                    updateSystemStatus(); // Update status when disconnected
                 });
 
                 // Connection error
@@ -604,6 +942,7 @@
                     case 'sync-reply':
                         const t1 = performance.now();
                         const rtt = t1 - data.t0;
+                        lastRtt = rtt; // Store RTT for lead time calculation
                         const estimatedServerTime = data.serverTime + rtt / 2;
                         serverTimeOffset = estimatedServerTime - t1;
                         if (!isSynced) {
@@ -612,10 +951,11 @@
                             startPeriodicSync();
                         }
                         logMessage(`Controller clock synced. RTT: ${rtt.toFixed(2)}ms, Offset: ${serverTimeOffset.toFixed(2)}ms`);
+                        updateSystemStatus(); // Update status when synced
                         break;
 
                     case 'clientList':
-                        updateClientList(data.clients);
+                        updateClientListWithStatus(data.clients);
                         break;
 
                     case 'clientConnected':
@@ -669,7 +1009,17 @@
                 if (!clients.includes(clientId)) {
                     clients.push(clientId);
                     clientCountElement.textContent = clients.length;
+                    
+                    // Initialize default pitch settings for the client
+                    if (!clientPitches.has(clientId)) {
+                        const frequency = generateFrequencyForClient(clientId);
+                        // generateFrequencyForClient already stores the settings
+                    }
+                    
                     addClientElement(clientId);
+                    updatePitchControls(); // Update pitch controls when client is added
+                    buildSequencerGrid(); // Rebuild sequencer grid when client is added
+                    initClientPositions(); // Initialize positions for new client
                 }
             };
 
@@ -679,7 +1029,19 @@
                 if (index !== -1) {
                     clients.splice(index, 1);
                     clientCountElement.textContent = clients.length;
-                    updateClientList(clients);
+                    
+                    // Clean up pitch settings and positions for removed client
+                    if (clientPitches.has(clientId)) {
+                        clientPitches.delete(clientId);
+                    }
+                    if (clientPositions.has(clientId)) {
+                        clientPositions.delete(clientId);
+                    }
+                    
+                    updateClientListWithStatus(clients);
+                    updatePitchControls(); // Update pitch controls when client is removed
+                    buildSequencerGrid(); // Rebuild sequencer grid when client is removed
+                    initClientPositions(); // Update positions when client is removed
                 }
             };
 
@@ -970,7 +1332,7 @@
                     const rangeInput = card.querySelector('.pitch-range');
                     rangeInput.addEventListener('input', (event) => {
                         const newFrequency = parseFloat(event.target.value);
-                        const clientId = parseInt(event.target.getAttribute('data-client'));
+                        const clientId = event.target.getAttribute('data-client');
                         const settings = clientPitches.get(clientId);
 
                         // Update stored frequency
@@ -985,13 +1347,18 @@
                     // Add event listeners to buttons
                     card.querySelectorAll('button').forEach(button => {
                         button.addEventListener('click', (event) => {
-                            const clientId = parseInt(button.getAttribute('data-client'));
+                            const clientId = button.getAttribute('data-client');
                             const trigger = button.getAttribute('data-trigger');
 
                             if (trigger === 'test') {
                                 // Test the current note
                                 const settings = clientPitches.get(clientId);
-                                triggerClientNote(clientId, settings.frequency);
+                                if (settings && settings.frequency) {
+                                    triggerClientNote(clientId, settings.frequency);
+                                } else {
+                                    console.error(`No frequency settings found for client ${clientId}`);
+                                    logMessage(`No frequency settings found for client ${clientId}`);
+                                }
                             } else if (trigger === 'set') {
                                 // Set a new note based on the select values
                                 const semitone = parseInt(noteSelect.value);
@@ -1000,9 +1367,19 @@
 
                                 // Update stored settings
                                 const settings = clientPitches.get(clientId);
-                                settings.frequency = frequency;
-                                settings.semitone = semitone;
-                                settings.octave = octave;
+                                if (settings) {
+                                    settings.frequency = frequency;
+                                    settings.semitone = semitone;
+                                    settings.octave = octave;
+                                } else {
+                                    // Create new settings if they don't exist
+                                    clientPitches.set(clientId, {
+                                        frequency: frequency,
+                                        semitone: semitone,
+                                        octave: octave,
+                                        degree: semitone // Approximate degree
+                                    });
+                                }
 
                                 // Update range input and display
                                 rangeInput.value = frequency;
@@ -1028,8 +1405,8 @@
                 const sound = soundTypeSelect.value;
                 const now = performance.now();
                 const serverNow = now + serverTimeOffset;
-                // Adaptive lead time: minimum 50ms, more for higher latency
-                const leadTime = Math.max(50, Math.min(200, serverTimeOffset * 0.1 + 50));
+                // Adaptive lead time: based on RTT, not offset. Minimum 50ms.
+                const leadTime = Math.max(50, lastRtt * 1.5);
                 const playTime = serverNow + leadTime;
 
                 const adsr = {
@@ -1697,11 +2074,42 @@
             loadPresetButton.addEventListener('click', loadPreset);
             deletePresetButton.addEventListener('click', deletePreset);
 
-            // Initialize
-            detectServerInfo();
-            connectWebSocket();
-            initWebMidi();
-            populatePresetList();
+            // --- Initialization ---
+            const init = () => {
+                detectServerInfo();
+                connectWebSocket();
+                updateSystemStatus();
+                updatePitchControls();
+                buildSequencerGrid();
+                initClientPositions();
+                drawPanningCanvas();
+                populatePresetList();
+                initWebMidi();
+
+                // Add event listeners for navigation
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        if (item.classList.contains('disabled')) {
+                            logMessage('This section is disabled until clients are connected and synced.');
+                            return;
+                        }
+                        // Remove active class from all items
+                        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                        // Add active class to clicked item
+                        item.classList.add('active');
+
+                        // Show the correct content section
+                        const sectionId = item.getAttribute('data-section') + '-section';
+                        document.querySelectorAll('.content-section').forEach(section => {
+                            section.classList.remove('active');
+                        });
+                        document.getElementById(sectionId).classList.add('active');
+                    });
+                });
+            };
+
+            // Start initialization
+            init();
         });
     </script>
 </body>

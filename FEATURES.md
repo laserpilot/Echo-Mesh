@@ -4,12 +4,11 @@
 
 ### Visual Feedback & Status
 - [ ] **Connection quality indicators** - show RTT/latency with color coding (green/yellow/red)
-- [ ] **Battery level warning** - mobile clients show battery status to prevent mid-performance dropouts
 - [ ] **Volume levels per client** - individual volume controls for each client
 - [ ] **Activity indicators** - show which clients are currently playing sounds
 
 ### Quick Setup Features
-- [ ] **QR code generation** - controller shows QR code for easy client connection
+- [x] **QR code generation** - controller shows QR code for easy client connection
 - [ ] **Auto-discovery** - broadcast server IP on local network for easier mobile connection
 - [ ] **Setup wizard** - guided setup for new users
 - [ ] **Save/load sessions** - remember client configurations and pitch assignments
@@ -23,23 +22,37 @@
 - [ ] **Key change function** - transpose entire orchestra up/down
 
 ### Sound Library
-- [ ] **More waveforms** - add noise, filtered sawtooth, organ-like sounds
+- [ ] **More waveforms and synth options** - add noise, filtered sawtooth, organ-like sounds
+- [ ] **Add effects** - add the range of options with th Tone.effect module like reverb 
 - [ ] **Percussion sounds** - kick, snare, hi-hat samples for rhythm sections
 - [ ] **Sound effects** - rain, wind, ambient textures for experimental music
+- [ ] **Safe volume limit** - make sure the very end of the client chain has a safe volume limiter on it so it doesn't blow out headphones
 
 ## 🎛️ Control & Organization
 
+### Interface Redesign
+- [x] **Controller UI reorganization** - restructure interface with logical workflow
+  - [x] Sidebar navigation with collapsible sections
+  - [x] Step-by-step workflow: Setup → Test → Compose → Perform
+  - [x] Clear visual hierarchy and grouping of related controls
+  - [x] Progress indicators showing connection status before composition
+  - [x] Separate testing area from composition controls
+- [x] **Workflow improvements** - guide users through logical steps
+  - [x] Setup section: connection info, client discovery, sync status
+  - [x] Testing section: individual client sound tests, system checks
+  - [x] Composition section: musical controls, sequences, patterns
+  - [x] Performance section: live controls, recording, monitoring
+
 ### Client Management
-- [ ] **Client grouping** - organize clients into sections (strings, brass, percussion)
+
 - [ ] **Mute/solo controls** - mute individual clients or solo specific ones
+- [ ] **Set volume per client** - default to full volume
 - [ ] **Client naming** - let users give friendly names to their devices
 - [ ] **Position memory** - remember panning positions for reconnected clients
 
 ### Advanced Features
-- [ ] **Recording capability** - record the mixed output for playback
-- [ ] **Export to audio file** - save performances as WAV/MP3
-- [ ] **Multiple controllers** - allow multiple people to control different aspects
 - [ ] **Conductor mode** - simplified interface for live conducting gestures
+- [ ] **COnnection to local midi playback** allow timing or note control from something like Ableton Live or other music performance
 
 ## 📱 Mobile-Specific Improvements
 
@@ -66,10 +79,11 @@
 ## 🚀 Priority Recommendations
 
 ### High Priority (Quick Wins)
-1. **QR code generation** - immediate setup improvement
-2. **Connection quality indicators** - essential for performance reliability
-3. **Client naming** - basic usability improvement
-4. **Volume controls** - essential for live performance balance
+1. **Controller UI reorganization** - address current usability confusion
+2. **QR code generation** - immediate setup improvement
+3. **Connection quality indicators** - essential for performance reliability
+4. **Client naming** - basic usability improvement
+5. **Volume controls** - essential for live performance balance
 
 ### Medium Priority (Performance Enhancers)
 1. **Metronome/click track** - crucial for synchronized performance
