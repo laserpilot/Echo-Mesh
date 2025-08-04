@@ -29,10 +29,12 @@
         }
 
         .client-id {
-            font-size: 90px;
+            font-size: 48px;
             font-weight: bold;
             margin: 10px 0;
             color: #4CAF50;
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
         }
 
         .status {
@@ -166,12 +168,12 @@
                 }
             };
 
-            const playSound = (type = 'sine', customFrequency = null, playTime = 0, adsr = { attack: 0.01, decay: 0.1, sustain: 0.5, release: 1.0 }, lfo = { type: 'sine', rate: 5, depth: 0, target: 'vibrato' }, pan = 0) => {
+            const playSound = async (type = 'sine', customFrequency = null, playTime = 0, adsr = { attack: 0.01, decay: 0.1, sustain: 0.5, release: 1.0 }, lfo = { type: 'sine', rate: 5, depth: 0, target: 'vibrato' }, pan = 0) => {
                 // --- AudioContext Initialization and Resuming ---
                 if (!audioContext) {
                     try {
                         audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                        logMessage('Audio context initialized on user interaction.');
+                        logMessage('Audio context initialized.');
                     } catch (e) {
                         logMessage(`Error initializing AudioContext: ${e.message}`);
                         statusElement.textContent = 'Error: Could not initialize audio.';
@@ -179,9 +181,15 @@
                     }
                 }
 
+                // Ensure audio context is resumed for mobile browsers
                 if (audioContext.state === 'suspended') {
-                    audioContext.resume();
-                    logMessage('Audio context resumed.');
+                    try {
+                        await audioContext.resume();
+                        logMessage('Audio context resumed.');
+                    } catch (e) {
+                        logMessage(`Error resuming audio context: ${e.message}`);
+                        return false;
+                    }
                 }
                 // --------------------------------------------------
 
@@ -197,8 +205,10 @@
                     if (customFrequency !== null) {
                         baseFrequency = parseFloat(customFrequency);
                     } else if (clientId) {
+                        // Calculate frequency from client UUID hash for consistent pitch assignment
                         const pentatonicSteps = [0, 2, 4, 7, 9];
-                        const step = pentatonicSteps[clientId % pentatonicSteps.length];
+                        const clientHash = clientId.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+                        const step = pentatonicSteps[clientHash % pentatonicSteps.length];
                         baseFrequency = 220 * Math.pow(2, step / 12);
                     }
                     oscillator.frequency.setValueAtTime(baseFrequency, scheduledTime);
@@ -327,10 +337,10 @@
                 });
 
                 // Listen for messages
-                ws.addEventListener('message', (event) => {
+                ws.addEventListener('message', async (event) => {
                     try {
                         const data = JSON.parse(event.data);
-                        handleMessage(data);
+                        await handleMessage(data);
                     } catch (error) {
                         logMessage(`Error parsing message: ${error.message}`);
                     }
@@ -353,15 +363,17 @@
             };
 
             // Handle incoming message
-            const handleMessage = (data) => {
+            const handleMessage = async (data) => {
                 logMessage(`Received message: ${JSON.stringify(data)}`);
 
                 switch (data.type) {
                     case 'id':
                         clientId = data.id;
                         localStorage.setItem('multichannelClientId', clientId);
-                        clientIdElement.textContent = clientId.substring(0, 8) + '...'; // Show shortened ID
-                        statusElement.textContent = `Registered as Client ${clientId.substring(0, 8)}...`;
+                        // Show only the first 8 characters for readability
+                        const shortId = clientId.substring(0, 8).toUpperCase();
+                        clientIdElement.textContent = shortId;
+                        statusElement.textContent = `Registered as Client ${shortId}`;
                         logMessage(`Assigned client ID: ${clientId}`);
                         // Now that we are registered, we can sync the clock
                         syncClock();
@@ -374,7 +386,14 @@
                         serverTimeOffset = estimatedServerTime - t1;
                         isSynced = true;
                         logMessage(`Clock synced. RTT: ${rtt.toFixed(2)}ms, Offset: ${serverTimeOffset.toFixed(2)}ms`);
-                        statusElement.textContent = `Synced with server as Client ${clientId.substring(0, 8)}...`;
+                        const syncShortId = clientId.substring(0, 8).toUpperCase();
+                        statusElement.textContent = `Synced with server as Client ${syncShortId}`;
+                        break;
+
+                    case 'triggerSound':
+                        // Play sound immediately
+                        logMessage(`Triggering ${data.sound} sound immediately`);
+                        await playSound(data.sound, data.frequency || null, 0);
                         break;
 
                     case 'scheduleNote':
@@ -387,10 +406,10 @@
                         if (localPlayTime < audioContext.currentTime) {
                             logMessage(`Stale note received. Scheduled for ${localPlayTime.toFixed(2)}, current is ${audioContext.currentTime.toFixed(2)}`);
                             // Optionally play immediately or just drop
-                            playSound(data.sound, data.frequency, 0, data.adsr, data.lfo, data.pan);
+                            await playSound(data.sound, data.frequency, 0, data.adsr, data.lfo, data.pan);
                         } else {
                             logMessage(`Scheduled note ${data.sound} at ${localPlayTime.toFixed(2)}`);
-                            playSound(data.sound, data.frequency, localPlayTime, data.adsr, data.lfo, data.pan);
+                            await playSound(data.sound, data.frequency, localPlayTime, data.adsr, data.lfo, data.pan);
                         }
                         break;
 
@@ -427,14 +446,46 @@
             // Initialize
             const init = () => {
                 // Set up test button
-                testButton.addEventListener('click', () => {
-                    playSound('sine');
+                testButton.addEventListener('click', async () => {
+                    await playSound('sine');
                 });
 
                 // Connect to server
                 connectWebSocket();
 
                 statusElement.textContent = 'Ready. Click the test button to activate audio.';
+                
+                // Add user interaction trigger for mobile browsers
+                const enableAudioOnUserInteraction = async () => {
+                    if (!audioContext) {
+                        try {
+                            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                            logMessage('Audio context created on user interaction.');
+                        } catch (e) {
+                            logMessage(`Error creating audio context: ${e.message}`);
+                            return;
+                        }
+                    }
+                    
+                    if (audioContext.state === 'suspended') {
+                        try {
+                            await audioContext.resume();
+                            logMessage('Audio context resumed on user interaction.');
+                            const audioShortId = clientId ? clientId.substring(0, 8).toUpperCase() : 'loading...';
+                            statusElement.textContent = `Audio enabled. Client ${audioShortId}`;
+                        } catch (e) {
+                            logMessage(`Error resuming audio context: ${e.message}`);
+                        }
+                    }
+                    
+                    // Remove the event listeners after first interaction
+                    document.removeEventListener('touchstart', enableAudioOnUserInteraction);
+                    document.removeEventListener('click', enableAudioOnUserInteraction);
+                };
+                
+                // Listen for any user interaction to enable audio
+                document.addEventListener('touchstart', enableAudioOnUserInteraction, { once: true });
+                document.addEventListener('click', enableAudioOnUserInteraction, { once: true });
             };
 
             // Start initialization

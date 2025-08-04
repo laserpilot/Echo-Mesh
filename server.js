@@ -54,9 +54,11 @@ const broadcast = (message, excludeId = null) => {
   }
 };
 
-// Get all connected client IDs
+// Get all connected client IDs (excluding controllers)
 const getClientIds = () => {
-  return Array.from(clients.values()).map(c => c.id);
+  return Array.from(clients.values())
+    .filter(c => !c.isController)
+    .map(c => c.id);
 };
 
 // WebSocket connection handling
@@ -73,17 +75,23 @@ wss.on('connection', (ws, req) => {
       if (data.type === 'register') {
         let clientId = data.id;
         let isNew = false;
+        let isController = false;
 
-        // If the client has no ID, or its ID is not in our list, it's a new client.
-        if (!clientId || ![...clients.values()].some(c => c.id === clientId)) {
+        // Check if this is a controller (sends null ID)
+        if (clientId === null) {
+          clientId = 'controller-' + randomUUID();
+          isController = true;
+          isNew = true;
+        } else if (!clientId || ![...clients.values()].some(c => c.id === clientId)) {
+          // If the client has no ID, or its ID is not in our list, it's a new client.
           clientId = randomUUID();
           isNew = true;
         }
 
-        const client = { id: clientId, ws: ws };
+        const client = { id: clientId, ws: ws, isController: isController };
         clients.set(ws, client);
 
-        console.log(`Client registered with ID ${clientId} (${clients.size} total connected). New: ${isNew}`);
+        console.log(`${isController ? 'Controller' : 'Client'} registered with ID ${clientId} (${clients.size} total connected). New: ${isNew}`);
 
         // Send the client its definitive ID
         ws.send(JSON.stringify({
@@ -91,11 +99,13 @@ wss.on('connection', (ws, req) => {
           id: clientId
         }));
 
-        // Notify all other clients about this connection
-        broadcast({
-          type: 'clientConnected',
-          id: clientId
-        }, clientId);
+        // Only notify about client connections, not controller connections
+        if (!isController) {
+          broadcast({
+            type: 'clientConnected',
+            id: clientId
+          }, clientId);
+        }
 
         // Remove the register listener and add the general message handler
         ws.removeListener('message', ws.listeners('message')[0]);
@@ -114,11 +124,14 @@ wss.on('connection', (ws, req) => {
   ws.on('close', () => {
     const client = clients.get(ws);
     if (client) {
-      console.log(`Client ${client.id} disconnected`);
-      broadcast({
-        type: 'clientDisconnected',
-        id: client.id
-      });
+      console.log(`${client.isController ? 'Controller' : 'Client'} ${client.id} disconnected`);
+      // Only notify about client disconnections, not controller disconnections
+      if (!client.isController) {
+        broadcast({
+          type: 'clientDisconnected',
+          id: client.id
+        });
+      }
       clients.delete(ws);
     }
   });
@@ -142,6 +155,12 @@ const createMessageHandler = (clientId) => (message) => {
           type: 'clientList',
           clients: getClientIds()
         });
+        break;
+
+      case 'triggerSound':
+        if (data.clientId) {
+          sendToClient(data.clientId, data);
+        }
         break;
 
       case 'scheduleNote':
@@ -169,7 +188,7 @@ const createMessageHandler = (clientId) => (message) => {
 
 // API routes for triggering sounds via HTTP (as alternative to WebSocket)
 app.get('/api/trigger/:id/:sound', (req, res) => {
-  const clientId = parseInt(req.params.id);
+  const clientId = req.params.id; // Don't parse as int, keep as UUID string
   const sound = req.params.sound;
   
   console.log(`HTTP request to trigger ${sound} on client ${clientId}`);
@@ -185,7 +204,7 @@ app.get('/api/trigger/:id/:sound', (req, res) => {
 
 // API route for triggering a specific frequency note
 app.get('/api/note/:id/:sound/:frequency', (req, res) => {
-  const clientId = parseInt(req.params.id);
+  const clientId = req.params.id; // Don't parse as int, keep as UUID string
   const sound = req.params.sound;
   const frequency = parseFloat(req.params.frequency);
   
@@ -207,7 +226,7 @@ app.get('/api/note/:id/:sound/:frequency', (req, res) => {
 app.get('/api/sequence/:sound/:delay', (req, res) => {
   const sound = req.params.sound;
   const delay = parseInt(req.params.delay);
-  const clientIds = getClientIds().sort((a, b) => a - b);
+  const clientIds = getClientIds().sort(); // Sort UUIDs alphabetically instead of numerically
   
   console.log(`HTTP request to play sequence with ${sound} sound and ${delay}ms delay`);
   

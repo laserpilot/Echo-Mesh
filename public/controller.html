@@ -738,8 +738,8 @@
                 const sound = soundTypeSelect.value;
                 const delay = parseInt(delayTimeInput.value);
 
-                // Make a copy and sort
-                const clientSequence = [...clients].sort((a, b) => a - b);
+                // Make a copy and sort (alphabetically for UUID strings)
+                const clientSequence = [...clients].sort();
 
                 // Reverse if needed
                 if (reverse) {
@@ -841,8 +841,9 @@
                     return settings.frequency;
                 }
 
-                // Calculate a default pitch based on client ID
-                const degree = degreeOverride !== null ? degreeOverride : (clientId % 7);
+                // Calculate a default pitch based on client ID hash (since UUID is string)
+                const clientHash = clientId.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+                const degree = degreeOverride !== null ? degreeOverride : (clientHash % 7);
                 const note = getNoteInScale(degree);
                 const frequency = noteToFrequency(note.semitone, note.octave);
 
@@ -1032,8 +1033,8 @@
                     return;
                 }
 
-                // Sort clients by ID
-                const sortedClients = [...clients].sort((a, b) => a - b);
+                // Sort clients alphabetically (for UUID strings)
+                const sortedClients = [...clients].sort();
                 console.log('Clients for pitch assignment:', sortedClients);
 
                 const scaleType = document.getElementById('scaleType').value;
@@ -1135,8 +1136,8 @@
                 const delay = parseInt(delayTimeInput.value);
                 const sound = soundTypeSelect.value;
 
-                // Sort clients to ensure consistent order
-                const sortedClients = [...clients].sort((a, b) => a - b);
+                // Sort clients to ensure consistent order (alphabetically for UUID strings)
+                const sortedClients = [...clients].sort();
                 console.log(`Playing arpeggio on clients:`, sortedClients);
 
                 logMessage(`Playing ${sound} arpeggio across ${sortedClients.length} clients`);
@@ -1185,7 +1186,7 @@
                 const sound = soundTypeSelect.value;
 
                 let currentIndex = 0;
-                let clientsToUse = [...clients].sort((a, b) => a - b);
+                let clientsToUse = [...clients].sort(); // Sort alphabetically for UUID strings
 
                 logMessage(`Starting ${pattern} loop with ${sound} sound and ${delay}ms interval`);
                 console.log(`Loop started with pattern: ${pattern}, clients: ${clientsToUse.length}`);
