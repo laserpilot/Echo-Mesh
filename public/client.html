@@ -1,0 +1,446 @@
+<!-- public/client.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Client</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #121212;
+            color: white;
+            text-align: center;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+        }
+
+        .client-id {
+            font-size: 90px;
+            font-weight: bold;
+            margin: 10px 0;
+            color: #4CAF50;
+        }
+
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            font-size: 14px;
+        }
+
+        .test-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .sound-indicator {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 24px;
+            margin: 20px auto;
+            background-color: #333;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .sound-indicator.sine {
+            background-color: #2196F3;
+            box-shadow: 0 0 40px rgba(33, 150, 243, 0.5);
+        }
+
+        .sound-indicator.square {
+            background-color: #9C27B0;
+            box-shadow: 0 0 40px rgba(156, 39, 176, 0.5);
+        }
+
+        .sound-indicator.sawtooth {
+            background-color: #FF9800;
+            box-shadow: 0 0 40px rgba(255, 152, 0, 0.5);
+        }
+
+        .sound-indicator.triangle {
+            background-color: #F44336;
+            box-shadow: 0 0 40px rgba(244, 67, 54, 0.5);
+        }
+
+        .log {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            text-align: left;
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.5);
+            max-width: 300px;
+            max-height: 100px;
+            overflow-y: auto;
+            padding: 5px;
+        }
+
+        .log-message {
+            margin: 2px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="log" id="log"></div>
+
+    <h1>Audio Client</h1>
+    <div class="client-id" id="clientId">--</div>
+
+    <div class="sound-indicator" id="soundIndicator">READY</div>
+
+    <button class="test-button" id="testButton">Test Sound</button>
+
+    <div class="status" id="status">Initializing...</div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('Client page loaded');
+
+            // Elements
+            const clientIdElement = document.getElementById('clientId');
+            const statusElement = document.getElementById('status');
+            const soundIndicator = document.getElementById('soundIndicator');
+            const testButton = document.getElementById('testButton');
+            const logElement = document.getElementById('log');
+
+            // Variables
+            let clientId = null;
+            let ws = null;
+            let audioContext = null;
+            let serverTimeOffset = 0;
+            let isSynced = false;
+
+            // Add a log message (for debugging)
+            const logMessage = (message) => {
+                const entry = document.createElement('div');
+                entry.className = 'log-message';
+                entry.textContent = message;
+                logElement.appendChild(entry);
+                logElement.scrollTop = logElement.scrollHeight;
+                console.log(message);
+            };
+
+            // Initialize audio context
+            const initAudio = () => {
+                try {
+                    // Create audio context
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    logMessage('Audio context initialized');
+                    return true;
+                } catch (error) {
+                    logMessage(`Audio error: ${error.message}`);
+                    statusElement.textContent = `Audio error: ${error.message}`;
+                    return false;
+                }
+            };
+
+            const playSound = (type = 'sine', customFrequency = null, playTime = 0, adsr = { attack: 0.01, decay: 0.1, sustain: 0.5, release: 1.0 }, lfo = { type: 'sine', rate: 5, depth: 0, target: 'vibrato' }, pan = 0) => {
+                // --- AudioContext Initialization and Resuming ---
+                if (!audioContext) {
+                    try {
+                        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        logMessage('Audio context initialized on user interaction.');
+                    } catch (e) {
+                        logMessage(`Error initializing AudioContext: ${e.message}`);
+                        statusElement.textContent = 'Error: Could not initialize audio.';
+                        return false;
+                    }
+                }
+
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                    logMessage('Audio context resumed.');
+                }
+                // --------------------------------------------------
+
+                // If playTime is 0, it means "play now"
+                const scheduledTime = playTime === 0 ? audioContext.currentTime : playTime;
+
+                try {
+                    // Create main oscillator
+                    const oscillator = audioContext.createOscillator();
+                    oscillator.type = type;
+
+                    let baseFrequency = 440; // A4
+                    if (customFrequency !== null) {
+                        baseFrequency = parseFloat(customFrequency);
+                    } else if (clientId) {
+                        const pentatonicSteps = [0, 2, 4, 7, 9];
+                        const step = pentatonicSteps[clientId % pentatonicSteps.length];
+                        baseFrequency = 220 * Math.pow(2, step / 12);
+                    }
+                    oscillator.frequency.setValueAtTime(baseFrequency, scheduledTime);
+
+                    // Create gain node for ADSR envelope
+                    const gainNode = audioContext.createGain();
+                    gainNode.gain.setValueAtTime(0, scheduledTime);
+                    gainNode.gain.linearRampToValueAtTime(1.0, scheduledTime + adsr.attack);
+                    gainNode.gain.linearRampToValueAtTime(adsr.sustain, scheduledTime + adsr.attack + adsr.decay);
+
+                    // LFO Implementation
+                    if (lfo && lfo.depth > 0) {
+                        const lfoNode = audioContext.createOscillator();
+                        lfoNode.type = lfo.type;
+                        lfoNode.frequency.setValueAtTime(lfo.rate, scheduledTime);
+
+                        const lfoGain = audioContext.createGain();
+                        lfoGain.gain.setValueAtTime(lfo.depth, scheduledTime);
+
+                        lfoNode.connect(lfoGain);
+
+                        if (lfo.target === 'vibrato') {
+                            lfoGain.connect(oscillator.frequency);
+                        } else { // tremolo
+                            lfoGain.connect(gainNode.gain);
+                        }
+                        lfoNode.start(scheduledTime);
+                        lfoNode.stop(scheduledTime + adsr.attack + adsr.decay + adsr.release);
+                    }
+
+                    // Panning Implementation
+                    const panner = audioContext.createStereoPanner();
+                    panner.pan.setValueAtTime(pan, scheduledTime);
+
+                    // Connect main nodes
+                    oscillator.connect(gainNode);
+                    gainNode.connect(panner);
+                    panner.connect(audioContext.destination);
+
+                    // Start the main oscillator
+                    oscillator.start(scheduledTime);
+
+                    // Schedule the release phase
+                    const releaseStartTime = scheduledTime + adsr.attack + adsr.decay;
+                    gainNode.gain.setValueAtTime(adsr.sustain, releaseStartTime);
+                    gainNode.gain.linearRampToValueAtTime(0, releaseStartTime + adsr.release);
+
+                    // Stop the oscillator after the release phase
+                    oscillator.stop(releaseStartTime + adsr.release);
+
+                    // Visual feedback
+                    showSoundPlaying(type, baseFrequency);
+
+                    return true;
+                } catch (error) {
+                    logMessage(`Error playing sound: ${error.message}`);
+                    return false;
+                }
+            };
+
+            // Show visual feedback when sound is playing
+            const showSoundPlaying = (type, frequency = null) => {
+                // Remove all classes
+                soundIndicator.className = 'sound-indicator';
+                // Add the specific sound type class
+                soundIndicator.classList.add(type);
+                // Update text
+                if (frequency) {
+                    soundIndicator.textContent = `${type.toUpperCase()} ${Math.round(frequency)}Hz`;
+                } else {
+                    soundIndicator.textContent = type.toUpperCase();
+                }
+
+                // Reset after animation
+                setTimeout(() => {
+                    soundIndicator.className = 'sound-indicator';
+                    soundIndicator.textContent = 'READY';
+                }, 1000);
+            };
+
+            // // Show visual feedback when sound is playing
+            // const showSoundPlaying = (type) => {
+            //     // Remove all classes
+            //     soundIndicator.className = 'sound-indicator';
+            //     // Add the specific sound type class
+            //     soundIndicator.classList.add(type);
+            //     // Update text
+            //     soundIndicator.textContent = type.toUpperCase();
+
+            //     // Reset after animation
+            //     setTimeout(() => {
+            //         soundIndicator.className = 'sound-indicator';
+            //         soundIndicator.textContent = 'READY';
+            //     }, 1000);
+            // };
+
+            const syncClock = () => {
+                if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+                logMessage('Requesting clock sync...');
+                ws.send(JSON.stringify({
+                    type: 'sync',
+                    t0: performance.now()
+                }));
+            };
+
+            // Connect to WebSocket
+            const connectWebSocket = () => {
+                // Get the current URL
+                const currentUrl = window.location.href;
+                const url = new URL(currentUrl);
+                const wsProtocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${wsProtocol}//${url.host}`;
+
+                statusElement.textContent = `Connecting to ${wsUrl}...`;
+                logMessage(`Connecting to WebSocket at ${wsUrl}`);
+
+                // Create WebSocket connection
+                ws = new WebSocket(wsUrl);
+
+                // Connection opened
+                ws.addEventListener('open', (event) => {
+                    logMessage('WebSocket connected, sending registration...');
+                    const storedId = localStorage.getItem('multichannelClientId');
+                    ws.send(JSON.stringify({ type: 'register', id: storedId }));
+                });
+
+                // Listen for messages
+                ws.addEventListener('message', (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        handleMessage(data);
+                    } catch (error) {
+                        logMessage(`Error parsing message: ${error.message}`);
+                    }
+                });
+
+                // Connection closed
+                ws.addEventListener('close', (event) => {
+                    statusElement.textContent = 'Disconnected. Reconnecting...';
+                    logMessage('WebSocket disconnected');
+                    isSynced = false;
+                    // Try to reconnect after a delay
+                    setTimeout(connectWebSocket, 3000);
+                });
+
+                // Connection error
+                ws.addEventListener('error', (event) => {
+                    statusElement.textContent = 'Connection error';
+                    logMessage('WebSocket error');
+                });
+            };
+
+            // Handle incoming message
+            const handleMessage = (data) => {
+                logMessage(`Received message: ${JSON.stringify(data)}`);
+
+                switch (data.type) {
+                    case 'id':
+                        clientId = data.id;
+                        localStorage.setItem('multichannelClientId', clientId);
+                        clientIdElement.textContent = clientId.substring(0, 8) + '...'; // Show shortened ID
+                        statusElement.textContent = `Registered as Client ${clientId.substring(0, 8)}...`;
+                        logMessage(`Assigned client ID: ${clientId}`);
+                        // Now that we are registered, we can sync the clock
+                        syncClock();
+                        break;
+
+                    case 'sync-reply':
+                        const t1 = performance.now();
+                        const rtt = t1 - data.t0;
+                        const estimatedServerTime = data.serverTime + rtt / 2;
+                        serverTimeOffset = estimatedServerTime - t1;
+                        isSynced = true;
+                        logMessage(`Clock synced. RTT: ${rtt.toFixed(2)}ms, Offset: ${serverTimeOffset.toFixed(2)}ms`);
+                        statusElement.textContent = `Synced with server as Client ${clientId.substring(0, 8)}...`;
+                        break;
+
+                    case 'scheduleNote':
+                        if (!isSynced) {
+                            logMessage('Received note but not synced, ignoring.');
+                            return;
+                        }
+                        // Calculate the local time to play the sound
+                        const localPlayTime = (data.playTime - serverTimeOffset) / 1000; // Convert ms to seconds
+                        if (localPlayTime < audioContext.currentTime) {
+                            logMessage(`Stale note received. Scheduled for ${localPlayTime.toFixed(2)}, current is ${audioContext.currentTime.toFixed(2)}`);
+                            // Optionally play immediately or just drop
+                            playSound(data.sound, data.frequency, 0, data.adsr, data.lfo, data.pan);
+                        } else {
+                            logMessage(`Scheduled note ${data.sound} at ${localPlayTime.toFixed(2)}`);
+                            playSound(data.sound, data.frequency, localPlayTime, data.adsr, data.lfo, data.pan);
+                        }
+                        break;
+
+                    default:
+                        logMessage(`Unknown message type: ${data.type}`);
+                }
+            };
+
+            // Keep screen awake (prevent sleep)
+            const keepAwake = async () => {
+                if ('wakeLock' in navigator) {
+                    try {
+                        const wakeLock = await navigator.wakeLock.request('screen');
+                        logMessage('Screen wake lock activated');
+
+                        wakeLock.addEventListener('release', () => {
+                            logMessage('Screen wake lock released');
+                        });
+
+                        // Reacquire wake lock when document becomes visible again
+                        document.addEventListener('visibilitychange', async () => {
+                            if (document.visibilityState === 'visible') {
+                                keepAwake();
+                            }
+                        });
+                    } catch (error) {
+                        logMessage(`Wake lock error: ${error.message}`);
+                    }
+                } else {
+                    logMessage('Wake lock API not supported');
+                }
+            };
+
+            // Initialize
+            const init = () => {
+                // Set up test button
+                testButton.addEventListener('click', () => {
+                    playSound('sine');
+                });
+
+                // Connect to server
+                connectWebSocket();
+
+                statusElement.textContent = 'Ready. Click the test button to activate audio.';
+            };
+
+            // Start initialization
+            init();
+        });
+    </script>
+</body>
+
+</html>

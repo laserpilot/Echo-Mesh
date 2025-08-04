@@ -1,0 +1,1671 @@
+<!-- public/controller.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Controller</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        h1,
+        h2 {
+            color: #333;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+        }
+
+        .connection-info {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #e0f7fa;
+            border-radius: 5px;
+            border-left: 4px solid #00bcd4;
+        }
+
+        .clients-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .client-card {
+            padding: 15px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .client-id {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .button {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px 0;
+        }
+
+        .button:hover {
+            background-color: #0b7dda;
+        }
+
+        .button.sound {
+            background-color: #4CAF50;
+        }
+
+        .button.sound:hover {
+            background-color: #45a049;
+        }
+
+        .controls {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #fff8e1;
+            border-radius: 5px;
+            border-left: 4px solid #ffc107;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .log {
+            height: 150px;
+            overflow-y: auto;
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            margin-top: 20px;
+            border: 1px solid #ddd;
+        }
+
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .sequence-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+            align-items: center;
+        }
+
+        input,
+        select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .music-panel {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #e6f7ff;
+            border-radius: 5px;
+            border-left: 4px solid #1890ff;
+        }
+
+        .pitch-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .pitch-card {
+            background-color: #f5f5f5;
+            border-radius: 5px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pitch-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .pitch-range {
+            width: 100%;
+        }
+
+        .key-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+            align-items: center;
+        }
+
+        .randomize-button {
+            background-color: #1890ff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        .loop-controls {
+            margin: 15px 0;
+            padding: 15px;
+            background-color: #fff1f0;
+            border-radius: 5px;
+            border-left: 4px solid #ff4d4f;
+        }
+
+        .loop-settings {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+
+        .loop-button {
+            padding: 12px 25px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .pattern-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .pulsing {
+            animation: pulse 1s infinite ease-in-out;
+            background-color: #ff4d4f !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Audio Controller</h1>
+
+        <div class="connection-info">
+            <h3>Connection Info</h3>
+            <p><strong>Server IP:</strong> <span id="serverIp">Detecting...</span></p>
+            <p><strong>Client URL:</strong> <span id="clientUrl">Detecting...</span></p>
+            <p>
+                <strong>WebSocket Status:</strong>
+                <span id="wsStatus">Not connected</span>
+                <button id="reconnectButton" class="button" style="margin-left: 10px;">Reconnect</button>
+            </p>
+        </div>
+
+        <div class="status">
+            <p><strong>Connected Clients:</strong> <span id="clientCount">0</span></p>
+            <div class="log" id="log">
+                <div class="log-entry">Initializing system...</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <h3>Sequence Controls</h3>
+            <div class="sequence-controls">
+                <select id="soundType">
+                    <option value="sine">Sine Wave</option>
+                    <option value="square">Square Wave</option>
+                    <option value="sawtooth">Sawtooth Wave</option>
+                    <option value="triangle">Triangle Wave</option>
+                </select>
+
+                <label for="delayTime">Delay (ms):</label>
+                <input type="number" id="delayTime" value="500" min="100" max="2000">
+
+                <button id="playSequenceButton" class="button">Play Sequence</button>
+                <button id="playReverseButton" class="button">Play Reverse</button>
+                <button id="playAllButton" class="button">Play All</button>
+            </div>
+        </div>
+
+        <div class="music-panel">
+            <h3>Musical Controls</h3>
+
+            <div class="key-controls">
+                <label for="musicalKey">Musical Key:</label>
+                <select id="musicalKey">
+                    <option value="C">C Major / A Minor</option>
+                    <option value="G">G Major / E Minor</option>
+                    <option value="D">D Major / B Minor</option>
+                    <option value="A">A Major / F# Minor</option>
+                    <option value="E">E Major / C# Minor</option>
+                    <option value="F">F Major / D Minor</option>
+                    <option value="Bb">Bb Major / G Minor</option>
+                </select>
+
+                <label for="scaleType">Scale:</label>
+                <select id="scaleType">
+                    <option value="major">Major</option>
+                    <option value="minor">Natural Minor</option>
+                    <option value="pentatonic">Major Pentatonic</option>
+                    <option value="minorPentatonic">Minor Pentatonic</option>
+                    <option value="blues">Blues</option>
+                </select>
+
+                <label for="octave">Base Octave:</label>
+                <select id="octave">
+                    <option value="3">Low (3)</option>
+                    <option value="4" selected>Medium (4)</option>
+                    <option value="5">High (5)</option>
+                </select>
+            </div>
+
+            <div class="loop-controls">
+                <div class="loop-settings">
+                    <label for="loopDelayTime">Loop Interval (ms):</label>
+                    <input type="number" id="loopDelayTime" value="2000" min="500" max="10000" step="100">
+
+                    <label for="loopDuration">Note Duration (ms):</label>
+                    <input type="number" id="loopDuration" value="1000" min="100" max="5000" step="100">
+
+                    <select id="loopPattern">
+                        <option value="sequence">Sequential</option>
+                        <option value="reverse">Reverse</option>
+                        <option value="random">Random</option>
+                        <option value="randomSubset">Random Subset</option>
+                        <option value="chord">All Together</option>
+                    </select>
+                </div>
+
+                <button id="startLoopButton" class="button loop-button">Start Loop</button>
+                <button id="stopLoopButton" class="button loop-button"
+                    style="background-color: #F44336; display: none;">Stop Loop</button>
+            </div>
+
+            <div class="pattern-buttons">
+                <button id="randomNoteButton" class="button">Play Random Notes</button>
+                <button id="arpeggiateButton" class="button">Arpeggiate</button>
+            </div>
+
+            <div class="adsr-controls" style="margin-top: 20px;">
+                <h3>ADSR Envelope</h3>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <div>
+                        <label for="attackTime">Attack (s)</label>
+                        <input type="number" id="attackTime" value="0.01" min="0.01" max="2" step="0.01">
+                    </div>
+                    <div>
+                        <label for="decayTime">Decay (s)</label>
+                        <input type="number" id="decayTime" value="0.1" min="0.01" max="2" step="0.01">
+                    </div>
+                    <div>
+                        <label for="sustainLevel">Sustain</label>
+                        <input type="number" id="sustainLevel" value="0.5" min="0" max="1" step="0.01">
+                    </div>
+                    <div>
+                        <label for="releaseTime">Release (s)</label>
+                        <input type="number" id="releaseTime" value="1.0" min="0.01" max="5" step="0.01">
+                    </div>
+                </div>
+            </div>
+
+            <div class="lfo-controls" style="margin-top: 20px;">
+                <h3>LFO (Low-Frequency Oscillator)</h3>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <div>
+                        <label for="lfoType">LFO Type</label>
+                        <select id="lfoType">
+                            <option value="sine">Sine</option>
+                            <option value="square">Square</option>
+                            <option value="sawtooth">Sawtooth</option>
+                            <option value="triangle">Triangle</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="lfoRate">LFO Rate (Hz)</label>
+                        <input type="number" id="lfoRate" value="5" min="0.1" max="20" step="0.1">
+                    </div>
+                    <div>
+                        <label for="lfoDepth">LFO Depth</label>
+                        <input type="number" id="lfoDepth" value="0" min="0" max="1000" step="1">
+                    </div>
+                    <div>
+                        <label for="lfoTarget">LFO Target</label>
+                        <select id="lfoTarget">
+                            <option value="vibrato">Vibrato (Pitch)</option>
+                            <option value="tremolo">Tremolo (Volume)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sequencer-panel" style="margin-top: 20px;">
+                <h3>Step Sequencer</h3>
+                <div class="sequencer-controls">
+                    <button id="sequencerPlayButton" class="button">Play</button>
+                    <button id="sequencerStopButton" class="button" style="background-color: #F44336;">Stop</button>
+                    <label for="bpm">BPM:</label>
+                    <input type="number" id="bpm" value="120" min="40" max="240">
+                </div>
+                <div id="sequencer-grid" style="margin-top: 10px; overflow-x: auto;"></div>
+            </div>
+
+            <div class="spatial-panel" style="margin-top: 20px;">
+                <h3>Spatial Panning</h3>
+                <canvas id="panning-canvas" width="500" height="200" style="border: 1px solid #ccc; cursor: grab;"></canvas>
+            </div>
+
+            <div class="preset-panel" style="margin-top: 20px;">
+                <h3>Presets</h3>
+                <button id="savePresetButton" class="button">Save Preset</button>
+                <select id="presetList"></select>
+                <button id="loadPresetButton" class="button">Load Preset</button>
+                <button id="deletePresetButton" class="button" style="background-color: #F44336;">Delete Preset</button>
+            </div>
+
+            <div class="midi-controls" style="margin-top: 20px;">
+                <h3>MIDI Playback</h3>
+                <input type="file" id="midiFileInput" accept=".mid,.midi" style="margin-bottom: 10px;">
+                <select id="distributionStrategy" style="margin-bottom: 10px;">
+                    <option value="round-robin">Round Robin</option>
+                    <option value="by-track">Assign by Track</option>
+                    <option value="by-pitch">Assign by Pitch</option>
+                </select>
+                <button id="playMidiButton" class="button" disabled>Play MIDI</button>
+                <button id="stopMidiButton" class="button" style="background-color: #F44336;">Stop MIDI</button>
+            </div>
+
+            <h3>Per-Client Pitch Control</h3>
+            <button id="assignPitchesButton" class="button">Auto-Assign Pitches</button>
+            <button id="randomizePitchesButton" class="randomize-button">Randomize</button>
+
+            <div class="pitch-controls" id="pitch-controls">
+                <!-- Pitch control cards will be added here dynamically -->
+                <div class="pitch-card">
+                    <div class="pitch-header">
+                        <strong>No clients connected</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h2>Connected Clients</h2>
+        <div class="clients-grid" id="clients-grid">
+            <!-- Connected clients will appear here -->
+            <div class="client-card">
+                <div class="client-id">No clients yet</div>
+                <p>Waiting for connections...</p>
+            </div>
+        </div>
+
+        <div class="controls">
+            <h3>Test Controls</h3>
+            <div class="controls-grid">
+                <button id="testSoundButton" class="button sound">Test Local Sound</button>
+                <button id="refreshButton" class="button">Refresh Clients</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/@tonejs/midi"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('Controller page loaded successfully');
+
+            // Elements
+            const wsStatusElement = document.getElementById('wsStatus');
+            const clientCountElement = document.getElementById('clientCount');
+            const clientsGridElement = document.getElementById('clients-grid');
+            const logElement = document.getElementById('log');
+            const serverIpElement = document.getElementById('serverIp');
+            const clientUrlElement = document.getElementById('clientUrl');
+            const reconnectButton = document.getElementById('reconnectButton');
+            const testSoundButton = document.getElementById('testSoundButton');
+            const refreshButton = document.getElementById('refreshButton');
+            const playSequenceButton = document.getElementById('playSequenceButton');
+            const playReverseButton = document.getElementById('playReverseButton');
+            const playAllButton = document.getElementById('playAllButton');
+            const soundTypeSelect = document.getElementById('soundType');
+            const delayTimeInput = document.getElementById('delayTime');
+
+            // Get loop control elements
+            const startLoopButton = document.getElementById('startLoopButton');
+            const stopLoopButton = document.getElementById('stopLoopButton');
+            const loopDelayInput = document.getElementById('loopDelayTime');
+            const loopDurationInput = document.getElementById('loopDuration');
+            const loopPatternSelect = document.getElementById('loopPattern');
+
+            // Variables for the loop
+            let loopInterval = null;
+            let isLooping = false;
+
+            // Store connected clients
+            let clients = [];
+            let ws = null;
+            let serverTimeOffset = 0;
+            let isSynced = false;
+
+            // Detect server IP and update UI
+            const detectServerInfo = () => {
+                // Get the current URL
+                const currentUrl = window.location.href;
+                const url = new URL(currentUrl);
+                const host = url.host;
+
+                serverIpElement.textContent = host;
+                clientUrlElement.textContent = `http://${host}/client.html`;
+
+                logMessage(`Server detected at ${host}`);
+            };
+
+            // Add a log message
+            const logMessage = (message) => {
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+                entry.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
+                logElement.appendChild(entry);
+                logElement.scrollTop = logElement.scrollHeight;
+            };
+
+            // Connect to WebSocket
+            const connectWebSocket = () => {
+                // Close existing connection if any
+                if (ws) {
+                    ws.close();
+                }
+
+                // Get the current URL
+                const currentUrl = window.location.href;
+                const url = new URL(currentUrl);
+                const wsProtocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${wsProtocol}//${url.host}`;
+
+                logMessage(`Connecting to WebSocket at ${wsUrl}...`);
+                wsStatusElement.textContent = 'Connecting...';
+
+                // Create WebSocket connection
+                ws = new WebSocket(wsUrl);
+
+                // Connection opened
+                ws.addEventListener('open', (event) => {
+                    logMessage('WebSocket connected, sending registration...');
+                    // Controller doesn't need a persistent ID, so we send null
+                    ws.send(JSON.stringify({ type: 'register', id: null }));
+                });
+
+                // Listen for messages
+                ws.addEventListener('message', (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        handleMessage(data);
+                    } catch (error) {
+                        logMessage(`Error parsing message: ${error.message}`);
+                    }
+                });
+
+                // Connection closed
+                ws.addEventListener('close', (event) => {
+                    wsStatusElement.textContent = 'Disconnected';
+                    logMessage('WebSocket connection closed');
+                    isSynced = false; // Reset sync status
+                });
+
+                // Connection error
+                ws.addEventListener('error', (event) => {
+                    wsStatusElement.textContent = 'Error';
+                    logMessage('WebSocket error occurred');
+                });
+            };
+
+            const syncClock = () => {
+                if (!ws || ws.readyState !== WebSocket.OPEN) return;
+                logMessage('Requesting clock sync for controller...');
+                ws.send(JSON.stringify({ type: 'sync', t0: performance.now() }));
+            };
+
+            // Send a message to the server
+            const sendMessage = (data) => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify(data));
+                } else {
+                    logMessage('Cannot send message: WebSocket not connected');
+                }
+            };
+
+            // Handle incoming message
+            const handleMessage = (data) => {
+                console.log('Received message:', data);
+
+                switch (data.type) {
+                    case 'id':
+                        logMessage(`Received controller ID: ${data.id}`);
+                        break;
+
+                    case 'sync-reply':
+                        const t1 = performance.now();
+                        const rtt = t1 - data.t0;
+                        const estimatedServerTime = data.serverTime + rtt / 2;
+                        serverTimeOffset = estimatedServerTime - t1;
+                        isSynced = true;
+                        logMessage(`Controller clock synced. RTT: ${rtt.toFixed(2)}ms, Offset: ${serverTimeOffset.toFixed(2)}ms`);
+                        break;
+
+                    case 'clientList':
+                        updateClientList(data.clients);
+                        break;
+
+                    case 'clientConnected':
+                        logMessage(`Client ${data.id} connected`);
+                        addClient(data.id);
+                        break;
+
+                    case 'clientDisconnected':
+                        logMessage(`Client ${data.id} disconnected`);
+                        removeClient(data.id);
+                        break;
+
+                    default:
+                        logMessage(`Received unknown message type: ${data.type}`);
+                }
+            };
+
+            // Update the client list
+            const updateClientList = (newClients) => {
+                clients = newClients || [];
+                clientCountElement.textContent = clients.length;
+
+                // Clear existing clients
+                clientsGridElement.innerHTML = '';
+
+                if (clients.length === 0) {
+                    const noClientsCard = document.createElement('div');
+                    noClientsCard.className = 'client-card';
+                    noClientsCard.innerHTML = `
+            <div class="client-id">No clients</div>
+            <p>No clients are currently connected</p>
+          `;
+                    clientsGridElement.appendChild(noClientsCard);
+                } else {
+                    // Add each client
+                    clients.forEach(clientId => {
+                        addClientElement(clientId);
+                    });
+                }
+
+                logMessage(`Updated client list: ${clients.length} clients`);
+
+                // --- Dependent UI Updates ---
+                buildSequencerGrid();
+                initClientPositions();
+                updatePitchControls();
+            };
+
+            // Add a client to the UI
+            const addClient = (clientId) => {
+                if (!clients.includes(clientId)) {
+                    clients.push(clientId);
+                    clientCountElement.textContent = clients.length;
+                    addClientElement(clientId);
+                }
+            };
+
+            // Remove a client from the UI
+            const removeClient = (clientId) => {
+                const index = clients.indexOf(clientId);
+                if (index !== -1) {
+                    clients.splice(index, 1);
+                    clientCountElement.textContent = clients.length;
+                    updateClientList(clients);
+                }
+            };
+
+            // Create a client element
+            const addClientElement = (clientId) => {
+                const clientCard = document.createElement('div');
+                clientCard.className = 'client-card';
+                clientCard.innerHTML = `
+          <div class="client-id">Client ${clientId}</div>
+          <button class="button sound" data-client="${clientId}" data-sound="sine">Sine Wave</button>
+          <button class="button sound" data-client="${clientId}" data-sound="square">Square Wave</button>
+          <button class="button sound" data-client="${clientId}" data-sound="sawtooth">Sawtooth</button>
+          <button class="button sound" data-client="${clientId}" data-sound="triangle">Triangle</button>
+        `;
+
+                // Add event listeners to sound buttons
+                clientCard.querySelectorAll('.button.sound').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const clientId = button.getAttribute('data-client');
+                        const sound = button.getAttribute('data-sound');
+                        triggerClientSound(clientId, sound);
+                    });
+                });
+
+                clientsGridElement.appendChild(clientCard);
+            };
+
+            // Trigger sound on a client
+            const triggerClientSound = (clientId, sound) => {
+                sendMessage({
+                    type: 'triggerSound',
+                    clientId: clientId,
+                    sound: sound
+                });
+
+                logMessage(`Triggered ${sound} sound on client ${clientId}`);
+            };
+
+            // Play a test sound locally
+            const playTestSound = () => {
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioContext.createOscillator();
+                    oscillator.type = soundTypeSelect.value;
+                    oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4 note
+
+                    // Create a gain node for volume control
+                    const gainNode = audioContext.createGain();
+                    gainNode.gain.value = 0.3; // Lower volume
+
+                    // Connect oscillator to gain to output
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+
+                    oscillator.start();
+                    oscillator.stop(audioContext.currentTime + 0.5); // Play for 0.5 seconds
+
+                    logMessage(`Played local test sound: ${soundTypeSelect.value}`);
+                } catch (error) {
+                    logMessage(`Audio error: ${error.message}`);
+                }
+            };
+
+            // Play a sequence
+            const playSequence = (reverse = false) => {
+                if (clients.length === 0) {
+                    logMessage('No clients to play sequence on');
+                    return;
+                }
+
+                const sound = soundTypeSelect.value;
+                const delay = parseInt(delayTimeInput.value);
+
+                // Make a copy and sort
+                const clientSequence = [...clients].sort((a, b) => a - b);
+
+                // Reverse if needed
+                if (reverse) {
+                    clientSequence.reverse();
+                }
+
+                logMessage(`Playing ${reverse ? 'reverse ' : ''}sequence with ${sound} sound and ${delay}ms delay`);
+
+                // Play sequence
+                clientSequence.forEach((clientId, index) => {
+                    setTimeout(() => {
+                        triggerClientSound(clientId, sound);
+                    }, index * delay);
+                });
+            };
+
+            // Play all clients at once
+            const playAll = () => {
+                if (clients.length === 0) {
+                    logMessage('No clients to play sound on');
+                    return;
+                }
+
+                const sound = soundTypeSelect.value;
+
+                logMessage(`Playing ${sound} sound on all clients simultaneously`);
+
+                clients.forEach(clientId => {
+                    triggerClientSound(clientId, sound);
+                });
+            };
+
+            // Event listeners
+            reconnectButton.addEventListener('click', connectWebSocket);
+            testSoundButton.addEventListener('click', playTestSound);
+            refreshButton.addEventListener('click', () => sendMessage({ type: 'getClients' }));
+            playSequenceButton.addEventListener('click', () => playSequence(false));
+            playReverseButton.addEventListener('click', () => playSequence(true));
+            playAllButton.addEventListener('click', playAll);
+
+            // Musical scale definitions
+            const scales = {
+                // Major scale: W-W-H-W-W-W-H (whole and half steps)
+                major: [0, 2, 4, 5, 7, 9, 11],
+                // Natural minor scale: W-H-W-W-H-W-W
+                minor: [0, 2, 3, 5, 7, 8, 10],
+                // Major pentatonic scale: W-W-W♯-W-W♯
+                pentatonic: [0, 2, 4, 7, 9],
+                // Minor pentatonic scale: W♯-W-W-W♯-W
+                minorPentatonic: [0, 3, 5, 7, 10],
+                // Blues scale: minor pentatonic plus blue note
+                blues: [0, 3, 5, 6, 7, 10]
+            };
+
+            // Musical key definitions (semitones from C)
+            const keys = {
+                'C': 0,
+                'G': 7,
+                'D': 2,
+                'A': 9,
+                'E': 4,
+                'F': 5,
+                'Bb': 10
+            };
+
+            // Store pitch settings for each client
+            const clientPitches = new Map();
+
+            // Calculate frequency for a note (A4 = 440Hz)
+            const noteToFrequency = (note, octave) => {
+                // A4 is 9 semitones above C4
+                const A4 = 440;
+                const semitoneFromA4 = (octave - 4) * 12 + note - 9;
+                return A4 * Math.pow(2, semitoneFromA4 / 12);
+            };
+
+            // Get note in current musical key and scale
+            const getNoteInScale = (degree, octaveOffset = 0) => {
+                const keyRoot = keys[document.getElementById('musicalKey').value];
+                const scaleType = document.getElementById('scaleType').value;
+                const baseOctave = parseInt(document.getElementById('octave').value);
+
+                const scale = scales[scaleType];
+                const octave = baseOctave + Math.floor(degree / scale.length) + octaveOffset;
+                const noteIndex = degree % scale.length;
+                const semitone = scale[noteIndex];
+
+                return {
+                    semitone: (keyRoot + semitone) % 12,
+                    octave: octave
+                };
+            };
+
+            // Generate a frequency for a client based on current musical settings
+            const generateFrequencyForClient = (clientId, degreeOverride = null) => {
+                // Use stored pitch settings for this client if available
+                if (clientPitches.has(clientId)) {
+                    const settings = clientPitches.get(clientId);
+                    return settings.frequency;
+                }
+
+                // Calculate a default pitch based on client ID
+                const degree = degreeOverride !== null ? degreeOverride : (clientId % 7);
+                const note = getNoteInScale(degree);
+                const frequency = noteToFrequency(note.semitone, note.octave);
+
+                // Store the settings
+                clientPitches.set(clientId, {
+                    frequency: frequency,
+                    degree: degree,
+                    semitone: note.semitone,
+                    octave: note.octave
+                });
+
+                return frequency;
+            };
+
+            // Update the pitch control interface
+            const updatePitchControls = () => {
+                const pitchControlsElement = document.getElementById('pitch-controls');
+                pitchControlsElement.innerHTML = '';
+
+                if (clients.length === 0) {
+                    pitchControlsElement.innerHTML = `
+            <div class="pitch-card">
+              <div class="pitch-header">
+                <strong>No clients connected</strong>
+              </div>
+            </div>
+          `;
+                    return;
+                }
+
+                // Create a pitch control card for each client
+                clients.forEach(clientId => {
+                    // Generate pitch if not already set
+                    if (!clientPitches.has(clientId)) {
+                        generateFrequencyForClient(clientId);
+                    }
+
+                    const settings = clientPitches.get(clientId);
+                    const card = document.createElement('div');
+                    card.className = 'pitch-card';
+
+                    // Note name calculation
+                    const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+                    const noteName = noteNames[settings.semitone];
+
+                    card.innerHTML = `
+            <div class="pitch-header">
+              <strong>Client ${clientId}</strong>
+              <span>${noteName}${settings.octave} (${Math.round(settings.frequency)}Hz)</span>
+            </div>
+            <input type="range" class="pitch-range" data-client="${clientId}" 
+                   min="220" max="880" value="${settings.frequency}" step="1">
+            <div>
+              <button class="button sound" data-client="${clientId}" data-trigger="test">
+                Test Note
+              </button>
+              <select class="note-select" data-client="${clientId}">
+                <option value="0">C</option>
+                <option value="1">C#</option>
+                <option value="2">D</option>
+                <option value="3">D#</option>
+                <option value="4">E</option>
+                <option value="5">F</option>
+                <option value="6">F#</option>
+                <option value="7">G</option>
+                <option value="8">G#</option>
+                <option value="9">A</option>
+                <option value="10">A#</option>
+                <option value="11">B</option>
+              </select>
+              <select class="octave-select" data-client="${clientId}">
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+              </select>
+              <button class="button" data-client="${clientId}" data-trigger="set">Set</button>
+            </div>
+          `;
+
+                    pitchControlsElement.appendChild(card);
+
+                    // Set the select values based on current pitch
+                    const noteSelect = card.querySelector('.note-select');
+                    const octaveSelect = card.querySelector('.octave-select');
+                    noteSelect.value = settings.semitone;
+                    octaveSelect.value = settings.octave;
+
+                    // Add event listeners
+                    const rangeInput = card.querySelector('.pitch-range');
+                    rangeInput.addEventListener('input', (event) => {
+                        const newFrequency = parseFloat(event.target.value);
+                        const clientId = parseInt(event.target.getAttribute('data-client'));
+                        const settings = clientPitches.get(clientId);
+
+                        // Update stored frequency
+                        settings.frequency = newFrequency;
+
+                        // Update display
+                        const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+                        const header = card.querySelector('.pitch-header span');
+                        header.textContent = `${Math.round(newFrequency)}Hz`;
+                    });
+
+                    // Add event listeners to buttons
+                    card.querySelectorAll('button').forEach(button => {
+                        button.addEventListener('click', (event) => {
+                            const clientId = parseInt(button.getAttribute('data-client'));
+                            const trigger = button.getAttribute('data-trigger');
+
+                            if (trigger === 'test') {
+                                // Test the current note
+                                const settings = clientPitches.get(clientId);
+                                triggerClientNote(clientId, settings.frequency);
+                            } else if (trigger === 'set') {
+                                // Set a new note based on the select values
+                                const semitone = parseInt(noteSelect.value);
+                                const octave = parseInt(octaveSelect.value);
+                                const frequency = noteToFrequency(semitone, octave);
+
+                                // Update stored settings
+                                const settings = clientPitches.get(clientId);
+                                settings.frequency = frequency;
+                                settings.semitone = semitone;
+                                settings.octave = octave;
+
+                                // Update range input and display
+                                rangeInput.value = frequency;
+                                const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+                                const header = card.querySelector('.pitch-header span');
+                                header.textContent = `${noteNames[semitone]}${octave} (${Math.round(frequency)}Hz)`;
+
+                                // Test the new note
+                                triggerClientNote(clientId, frequency);
+                            }
+                        });
+                    });
+                });
+            };
+
+            // Trigger a specific note on a client
+            const triggerClientNote = (clientId, frequency) => {
+                if (!isSynced) {
+                    logMessage('Cannot trigger note: controller not synced.');
+                    return;
+                }
+
+                const sound = soundTypeSelect.value;
+                const now = performance.now();
+                const serverNow = now + serverTimeOffset;
+                const playTime = serverNow + 100; // Schedule 100ms into the future to ensure delivery
+
+                const adsr = {
+                    attack: parseFloat(document.getElementById('attackTime').value),
+                    decay: parseFloat(document.getElementById('decayTime').value),
+                    sustain: parseFloat(document.getElementById('sustainLevel').value),
+                    release: parseFloat(document.getElementById('releaseTime').value)
+                };
+
+                const lfo = {
+                    type: document.getElementById('lfoType').value,
+                    rate: parseFloat(document.getElementById('lfoRate').value),
+                    depth: parseFloat(document.getElementById('lfoDepth').value),
+                    target: document.getElementById('lfoTarget').value
+                };
+
+                const pan = clientPositions.has(clientId) ? clientPositions.get(clientId).pan : 0;
+
+                sendMessage({
+                    type: 'scheduleNote',
+                    clientId: clientId,
+                    sound: sound,
+                    frequency: frequency,
+                    playTime: playTime,
+                    adsr: adsr,
+                    lfo: lfo,
+                    pan: pan
+                });
+
+                logMessage(`Scheduled ${sound} note at ${Math.round(frequency)}Hz on client ${clientId}`);
+            };
+
+            // Auto-assign pitches across clients based on musical key and scale
+            const assignPitches = () => {
+                console.log('assignPitches called');
+                if (clients.length === 0) {
+                    logMessage('No clients to assign pitches to');
+                    return;
+                }
+
+                // Sort clients by ID
+                const sortedClients = [...clients].sort((a, b) => a - b);
+                console.log('Clients for pitch assignment:', sortedClients);
+
+                const scaleType = document.getElementById('scaleType').value;
+                const scaleNotes = scales[scaleType];
+                console.log(`Using scale: ${scaleType} with notes:`, scaleNotes);
+
+                // Assign notes from the scale
+                sortedClients.forEach((clientId, index) => {
+                    const degree = index % scaleNotes.length;
+                    const note = getNoteInScale(degree);
+                    const frequency = noteToFrequency(note.semitone, note.octave);
+
+                    console.log(`Assigning client ${clientId} to note: semitone=${note.semitone}, octave=${note.octave}, frequency=${frequency}`);
+
+                    // Store settings
+                    clientPitches.set(clientId, {
+                        frequency: frequency,
+                        degree: degree,
+                        semitone: note.semitone,
+                        octave: note.octave
+                    });
+                });
+
+                // Update UI
+                updatePitchControls();
+                logMessage(`Assigned ${sortedClients.length} clients to pitches in ${document.getElementById('musicalKey').value} ${document.getElementById('scaleType').value}`);
+            };
+
+            // Randomize pitches within the current key and scale
+            const randomizePitches = () => {
+                if (clients.length === 0) {
+                    logMessage('No clients to randomize pitches for');
+                    return;
+                }
+
+                const scale = scales[document.getElementById('scaleType').value];
+                const baseOctave = parseInt(document.getElementById('octave').value);
+
+                // Randomize each client
+                clients.forEach(clientId => {
+                    const degree = Math.floor(Math.random() * scale.length);
+                    const octaveOffset = Math.floor(Math.random() * 2); // 0 or 1 octave higher
+                    const note = getNoteInScale(degree, octaveOffset);
+                    const frequency = noteToFrequency(note.semitone, note.octave);
+
+                    // Store settings
+                    clientPitches.set(clientId, {
+                        frequency: frequency,
+                        degree: degree,
+                        semitone: note.semitone,
+                        octave: note.octave
+                    });
+                });
+
+                // Update UI
+                updatePitchControls();
+                logMessage(`Randomized pitches for ${clients.length} clients`);
+            };
+
+            // Play random notes within the current key and scale
+            const playRandomNotes = () => {
+                if (clients.length === 0) {
+                    logMessage('No clients to play random notes on');
+                    return;
+                }
+
+                const scale = scales[document.getElementById('scaleType').value];
+                const baseOctave = parseInt(document.getElementById('octave').value);
+                const delay = parseInt(delayTimeInput.value);
+                const sound = soundTypeSelect.value;
+
+                // Pick a random subset of clients
+                const clientCount = Math.min(clients.length, Math.floor(Math.random() * clients.length) + 1);
+                const selectedClients = [...clients].sort(() => 0.5 - Math.random()).slice(0, clientCount);
+
+                logMessage(`Playing random ${sound} notes on ${clientCount} clients`);
+
+                // Play random notes on selected clients
+                selectedClients.forEach((clientId, index) => {
+                    setTimeout(() => {
+                        const degree = Math.floor(Math.random() * scale.length);
+                        const octaveOffset = Math.floor(Math.random() * 2); // 0 or 1 octave higher
+                        const note = getNoteInScale(degree, octaveOffset);
+                        const frequency = noteToFrequency(note.semitone, note.octave);
+
+                        triggerClientNote(clientId, frequency);
+                    }, index * delay * 0.5); // Use slightly faster timing for random notes
+                });
+            };
+
+            // Play an arpeggio across all clients
+            const playArpeggio = () => {
+                console.log('playArpeggio called');
+                if (clients.length === 0) {
+                    logMessage('No clients to arpeggiate');
+                    return;
+                }
+
+                const delay = parseInt(delayTimeInput.value);
+                const sound = soundTypeSelect.value;
+
+                // Sort clients to ensure consistent order
+                const sortedClients = [...clients].sort((a, b) => a - b);
+                console.log(`Playing arpeggio on clients:`, sortedClients);
+
+                logMessage(`Playing ${sound} arpeggio across ${sortedClients.length} clients`);
+
+                const scaleType = document.getElementById('scaleType').value;
+                console.log(`Using scale type: ${scaleType}`);
+
+                // Assign notes in the scale
+                sortedClients.forEach((clientId, index) => {
+                    setTimeout(() => {
+                        const degree = index % scales[scaleType].length;
+                        const note = getNoteInScale(degree);
+                        const frequency = noteToFrequency(note.semitone, note.octave);
+
+                        console.log(`Arpeggio: triggering client ${clientId} with frequency ${frequency}Hz`);
+                        triggerClientNote(clientId, frequency);
+                    }, index * delay);
+                });
+            };
+
+            // Variables for the loop
+            // let loopInterval = null;
+            // let isLooping = false;
+
+            // Start the sound loop
+            const startLoop = () => {
+                console.log('Start loop called');
+                logMessage('Starting loop...');
+
+                if (isLooping) {
+                    logMessage('Loop already running');
+                    return;
+                }
+
+                if (clients.length === 0) {
+                    logMessage('No clients to play loop on');
+                    return;
+                }
+
+                isLooping = true;
+                startLoopButton.style.display = 'none';
+                stopLoopButton.style.display = 'inline-block';
+
+                const pattern = loopPatternSelect.value;
+                const delay = parseInt(loopDelayInput.value);
+                const sound = soundTypeSelect.value;
+
+                let currentIndex = 0;
+                let clientsToUse = [...clients].sort((a, b) => a - b);
+
+                logMessage(`Starting ${pattern} loop with ${sound} sound and ${delay}ms interval`);
+                console.log(`Loop started with pattern: ${pattern}, clients: ${clientsToUse.length}`);
+
+                // Set up the loop
+                loopInterval = setInterval(() => {
+                    console.log(`Loop iteration, pattern: ${pattern}, currentIndex: ${currentIndex}`);
+
+                    if (pattern === 'sequence') {
+                        // Sequential pattern
+                        const clientId = clientsToUse[currentIndex];
+                        const settings = clientPitches.get(clientId) || { frequency: 440 };
+                        console.log(`Triggering client ${clientId} with frequency ${settings.frequency}`);
+                        triggerClientNote(clientId, settings.frequency);
+                        currentIndex = (currentIndex + 1) % clientsToUse.length;
+                    } else if (pattern === 'reverse') {
+                        // Reverse sequential pattern
+                        const reversedClients = [...clientsToUse].reverse();
+                        const clientId = reversedClients[currentIndex];
+                        const settings = clientPitches.get(clientId) || { frequency: 440 };
+                        triggerClientNote(clientId, settings.frequency);
+                        currentIndex = (currentIndex + 1) % clientsToUse.length;
+                    } else if (pattern === 'random') {
+                        // Random pattern
+                        const randomIndex = Math.floor(Math.random() * clientsToUse.length);
+                        const clientId = clientsToUse[randomIndex];
+                        const settings = clientPitches.get(clientId) || { frequency: 440 };
+                        triggerClientNote(clientId, settings.frequency);
+                    } else if (pattern === 'randomSubset') {
+                        // Random subset of clients
+                        const randomCount = Math.floor(Math.random() * clientsToUse.length) + 1;
+                        const selectedClients = [...clientsToUse]
+                            .sort(() => 0.5 - Math.random())
+                            .slice(0, randomCount);
+
+                        selectedClients.forEach(clientId => {
+                            const settings = clientPitches.get(clientId) || { frequency: 440 };
+                            triggerClientNote(clientId, settings.frequency);
+                        });
+                    } else if (pattern === 'chord') {
+                        // All clients together
+                        clientsToUse.forEach(clientId => {
+                            const settings = clientPitches.get(clientId) || { frequency: 440 };
+                            triggerClientNote(clientId, settings.frequency);
+                        });
+                    }
+                }, delay);
+
+                // Add pulsing animation to show loop is active
+                document.querySelector('.loop-controls').classList.add('pulsing');
+            };
+
+            // Stop the sound loop
+            const stopLoop = () => {
+                if (!isLooping) return;
+
+                clearInterval(loopInterval);
+                isLooping = false;
+                startLoopButton.style.display = 'inline-block';
+                stopLoopButton.style.display = 'none';
+
+                // Remove pulsing animation
+                document.querySelector('.loop-controls').classList.remove('pulsing');
+
+                logMessage('Loop stopped');
+            };
+
+            // Add event listeners for loop controls
+            startLoopButton.addEventListener('click', startLoop);
+            stopLoopButton.addEventListener('click', stopLoop);
+
+            // Add event listeners for musical features
+            document.getElementById('assignPitchesButton').addEventListener('click', assignPitches);
+            document.getElementById('randomizePitchesButton').addEventListener('click', randomizePitches);
+            document.getElementById('randomNoteButton').addEventListener('click', playRandomNotes);
+            document.getElementById('arpeggiateButton').addEventListener('click', playArpeggio);
+
+            // Listen for changes to musical settings
+            document.getElementById('musicalKey').addEventListener('change', assignPitches);
+            document.getElementById('scaleType').addEventListener('change', assignPitches);
+            document.getElementById('octave').addEventListener('change', assignPitches);
+
+            // --- MIDI File Playback Logic ---
+            let parsedMidi = null;
+            let midiPlayer = null;
+            const midiFileInput = document.getElementById('midiFileInput');
+            const playMidiButton = document.getElementById('playMidiButton');
+            const stopMidiButton = document.getElementById('stopMidiButton');
+
+            midiFileInput.addEventListener('change', async (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                logMessage(`Loading MIDI file: ${file.name}`);
+                const fileBuffer = await file.arrayBuffer();
+                parsedMidi = new Midi(fileBuffer);
+                logMessage(`MIDI file parsed: ${parsedMidi.tracks.length} tracks, duration: ${parsedMidi.duration.toFixed(2)}s`);
+                playMidiButton.disabled = false;
+            });
+
+            playMidiButton.addEventListener('click', () => {
+                if (!parsedMidi || clients.length === 0) {
+                    logMessage('Cannot play MIDI. No file loaded or no clients connected.');
+                    return;
+                }
+                if (!isSynced) {
+                    logMessage('Cannot play MIDI: controller not synced.');
+                    return;
+                }
+
+                const strategy = document.getElementById('distributionStrategy').value;
+                let noteCounter = 0;
+
+                const now = performance.now();
+                const serverNow = now + serverTimeOffset;
+                const playbackStartTime = serverNow + 200; // Start playback in 200ms
+
+                logMessage(`Starting MIDI playback with strategy: ${strategy}`);
+
+                parsedMidi.tracks.forEach((track, trackIndex) => {
+                    track.notes.forEach(note => {
+                        const scheduledPlayTime = playbackStartTime + (note.time * 1000);
+                        const frequency = 440 * Math.pow(2, (note.midi - 69) / 12);
+
+                        let targetClientId;
+
+                        if (strategy === 'round-robin') {
+                            targetClientId = clients[noteCounter % clients.length];
+                            noteCounter++;
+                        } else if (strategy === 'by-track') {
+                            targetClientId = clients[trackIndex % clients.length];
+                        } else if (strategy === 'by-pitch') {
+                            const pitchZone = Math.floor(note.midi / (128 / clients.length));
+                            targetClientId = clients[pitchZone % clients.length];
+                        }
+
+                        if (targetClientId) {
+                            sendMessage({
+                                type: 'scheduleNote',
+                                clientId: targetClientId,
+                                sound: soundTypeSelect.value,
+                                frequency: frequency,
+                                playTime: scheduledPlayTime
+                            });
+                        }
+                    });
+                });
+            });
+
+            // --- Web MIDI API for Real-time Input ---
+            const initWebMidi = () => {
+                if (navigator.requestMIDIAccess) {
+                    navigator.requestMIDIAccess()
+                        .then(onMIDISuccess, onMIDIFailure);
+                } else {
+                    logMessage('Web MIDI API not supported in this browser.');
+                }
+            }
+
+            const onMIDISuccess = (midiAccess) => {
+                logMessage('Web MIDI access granted.');
+                for (var input of midiAccess.inputs.values()) {
+                    input.onmidimessage = getMIDIMessage;
+                    logMessage(`MIDI input connected: ${input.name}`);
+                }
+
+                midiAccess.onstatechange = (event) => {
+                    if (event.port.state === "connected") {
+                        logMessage(`MIDI port connected: ${event.port.name}`);
+                        event.port.onmidimessage = getMIDIMessage;
+                    } else if (event.port.state === "disconnected") {
+                        logMessage(`MIDI port disconnected: ${event.port.name}`);
+                    }
+                };
+            }
+
+            const onMIDIFailure = () => {
+                logMessage('Could not access your MIDI devices.');
+            }
+
+            let liveNoteCounter = 0;
+            const getMIDIMessage = (message) => {
+                const command = message.data[0];
+                const note = message.data[1];
+                const velocity = (message.data.length > 2) ? message.data[2] : 0; // a velocity value might not be included with a noteOff command
+
+                switch (command) {
+                    case 144: // noteOn
+                        if (velocity > 0) {
+                            const frequency = 440 * Math.pow(2, (note - 69) / 12);
+                            const targetClientId = clients[liveNoteCounter % clients.length];
+                            liveNoteCounter++;
+                            if(targetClientId) {
+                                triggerClientNote(targetClientId, frequency);
+                            }
+                        }
+                        break;
+                    case 128: // noteOff
+                        // Note Off logic would go here if we implement ADSR
+                        break;
+                }
+            }
+
+            // --- Step Sequencer Logic ---
+            const sequencerGrid = document.getElementById('sequencer-grid');
+            const bpmInput = document.getElementById('bpm');
+            const sequencerPlayButton = document.getElementById('sequencerPlayButton');
+            const sequencerStopButton = document.getElementById('sequencerStopButton');
+            let sequencerData = [];
+            let isSequencerPlaying = false;
+            let sequencerInterval = null;
+            let currentStep = 0;
+
+            const buildSequencerGrid = () => {
+                sequencerGrid.innerHTML = '';
+                sequencerData = [];
+                clients.forEach(clientId => {
+                    const row = document.createElement('div');
+                    row.style.display = 'flex';
+                    row.style.marginBottom = '5px';
+                    const label = document.createElement('div');
+                    label.textContent = `Client ${clientId}`;
+                    label.style.width = '80px';
+                    row.appendChild(label);
+
+                    const steps = [];
+                    for (let i = 0; i < 16; i++) {
+                        const step = document.createElement('div');
+                        step.style.width = '30px';
+                        step.style.height = '30px';
+                        step.style.border = '1px solid #ccc';
+                        step.style.backgroundColor = '#eee';
+                        step.style.cursor = 'pointer';
+                        step.dataset.clientId = clientId;
+                        step.dataset.step = i;
+                        step.addEventListener('click', () => {
+                            const stepData = steps[i];
+                            stepData.active = !stepData.active;
+                            step.style.backgroundColor = stepData.active ? '#2196F3' : '#eee';
+                        });
+                        row.appendChild(step);
+                        steps.push({ step: i, active: false, element: step });
+                    }
+                    sequencerGrid.appendChild(row);
+                    sequencerData.push({ clientId: clientId, steps: steps });
+                });
+            };
+
+            const playSequencer = () => {
+                if (isSequencerPlaying) return;
+                isSequencerPlaying = true;
+
+                const bpm = parseFloat(bpmInput.value);
+                const stepDuration = 60 / bpm / 4 * 1000; // 16th notes
+
+                sequencerInterval = setInterval(() => {
+                    sequencerData.forEach(clientData => {
+                        const stepData = clientData.steps[currentStep];
+                        if (stepData.active) {
+                            const settings = clientPitches.get(clientData.clientId) || { frequency: 440 };
+                            triggerClientNote(clientData.clientId, settings.frequency);
+                        }
+                        // Highlight current step
+                        clientData.steps.forEach((s, i) => {
+                            s.element.style.border = i === currentStep ? '2px solid #F44336' : '1px solid #ccc';
+                        });
+                    });
+                    currentStep = (currentStep + 1) % 16;
+                }, stepDuration);
+            };
+
+            const stopSequencer = () => {
+                if (!isSequencerPlaying) return;
+                isSequencerPlaying = false;
+                clearInterval(sequencerInterval);
+                currentStep = 0;
+                sequencerData.forEach(clientData => {
+                    clientData.steps.forEach(s => {
+                        s.element.style.border = '1px solid #ccc';
+                    });
+                });
+            };
+
+            sequencerPlayButton.addEventListener('click', playSequencer);
+            sequencerStopButton.addEventListener('click', stopSequencer);
+
+            
+
+            // --- Spatial Panning Logic ---
+            const panningCanvas = document.getElementById('panning-canvas');
+            const panCtx = panningCanvas.getContext('2d');
+            let clientPositions = new Map();
+            let draggedClient = null;
+
+            const drawPanningCanvas = () => {
+                panCtx.clearRect(0, 0, panningCanvas.width, panningCanvas.height);
+                panCtx.fillStyle = '#f0f0f0';
+                panCtx.fillRect(0, 0, panningCanvas.width, panningCanvas.height);
+
+                // Draw center line
+                panCtx.strokeStyle = '#ccc';
+                panCtx.beginPath();
+                panCtx.moveTo(panningCanvas.width / 2, 0);
+                panCtx.lineTo(panningCanvas.width / 2, panningCanvas.height);
+                panCtx.stroke();
+
+                clientPositions.forEach((pos, clientId) => {
+                    panCtx.fillStyle = '#2196F3';
+                    panCtx.beginPath();
+                    panCtx.arc(pos.x, pos.y, 10, 0, 2 * Math.PI);
+                    panCtx.fill();
+                    panCtx.fillStyle = 'black';
+                    panCtx.fillText(clientId, pos.x - 5, pos.y + 4);
+                });
+            };
+
+            const initClientPositions = () => {
+                clients.forEach((clientId, index) => {
+                    if (!clientPositions.has(clientId)) {
+                        clientPositions.set(clientId, {
+                            x: (panningCanvas.width / (clients.length + 1)) * (index + 1),
+                            y: panningCanvas.height / 2,
+                            pan: 0
+                        });
+                    }
+                });
+                drawPanningCanvas();
+            };
+
+            panningCanvas.addEventListener('mousedown', (e) => {
+                const rect = panningCanvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                clientPositions.forEach((pos, clientId) => {
+                    const distance = Math.sqrt(Math.pow(x - pos.x, 2) + Math.pow(y - pos.y, 2));
+                    if (distance < 10) {
+                        draggedClient = clientId;
+                        panningCanvas.style.cursor = 'grabbing';
+                    }
+                });
+            });
+
+            panningCanvas.addEventListener('mousemove', (e) => {
+                if (draggedClient) {
+                    const rect = panningCanvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const pos = clientPositions.get(draggedClient);
+                    pos.x = Math.max(10, Math.min(panningCanvas.width - 10, x));
+                    pos.pan = (pos.x / panningCanvas.width) * 2 - 1;
+                    drawPanningCanvas();
+                }
+            });
+
+            panningCanvas.addEventListener('mouseup', () => {
+                draggedClient = null;
+                panningCanvas.style.cursor = 'grab';
+            });
+
+            panningCanvas.addEventListener('mouseleave', () => {
+                draggedClient = null;
+                panningCanvas.style.cursor = 'grab';
+            });
+
+            
+
+            // --- Preset System Logic ---
+            const savePresetButton = document.getElementById('savePresetButton');
+            const loadPresetButton = document.getElementById('loadPresetButton');
+            const deletePresetButton = document.getElementById('deletePresetButton');
+            const presetList = document.getElementById('presetList');
+
+            const getControlValues = () => {
+                return {
+                    soundType: soundTypeSelect.value,
+                    delayTime: delayTimeInput.value,
+                    musicalKey: document.getElementById('musicalKey').value,
+                    scaleType: document.getElementById('scaleType').value,
+                    octave: document.getElementById('octave').value,
+                    loopDelayTime: loopDelayInput.value,
+                    loopDuration: loopDurationInput.value,
+                    loopPattern: loopPatternSelect.value,
+                    attackTime: document.getElementById('attackTime').value,
+                    decayTime: document.getElementById('decayTime').value,
+                    sustainLevel: document.getElementById('sustainLevel').value,
+                    releaseTime: document.getElementById('releaseTime').value,
+                    lfoType: document.getElementById('lfoType').value,
+                    lfoRate: document.getElementById('lfoRate').value,
+                    lfoDepth: document.getElementById('lfoDepth').value,
+                    lfoTarget: document.getElementById('lfoTarget').value,
+                    bpm: bpmInput.value,
+                    clientPitches: Array.from(clientPitches.entries()),
+                    sequencerData: sequencerData.map(d => ({ clientId: d.clientId, steps: d.steps.map(s => s.active) })),
+                    clientPositions: Array.from(clientPositions.entries())
+                };
+            };
+
+            const setControlValues = (values) => {
+                soundTypeSelect.value = values.soundType;
+                delayTimeInput.value = values.delayTime;
+                document.getElementById('musicalKey').value = values.musicalKey;
+                document.getElementById('scaleType').value = values.scaleType;
+                document.getElementById('octave').value = values.octave;
+                loopDelayInput.value = values.loopDelayTime;
+                loopDurationInput.value = values.loopDuration;
+                loopPatternSelect.value = values.loopPattern;
+                document.getElementById('attackTime').value = values.attackTime;
+                document.getElementById('decayTime').value = values.decayTime;
+                document.getElementById('sustainLevel').value = values.sustainLevel;
+                document.getElementById('releaseTime').value = values.releaseTime;
+                document.getElementById('lfoType').value = values.lfoType;
+                document.getElementById('lfoRate').value = values.lfoRate;
+                document.getElementById('lfoDepth').value = values.lfoDepth;
+                document.getElementById('lfoTarget').value = values.lfoTarget;
+                bpmInput.value = values.bpm;
+                clientPitches = new Map(values.clientPitches);
+                values.sequencerData.forEach((d, i) => {
+                    d.steps.forEach((active, j) => {
+                        sequencerData[i].steps[j].active = active;
+                        sequencerData[i].steps[j].element.style.backgroundColor = active ? '#2196F3' : '#eee';
+                    });
+                });
+                clientPositions = new Map(values.clientPositions);
+                drawPanningCanvas();
+                updatePitchControls();
+            };
+
+            const savePreset = () => {
+                const presetName = prompt('Enter a name for this preset:');
+                if (presetName) {
+                    const presets = JSON.parse(localStorage.getItem('audioPresets') || '{}');
+                    presets[presetName] = getControlValues();
+                    localStorage.setItem('audioPresets', JSON.stringify(presets));
+                    populatePresetList();
+                }
+            };
+
+            const loadPreset = () => {
+                const presetName = presetList.value;
+                if (presetName) {
+                    const presets = JSON.parse(localStorage.getItem('audioPresets') || '{}');
+                    if (presets[presetName]) {
+                        setControlValues(presets[presetName]);
+                        logMessage(`Loaded preset: ${presetName}`);
+                    }
+                }
+            };
+
+            const deletePreset = () => {
+                const presetName = presetList.value;
+                if (presetName && confirm(`Are you sure you want to delete the preset "${presetName}"?`)) {
+                    const presets = JSON.parse(localStorage.getItem('audioPresets') || '{}');
+                    delete presets[presetName];
+                    localStorage.setItem('audioPresets', JSON.stringify(presets));
+                    populatePresetList();
+                }
+            };
+
+            const populatePresetList = () => {
+                const presets = JSON.parse(localStorage.getItem('audioPresets') || '{}');
+                presetList.innerHTML = '';
+                for (const presetName in presets) {
+                    const option = document.createElement('option');
+                    option.value = presetName;
+                    option.textContent = presetName;
+                    presetList.appendChild(option);
+                }
+            };
+
+            savePresetButton.addEventListener('click', savePreset);
+            loadPresetButton.addEventListener('click', loadPreset);
+            deletePresetButton.addEventListener('click', deletePreset);
+
+            // Initialize
+            detectServerInfo();
+            connectWebSocket();
+            initWebMidi();
+            populatePresetList();
+        });
+    </script>
+</body>
+
+</html>

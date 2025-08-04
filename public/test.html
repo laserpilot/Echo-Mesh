@@ -1,0 +1,58 @@
+<!-- public/test.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+            color: #333;
+        }
+
+        .test-box {
+            background-color: #4CAF50;
+            color: white;
+            padding: 20px;
+            border-radius: 5px;
+            text-align: center;
+            margin: 20px auto;
+            max-width: 300px;
+        }
+
+        button {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Test Page</h1>
+    <div class="test-box">
+        This is a test page to verify basic styling and JavaScript functionality.
+    </div>
+    <div style="text-align: center;">
+        <button id="testButton">Test Button</button>
+    </div>
+
+    <script>
+        // Simple JavaScript to verify functionality
+        document.getElementById('testButton').addEventListener('click', function () {
+            alert('Button clicked!');
+        });
+    </script>
+</body>
+
+</html>
