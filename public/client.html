@@ -123,6 +123,7 @@
     <div class="sound-indicator" id="soundIndicator">READY</div>
 
     <button class="test-button" id="testButton">Test Sound</button>
+    <button class="test-button" id="resyncButton" style="background-color: #2196F3; margin-top: 10px;">Re-sync Timing</button>
 
     <div class="status" id="status">Initializing...</div>
 
@@ -135,6 +136,7 @@
             const statusElement = document.getElementById('status');
             const soundIndicator = document.getElementById('soundIndicator');
             const testButton = document.getElementById('testButton');
+            const resyncButton = document.getElementById('resyncButton');
             const logElement = document.getElementById('log');
 
             // Variables
@@ -315,6 +317,15 @@
                 }));
             };
 
+            // Periodic re-sync to handle clock drift
+            const startPeriodicSync = () => {
+                setInterval(() => {
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        syncClock();
+                    }
+                }, 30000); // Re-sync every 30 seconds
+            };
+
             // Connect to WebSocket
             const connectWebSocket = () => {
                 // Get the current URL
@@ -384,7 +395,11 @@
                         const rtt = t1 - data.t0;
                         const estimatedServerTime = data.serverTime + rtt / 2;
                         serverTimeOffset = estimatedServerTime - t1;
-                        isSynced = true;
+                        if (!isSynced) {
+                            isSynced = true;
+                            // Start periodic re-sync after first successful sync
+                            startPeriodicSync();
+                        }
                         logMessage(`Clock synced. RTT: ${rtt.toFixed(2)}ms, Offset: ${serverTimeOffset.toFixed(2)}ms`);
                         const syncShortId = clientId.substring(0, 8).toUpperCase();
                         statusElement.textContent = `Synced with server as Client ${syncShortId}`;
@@ -448,6 +463,24 @@
                 // Set up test button
                 testButton.addEventListener('click', async () => {
                     await playSound('sine');
+                });
+
+                // Set up re-sync button
+                resyncButton.addEventListener('click', () => {
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        logMessage('Manual re-sync requested by user');
+                        resyncButton.textContent = 'Syncing...';
+                        resyncButton.disabled = true;
+                        syncClock();
+                        // Re-enable button after a short delay
+                        setTimeout(() => {
+                            resyncButton.textContent = 'Re-sync Timing';
+                            resyncButton.disabled = false;
+                        }, 2000);
+                    } else {
+                        logMessage('Cannot re-sync: not connected to server');
+                        statusElement.textContent = 'Not connected - cannot re-sync';
+                    }
                 });
 
                 // Connect to server

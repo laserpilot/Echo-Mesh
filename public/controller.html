@@ -248,6 +248,7 @@
                 <strong>WebSocket Status:</strong>
                 <span id="wsStatus">Not connected</span>
                 <button id="reconnectButton" class="button" style="margin-left: 10px;">Reconnect</button>
+                <button id="resyncButton" class="button" style="margin-left: 10px;">Re-sync Timing</button>
             </p>
         </div>
 
@@ -469,6 +470,7 @@
             const serverIpElement = document.getElementById('serverIp');
             const clientUrlElement = document.getElementById('clientUrl');
             const reconnectButton = document.getElementById('reconnectButton');
+            const resyncButton = document.getElementById('resyncButton');
             const testSoundButton = document.getElementById('testSoundButton');
             const refreshButton = document.getElementById('refreshButton');
             const playSequenceButton = document.getElementById('playSequenceButton');
@@ -572,6 +574,15 @@
                 ws.send(JSON.stringify({ type: 'sync', t0: performance.now() }));
             };
 
+            // Periodic re-sync to handle clock drift
+            const startPeriodicSync = () => {
+                setInterval(() => {
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        syncClock();
+                    }
+                }, 30000); // Re-sync every 30 seconds
+            };
+
             // Send a message to the server
             const sendMessage = (data) => {
                 if (ws && ws.readyState === WebSocket.OPEN) {
@@ -595,7 +606,11 @@
                         const rtt = t1 - data.t0;
                         const estimatedServerTime = data.serverTime + rtt / 2;
                         serverTimeOffset = estimatedServerTime - t1;
-                        isSynced = true;
+                        if (!isSynced) {
+                            isSynced = true;
+                            // Start periodic re-sync after first successful sync
+                            startPeriodicSync();
+                        }
                         logMessage(`Controller clock synced. RTT: ${rtt.toFixed(2)}ms, Offset: ${serverTimeOffset.toFixed(2)}ms`);
                         break;
 
@@ -685,6 +700,7 @@
                     button.addEventListener('click', () => {
                         const clientId = button.getAttribute('data-client');
                         const sound = button.getAttribute('data-sound');
+                        // For individual client buttons, use immediate sound triggering for quick testing
                         triggerClientSound(clientId, sound);
                     });
                 });
@@ -751,7 +767,9 @@
                 // Play sequence
                 clientSequence.forEach((clientId, index) => {
                     setTimeout(() => {
-                        triggerClientSound(clientId, sound);
+                        // Use note-based triggering for better musical control
+                        const frequency = generateFrequencyForClient(clientId);
+                        triggerClientNote(clientId, frequency);
                     }, index * delay);
                 });
             };
@@ -768,12 +786,29 @@
                 logMessage(`Playing ${sound} sound on all clients simultaneously`);
 
                 clients.forEach(clientId => {
-                    triggerClientSound(clientId, sound);
+                    // Use note-based triggering for better musical control
+                    const frequency = generateFrequencyForClient(clientId);
+                    triggerClientNote(clientId, frequency);
                 });
             };
 
             // Event listeners
             reconnectButton.addEventListener('click', connectWebSocket);
+            resyncButton.addEventListener('click', () => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    logMessage('Manual re-sync requested by user');
+                    resyncButton.textContent = 'Syncing...';
+                    resyncButton.disabled = true;
+                    syncClock();
+                    // Re-enable button after a short delay
+                    setTimeout(() => {
+                        resyncButton.textContent = 'Re-sync Timing';
+                        resyncButton.disabled = false;
+                    }, 2000);
+                } else {
+                    logMessage('Cannot re-sync: not connected to server');
+                }
+            });
             testSoundButton.addEventListener('click', playTestSound);
             refreshButton.addEventListener('click', () => sendMessage({ type: 'getClients' }));
             playSequenceButton.addEventListener('click', () => playSequence(false));
@@ -993,7 +1028,9 @@
                 const sound = soundTypeSelect.value;
                 const now = performance.now();
                 const serverNow = now + serverTimeOffset;
-                const playTime = serverNow + 100; // Schedule 100ms into the future to ensure delivery
+                // Adaptive lead time: minimum 50ms, more for higher latency
+                const leadTime = Math.max(50, Math.min(200, serverTimeOffset * 0.1 + 50));
+                const playTime = serverNow + leadTime;
 
                 const adsr = {
                     attack: parseFloat(document.getElementById('attackTime').value),
