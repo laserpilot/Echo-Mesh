@@ -8,15 +8,13 @@
 - [ ] **Activity indicators** - show which clients are currently playing sounds
 
 ### Quick Setup Features
-- [x] **QR code generation** - controller shows QR code for easy client connection
-- [ ] **Auto-discovery** - broadcast server IP on local network for easier mobile connection
-- [ ] **Setup wizard** - guided setup for new users
+- [ ] **QR code generation** - controller shows QR code for easy client connection
 - [ ] **Save/load sessions** - remember client configurations and pitch assignments
 
 ## 🎼 Musical Enhancements
 
 ### Performance Tools
-- [ ] **Metronome/click track** - built-in metronome that all clients can hear
+- [ ] **Metronome/click track** - built-in metronome that all clients can hear. metronome can also be played out of each client device to determine sync variance.
 - [ ] **Chord progressions** - predefined chord sequences (I-V-vi-IV, etc.)
 - [ ] **Rhythm patterns** - preset drum-like patterns distributed across clients
 - [ ] **Key change function** - transpose entire orchestra up/down
@@ -31,17 +29,17 @@
 ## 🎛️ Control & Organization
 
 ### Interface Redesign
-- [x] **Controller UI reorganization** - restructure interface with logical workflow
-  - [x] Sidebar navigation with collapsible sections
-  - [x] Step-by-step workflow: Setup → Test → Compose → Perform
-  - [x] Clear visual hierarchy and grouping of related controls
-  - [x] Progress indicators showing connection status before composition
-  - [x] Separate testing area from composition controls
-- [x] **Workflow improvements** - guide users through logical steps
-  - [x] Setup section: connection info, client discovery, sync status
-  - [x] Testing section: individual client sound tests, system checks
-  - [x] Composition section: musical controls, sequences, patterns
-  - [x] Performance section: live controls, recording, monitoring
+- [ ] **Controller UI reorganization** - restructure interface with logical workflow
+  - [ ] Sidebar navigation with collapsible sections
+  - [ ] Step-by-step workflow: Setup → Test → Compose → Perform
+  - [ ] Clear visual hierarchy and grouping of related controls
+  - [ ] Progress indicators showing connection status before composition
+  - [ ] Separate testing area from composition controls
+- [ ] **Workflow improvements** - guide users through logical steps
+  - [ ] Setup section: connection info, client discovery, sync status
+  - [ ] Testing section: individual client sound tests, system checks
+  - [ ] Composition section: musical controls, sequences, patterns
+  - [ ] Performance section: live controls, recording, monitoring
 
 ### Client Management
 
@@ -49,6 +47,7 @@
 - [ ] **Set volume per client** - default to full volume
 - [ ] **Client naming** - let users give friendly names to their devices
 - [ ] **Position memory** - remember panning positions for reconnected clients
+- [ ] Ability to "push" a specific sound type to a client per client - by default we can tell all devices to use the same sound/timbre, but the client configuration page should let us pick, per client, the waveform, ADSR, volume, and effect
 
 ### Advanced Features
 - [ ] **Conductor mode** - simplified interface for live conducting gestures
@@ -59,8 +58,7 @@
 ### Device Optimization
 - [ ] **Screen wake lock** - keep mobile screens on during performances (partially implemented)
 - [ ] **Fullscreen mode** - hide browser UI for cleaner performance interface
-- [ ] **Orientation lock** - prevent accidental rotation during performance
-- [ ] **Haptic feedback** - subtle vibration when sounds are triggered
+- [ ] Show a piano keyboard graphic on client where it will light up the notes that are currently being played. allow client to only press keys that are in the current key of the song.
 
 ## 🔧 Technical Enhancements
 

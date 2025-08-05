@@ -196,6 +196,259 @@
             margin: 5px 0;
         }
 
+        .mode-button {
+            padding: 8px 16px;
+            margin: 0;
+            opacity: 0.7;
+            transition: all 0.3s ease;
+        }
+
+        .mode-button.active {
+            opacity: 1;
+            background-color: #4CAF50;
+            transform: scale(1.05);
+        }
+
+        .chord-button, .chord-select {
+            padding: 12px 8px;
+            border: 2px solid;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 50px;
+        }
+
+        .chord-button.major, .chord-select.major {
+            background-color: #4CAF50;
+            border-color: #4CAF50;
+            color: white;
+        }
+
+        .chord-button.minor, .chord-select.minor {
+            background-color: #2196F3;
+            border-color: #2196F3;
+            color: white;
+        }
+
+        .chord-button.diminished, .chord-select.diminished {
+            background-color: #f44336;
+            border-color: #f44336;
+            color: white;
+        }
+
+        .chord-button.rest, .chord-select.rest {
+            background-color: #999;
+            border-color: #999;
+            color: white;
+        }
+
+        .chord-button:hover, .chord-select:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .chord-select.selected {
+            box-shadow: 0 0 0 3px rgba(255,193,7,0.5);
+            transform: scale(1.1);
+        }
+
+        .custom-chord-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .custom-chord-item .remove-chord {
+            background: rgba(255,255,255,0.3);
+            border: none;
+            border-radius: 3px;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 2px 4px;
+        }
+
+        .sequencer-step {
+            aspect-ratio: 1;
+            border: 2px solid #ccc;
+            border-radius: 6px;
+            background-color: #f9f9f9;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .sequencer-step.active {
+            background-color: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+
+        .sequencer-step.playing {
+            animation: sequencerPulse 0.3s ease;
+            box-shadow: 0 0 15px rgba(76, 175, 80, 0.8);
+        }
+
+        @keyframes sequencerPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .progression-chord-display {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            margin: 2px;
+            position: relative;
+        }
+
+        .progression-chord-display.current {
+            animation: currentChordPulse 1s ease-in-out infinite;
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.6);
+        }
+
+        @keyframes currentChordPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .effect-add-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .effect-add-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .effect-chain-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 15px;
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            border: 2px solid transparent;
+        }
+
+        .effect-chain-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .effect-chain-item.bypassed {
+            background: linear-gradient(135deg, #9E9E9E 0%, #757575 100%);
+            opacity: 0.7;
+        }
+
+        .effect-chain-item.editing {
+            border-color: #FFC107;
+            box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.3);
+        }
+
+        .effect-chain-item .effect-controls {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .effect-chain-item .bypass-btn,
+        .effect-chain-item .remove-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            border-radius: 3px;
+            color: white;
+            cursor: pointer;
+            font-size: 11px;
+            padding: 2px 5px;
+            transition: background 0.2s;
+        }
+
+        .effect-chain-item .bypass-btn:hover,
+        .effect-chain-item .remove-btn:hover {
+            background: rgba(255,255,255,0.4);
+        }
+
+        .effect-parameter {
+            display: grid;
+            grid-template-columns: 1fr 100px 60px;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .effect-parameter label {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .effect-parameter input[type="range"] {
+            width: 100%;
+        }
+
+        .effect-parameter input[type="number"] {
+            width: 100%;
+            padding: 4px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .lfo-visualization {
+            position: relative;
+            height: 40px;
+            background: linear-gradient(90deg, #ddd 0%, #4CAF50 50%, #ddd 100%);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .lfo-indicator {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: #f44336;
+            transition: left 0.1s ease;
+        }
+
+        @keyframes lfoAnimation {
+            0% { left: 0; }
+            50% { left: calc(100% - 3px); }
+            100% { left: 0; }
+        }
+
+        .lfo-indicator.animated {
+            animation: lfoAnimation ease-in-out infinite;
+        }
+
         .button:hover {
             background-color: #0b7dda;
         }
@@ -482,6 +735,15 @@
                         <option value="square">Square Wave</option>
                         <option value="sawtooth">Sawtooth Wave</option>
                         <option value="triangle">Triangle Wave</option>
+                        <option value="filteredsawtooth">Filtered Sawtooth</option>
+                        <option value="organ">Organ</option>
+                        <option value="noise">White Noise</option>
+                        <option value="pinknoise">Pink Noise</option>
+                        <option value="kick">Kick Drum</option>
+                        <option value="snare">Snare Drum</option>
+                        <option value="hihat">Hi-Hat</option>
+                        <option value="rain">Rain</option>
+                        <option value="wind">Wind</option>
                     </select>
 
                     <label for="delayTime">Delay (ms):</label>
@@ -499,6 +761,171 @@
             <div class="section-header">
                 <h2>🎵 Compose & Configure</h2>
                 <p class="section-description">Set up musical parameters, scales, and composition tools</p>
+            </div>
+
+            <div class="container">
+                <h3>Metronome & Click Track</h3>
+                <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 15px;">
+                    <label for="metronomeBpm">BPM:</label>
+                    <input type="number" id="metronomeBpm" value="120" min="40" max="240" step="1" style="width: 80px;">
+                    
+                    <button id="startMetronomeButton" class="button" style="background-color: #4CAF50;">Start Click Track</button>
+                    <button id="stopMetronomeButton" class="button" style="background-color: #F44336; display: none;">Stop Click Track</button>
+                    
+                    <span id="metronomeStatus" style="margin-left: 10px; font-weight: bold;">Stopped</span>
+                </div>
+                <p style="color: #666; font-size: 14px; margin: 0;">
+                    The metronome provides a synchronized click track that all clients can hear to stay in time.
+                </p>
+            </div>
+
+            <div class="container">
+                <h3>Advanced Chord Progressions</h3>
+                
+                <!-- Progression Mode Selector -->
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <button id="presetModeBtn" class="button mode-button active" onclick="switchProgressionMode('preset')">Presets</button>
+                    <button id="customModeBtn" class="button mode-button" onclick="switchProgressionMode('custom')">Custom Builder</button>
+                    <button id="sequencerModeBtn" class="button mode-button" onclick="switchProgressionMode('sequencer')">Step Sequencer</button>
+                </div>
+
+                <!-- Preset Mode -->
+                <div id="presetMode" class="progression-mode">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                        <div>
+                            <label for="chordProgression">Choose Progression:</label>
+                            <select id="chordProgression" style="width: 100%;">
+                                <optgroup label="Pop & Rock">
+                                    <option value="I-V-vi-IV">I-V-vi-IV (Pop Classic)</option>
+                                    <option value="vi-IV-I-V">vi-IV-I-V (Pop Variant)</option>
+                                    <option value="I-vi-IV-V">I-vi-IV-V (50s Progression)</option>
+                                    <option value="vi-V-IV-V">vi-V-IV-V (Emotional Pop)</option>
+                                </optgroup>
+                                <optgroup label="Jazz & Blues">
+                                    <option value="ii-V-I">ii-V-I (Jazz Standard)</option>
+                                    <option value="I-vi-ii-V">I-vi-ii-V (Rhythm Changes)</option>
+                                    <option value="I-IV-V">I-IV-V (Blues)</option>
+                                    <option value="I-IV-V-IV">I-IV-V-IV (12-bar feel)</option>
+                                </optgroup>
+                                <optgroup label="Minor & Modal">
+                                    <option value="i-VII-VI-VII">i-VII-VI-VII (Rock Minor)</option>
+                                    <option value="i-iv-V">i-iv-V (Minor Blues)</option>
+                                    <option value="i-VI-VII">i-VI-VII (Dorian)</option>
+                                    <option value="i-ii°-V">i-ii°-V (Minor ii-V)</option>
+                                </optgroup>
+                                <optgroup label="Extended">
+                                    <option value="I-iii-vi-IV">I-iii-vi-IV (Circle of Fifths)</option>
+                                    <option value="I-V-vi-iii-IV-I-IV-V">I-V-vi-iii-IV-I-IV-V (Canon)</option>
+                                    <option value="vi-ii-V-I">vi-ii-V-I (Jazz Turnaround)</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="chordDuration">Chord Duration:</label>
+                            <select id="chordDuration" style="width: 100%;">
+                                <option value="1000">1 second</option>
+                                <option value="2000">2 seconds</option>
+                                <option value="4000" selected>4 seconds</option>
+                                <option value="6000">6 seconds</option>
+                                <option value="8000">8 seconds</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Custom Builder Mode -->
+                <div id="customMode" class="progression-mode" style="display: none;">
+                    <div style="margin-bottom: 15px;">
+                        <label>Build Your Progression:</label>
+                        <div id="customChordBuilder" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; padding: 15px; background-color: #f9f9f9; border-radius: 8px; min-height: 60px; border: 2px dashed #ccc;">
+                            <div class="chord-placeholder">Click chords below to build your progression</div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label>Available Chords:</label>
+                        <div id="chordPalette" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); gap: 8px; margin-top: 10px;">
+                            <!-- Major chords -->
+                            <button class="chord-button major" data-chord="I">I</button>
+                            <button class="chord-button minor" data-chord="ii">ii</button>
+                            <button class="chord-button minor" data-chord="iii">iii</button>
+                            <button class="chord-button major" data-chord="IV">IV</button>
+                            <button class="chord-button major" data-chord="V">V</button>
+                            <button class="chord-button minor" data-chord="vi">vi</button>
+                            <button class="chord-button diminished" data-chord="vii°">vii°</button>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <button id="clearCustomProgression" class="button" style="background-color: #ff9800;">Clear All</button>
+                        <button id="saveCustomProgression" class="button" style="background-color: #4CAF50;">Save as Preset</button>
+                    </div>
+                </div>
+
+                <!-- Step Sequencer Mode -->
+                <div id="sequencerMode" class="progression-mode" style="display: none;">
+                    <div style="margin-bottom: 15px;">
+                        <label>Step Sequencer (16 steps):</label>
+                        <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px; margin-bottom: 15px;">
+                            <label for="sequencerBpm">BPM:</label>
+                            <input type="number" id="sequencerBpm" value="120" min="60" max="200" style="width: 80px;">
+                            <label for="stepsPerChord">Steps per Chord:</label>
+                            <select id="stepsPerChord">
+                                <option value="1">1 step</option>
+                                <option value="2">2 steps</option>  
+                                <option value="4" selected>4 steps</option>
+                                <option value="8">8 steps</option>
+                            </select>
+                        </div>
+                        
+                        <div id="chordSequencerGrid" style="display: grid; grid-template-columns: repeat(16, 1fr); gap: 4px; margin-bottom: 15px;">
+                            <!-- 16 step buttons will be generated by JavaScript -->
+                        </div>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <label>Select Chord for Steps:</label>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+                                <button class="chord-select major" data-chord="I">I</button>
+                                <button class="chord-select minor" data-chord="ii">ii</button>
+                                <button class="chord-select minor" data-chord="iii">iii</button>
+                                <button class="chord-select major" data-chord="IV">IV</button>
+                                <button class="chord-select major" data-chord="V">V</button>
+                                <button class="chord-select minor" data-chord="vi">vi</button>
+                                <button class="chord-select diminished" data-chord="vii°">vii°</button>
+                                <button class="chord-select rest" data-chord="">Rest</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Global Controls -->
+                <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 15px;">
+                    <button id="playChordProgressionButton" class="button" style="background-color: #9C27B0;">▶️ Play</button>
+                    <button id="stopChordProgressionButton" class="button" style="background-color: #F44336; display: none;">⏹️ Stop</button>
+                    <button id="pauseChordProgressionButton" class="button" style="background-color: #ff9800; display: none;">⏸️ Pause</button>
+                    
+                    <div style="display: flex; align-items: center; gap: 8px; margin-left: 20px;">
+                        <label for="progressionVolume">Volume:</label>
+                        <input type="range" id="progressionVolume" min="0" max="100" value="80" style="width: 100px;">
+                        <span id="progressionVolumeValue">80%</span>
+                    </div>
+                </div>
+
+                <!-- Current Progression Display -->
+                <div id="currentProgressionDisplay" style="background-color: #f0f0f0; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <strong>Current Progression:</strong>
+                        <div id="progressionPosition" style="font-size: 14px; color: #666;">Ready</div>
+                    </div>
+                    <div id="progressionVisualization" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <div class="progression-chord-display">Select a progression to see visualization</div>
+                    </div>
+                </div>
+
+                <p style="color: #666; font-size: 14px; margin: 0;">
+                    Create and play chord progressions using presets, custom builder, or step sequencer. Progressions play across all connected clients using roman numeral notation.
+                </p>
             </div>
 
             <div class="container">
@@ -530,6 +957,15 @@
                         <option value="4" selected>Medium (4)</option>
                         <option value="5">High (5)</option>
                     </select>
+                    
+                    <div style="margin-top: 15px;">
+                        <h4>Transpose Orchestra</h4>
+                        <button id="transposeUpButton" class="button" style="background-color: #2196F3;">↑ Semitone Up</button>
+                        <button id="transposeDownButton" class="button" style="background-color: #2196F3;">↓ Semitone Down</button>
+                        <button id="transposeOctaveUpButton" class="button" style="background-color: #9C27B0;">↑ Octave Up</button>
+                        <button id="transposeOctaveDownButton" class="button" style="background-color: #9C27B0;">↓ Octave Down</button>
+                        <button id="resetTransposeButton" class="button" style="background-color: #4CAF50;">Reset</button>
+                    </div>
                 </div>
             </div>
 
@@ -549,6 +985,30 @@
             </div>
 
             <div class="container">
+                <h3>Rhythm Patterns</h3>
+                <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 15px;">
+                    <label for="rhythmPattern">Pattern:</label>
+                    <select id="rhythmPattern">
+                        <option value="kick-snare">Kick-Snare (Basic)</option>
+                        <option value="four-on-floor">Four on the Floor</option>
+                        <option value="breakbeat">Breakbeat</option>
+                        <option value="latin">Latin Rhythm</option>
+                        <option value="shuffle">Shuffle</option>
+                        <option value="polyrhythm">Polyrhythm</option>
+                    </select>
+                    
+                    <label for="rhythmTempo">Tempo:</label>
+                    <input type="number" id="rhythmTempo" value="120" min="60" max="180" step="5" style="width: 80px;">
+                    
+                    <button id="playRhythmButton" class="button" style="background-color: #FF9800;">Play Rhythm</button>
+                    <button id="stopRhythmButton" class="button" style="background-color: #F44336; display: none;">Stop Rhythm</button>
+                </div>
+                <p style="color: #666; font-size: 14px; margin: 0;">
+                    Rhythm patterns distribute different drum-like sounds across clients in time.
+                </p>
+            </div>
+
+            <div class="container">
                 <h3>Pattern Controls</h3>
                 <div class="pattern-buttons">
                     <button id="randomNoteButton" class="button">Play Random Notes</button>
@@ -558,54 +1018,132 @@
 
             <div class="container">
                 <h3>ADSR Envelope</h3>
-                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
                         <label for="attackTime">Attack (s)</label>
-                        <input type="number" id="attackTime" value="0.01" min="0.01" max="2" step="0.01">
+                        <input type="range" id="attackSlider" min="0.01" max="2" step="0.01" value="0.01" style="width: 100%;">
+                        <input type="number" id="attackTime" value="0.01" min="0.01" max="2" step="0.01" style="width: 80px;">
                     </div>
-                    <div>
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
                         <label for="decayTime">Decay (s)</label>
-                        <input type="number" id="decayTime" value="0.1" min="0.01" max="2" step="0.01">
+                        <input type="range" id="decaySlider" min="0.01" max="2" step="0.01" value="0.1" style="width: 100%;">
+                        <input type="number" id="decayTime" value="0.1" min="0.01" max="2" step="0.01" style="width: 80px;">
                     </div>
-                    <div>
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
                         <label for="sustainLevel">Sustain</label>
-                        <input type="number" id="sustainLevel" value="0.5" min="0" max="1" step="0.01">
+                        <input type="range" id="sustainSlider" min="0" max="1" step="0.01" value="0.5" style="width: 100%;">
+                        <input type="number" id="sustainLevel" value="0.5" min="0" max="1" step="0.01" style="width: 80px;">
                     </div>
-                    <div>
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
                         <label for="releaseTime">Release (s)</label>
-                        <input type="number" id="releaseTime" value="1.0" min="0.01" max="5" step="0.01">
+                        <input type="range" id="releaseSlider" min="0.01" max="5" step="0.01" value="1.0" style="width: 100%;">
+                        <input type="number" id="releaseTime" value="1.0" min="0.01" max="5" step="0.01" style="width: 80px;">
                     </div>
                 </div>
             </div>
 
             <div class="container">
-                <h3>LFO (Low-Frequency Oscillator)</h3>
-                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <div>
-                        <label for="lfoType">LFO Type</label>
-                        <select id="lfoType">
-                            <option value="sine">Sine</option>
-                            <option value="square">Square</option>
-                            <option value="sawtooth">Sawtooth</option>
-                            <option value="triangle">Triangle</option>
+                <h3>🌊 LFO (Low-Frequency Oscillator)</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <label for="lfoType">Waveform</label>
+                        <select id="lfoType" style="width: 100%;">
+                            <option value="sine">Sine (Smooth)</option>
+                            <option value="square">Square (Hard Steps)</option>
+                            <option value="sawtooth">Sawtooth (Ramp)</option>
+                            <option value="triangle">Triangle (Linear)</option>
                         </select>
                     </div>
-                    <div>
-                        <label for="lfoRate">LFO Rate (Hz)</label>
-                        <input type="number" id="lfoRate" value="5" min="0.1" max="20" step="0.1">
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <label for="lfoRate">Rate (Hz)</label>
+                        <input type="range" id="lfoRateSlider" min="0.1" max="20" step="0.1" value="5" style="width: 100%;">
+                        <input type="number" id="lfoRate" value="5" min="0.1" max="20" step="0.1" style="width: 80px;">
                     </div>
-                    <div>
-                        <label for="lfoDepth">LFO Depth</label>
-                        <input type="number" id="lfoDepth" value="0" min="0" max="1000" step="1">
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <label for="lfoDepth">Depth</label>
+                        <input type="range" id="lfoDepthSlider" min="0" max="100" step="1" value="0" style="width: 100%;">
+                        <input type="number" id="lfoDepth" value="0" min="0" max="100" step="1" style="width: 80px;">
                     </div>
-                    <div>
-                        <label for="lfoTarget">LFO Target</label>
-                        <select id="lfoTarget">
-                            <option value="vibrato">Vibrato (Pitch)</option>
-                            <option value="tremolo">Tremolo (Volume)</option>
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <label for="lfoTarget">Target Parameter</label>
+                        <select id="lfoTarget" style="width: 100%;">
+                            <option value="vibrato">Pitch (Vibrato)</option>
+                            <option value="tremolo">Volume (Tremolo)</option>
+                            <option value="filter">Filter Cutoff</option>
+                            <option value="pan">Stereo Pan</option>
                         </select>
                     </div>
                 </div>
+                <div style="margin-top: 15px; padding: 10px; background-color: #f0f0f0; border-radius: 5px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <label><input type="checkbox" id="lfoEnabled"> Enable LFO</label>
+                        <div id="lfoVisualization" style="flex: 1; height: 40px; background: linear-gradient(90deg, #ddd 0%, #4CAF50 50%, #ddd 100%); border-radius: 3px; position: relative;">
+                            <div id="lfoIndicator" style="position: absolute; top: 0; bottom: 0; width: 3px; background: #f44336; transition: left 0.1s;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="container">
+                <h3>🎛️ Effects Chain</h3>
+                
+                <!-- Effects Chain Display -->
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <label><strong>Active Effects Chain:</strong></label>
+                        <div style="display: flex; gap: 10px;">
+                            <button id="clearEffectsChain" class="button" style="background-color: #ff9800; padding: 6px 12px; font-size: 14px;">Clear All</button>
+                            <button id="bypassAllEffects" class="button" style="background-color: #9E9E9E; padding: 6px 12px; font-size: 14px;">Bypass All</button>
+                        </div>
+                    </div>
+                    <div id="effectsChainDisplay" style="min-height: 60px; background-color: #f9f9f9; border: 2px dashed #ccc; border-radius: 8px; padding: 15px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <div class="effects-placeholder">No effects active - Add effects below</div>
+                    </div>
+                </div>
+
+                <!-- Add Effects Section -->
+                <div style="margin-bottom: 20px;">
+                    <label><strong>Add Effects:</strong></label>
+                    <div id="effectsLibrary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px;">
+                        <button class="effect-add-button" data-effect="reverb">🏛️ Reverb</button>
+                        <button class="effect-add-button" data-effect="delay">⏰ Delay</button>
+                        <button class="effect-add-button" data-effect="distortion">🔥 Distortion</button>
+                        <button class="effect-add-button" data-effect="chorus">🌊 Chorus</button>
+                        <button class="effect-add-button" data-effect="filter">🎚️ Filter</button>
+                        <button class="effect-add-button" data-effect="compressor">📦 Compressor</button>
+                        <button class="effect-add-button" data-effect="eq">📊 EQ</button>
+                        <button class="effect-add-button" data-effect="phaser">🌀 Phaser</button>
+                    </div>
+                </div>
+
+                <!-- Effect Parameters Panel -->
+                <div id="effectParametersPanel" style="display: none; background-color: #f0f0f0; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h4 id="currentEffectTitle" style="margin: 0;">Effect Parameters</h4>
+                        <button id="closeEffectPanel" class="button" style="background-color: #f44336; padding: 4px 8px; font-size: 12px;">×</button>
+                    </div>
+                    <div id="effectParametersContent">
+                        <!-- Dynamic content based on selected effect -->
+                    </div>
+                </div>
+
+                <!-- Global Effects Controls -->
+                <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <label for="effectsWetDry">Wet/Dry Mix:</label>
+                        <input type="range" id="effectsWetDry" min="0" max="100" value="50" style="width: 100px;">
+                        <span id="effectsWetDryValue">50%</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <label for="effectsGain">Effects Gain:</label>
+                        <input type="range" id="effectsGain" min="0" max="200" value="100" style="width: 100px;">
+                        <span id="effectsGainValue">100%</span>
+                    </div>
+                </div>
+
+                <p style="color: #666; font-size: 14px; margin-top: 15px; margin-bottom: 0;">
+                    Build custom effects chains by adding effects above. Drag to reorder, click to edit parameters. Effects are applied in order from left to right.
+                </p>
             </div>
 
             <div class="container">
@@ -706,11 +1244,62 @@
             const soundTypeSelect = document.getElementById('soundType');
             const delayTimeInput = document.getElementById('delayTime');
 
+            // Get metronome control elements
+            const startMetronomeButton = document.getElementById('startMetronomeButton');
+            const stopMetronomeButton = document.getElementById('stopMetronomeButton');
+            const metronomeBpmInput = document.getElementById('metronomeBpm');
+            const metronomeStatusElement = document.getElementById('metronomeStatus');
+
+            // Get chord progression control elements
+            const chordProgressionSelect = document.getElementById('chordProgression');
+            const chordDurationSelect = document.getElementById('chordDuration');
+            const playChordProgressionButton = document.getElementById('playChordProgressionButton');
+            const stopChordProgressionButton = document.getElementById('stopChordProgressionButton');
+
+            // Get rhythm pattern control elements
+            const rhythmPatternSelect = document.getElementById('rhythmPattern');
+            const rhythmTempoInput = document.getElementById('rhythmTempo');
+            const playRhythmButton = document.getElementById('playRhythmButton');
+            const stopRhythmButton = document.getElementById('stopRhythmButton');
+
+            // Get transpose control elements
+            const transposeUpButton = document.getElementById('transposeUpButton');
+            const transposeDownButton = document.getElementById('transposeDownButton');
+            const transposeOctaveUpButton = document.getElementById('transposeOctaveUpButton');
+            const transposeOctaveDownButton = document.getElementById('transposeOctaveDownButton');
+            const resetTransposeButton = document.getElementById('resetTransposeButton');
+
             // Get loop control elements
             const startLoopButton = document.getElementById('startLoopButton');
             const stopLoopButton = document.getElementById('stopLoopButton');
             const loopDelayInput = document.getElementById('loopDelayTime');
             const loopDurationInput = document.getElementById('loopDuration');
+
+            // Sync ADSR sliders with number inputs
+            const setupSliderSync = (sliderId, inputId) => {
+                const slider = document.getElementById(sliderId);
+                const input = document.getElementById(inputId);
+                
+                if (slider && input) {
+                    slider.addEventListener('input', () => {
+                        input.value = slider.value;
+                    });
+                    
+                    input.addEventListener('input', () => {
+                        slider.value = input.value;
+                    });
+                }
+            };
+
+            // Setup ADSR slider synchronization
+            setupSliderSync('attackSlider', 'attackTime');
+            setupSliderSync('decaySlider', 'decayTime');
+            setupSliderSync('sustainSlider', 'sustainLevel');
+            setupSliderSync('releaseSlider', 'releaseTime');
+
+            // Setup LFO slider synchronization
+            setupSliderSync('lfoRateSlider', 'lfoRate');
+            setupSliderSync('lfoDepthSlider', 'lfoDepth');
             const loopPatternSelect = document.getElementById('loopPattern');
 
             // Variables for the loop
@@ -723,6 +1312,36 @@
             let serverTimeOffset = 0;
             let isSynced = false;
             let lastRtt = 0;
+            let effectsChain = [];
+            let lfoState = {
+                enabled: false,
+                rate: 5,
+                depth: 0,
+                type: 'sine',
+                target: 'vibrato',
+                animationId: null
+            };
+            let metronomeState = {
+                isRunning: false,
+                bpm: 120
+            };
+            let chordProgressionState = {
+                isPlaying: false,
+                currentChord: 0,
+                interval: null,
+                isPaused: false,
+                currentMode: 'preset',
+                customProgression: [],
+                sequencerSteps: new Array(16).fill(''),
+                sequencerCurrentStep: 0,
+                selectedChord: 'I'
+            };
+            let rhythmState = {
+                isPlaying: false,
+                currentStep: 0,
+                interval: null,
+                pattern: null
+            };
 
             // Status Management Functions
             const updateSystemStatus = () => {
@@ -1010,6 +1629,13 @@
                         removeClient(data.id);
                         break;
 
+                    case 'metronomeState':
+                        metronomeState.isRunning = data.isRunning;
+                        metronomeState.bpm = data.bpm;
+                        updateMetronomeUI();
+                        logMessage(`Metronome state: ${data.isRunning ? 'running' : 'stopped'} at ${data.bpm} BPM`);
+                        break;
+
                     default:
                         logMessage(`Received unknown message type: ${data.type}`);
                 }
@@ -1196,6 +1822,53 @@
                 });
             };
 
+            // Metronome functions
+            const startMetronome = () => {
+                const bpm = parseInt(metronomeBpmInput.value);
+                if (bpm < 40 || bpm > 240) {
+                    logMessage('BPM must be between 40 and 240');
+                    return;
+                }
+
+                sendMessage({
+                    type: 'startMetronome',
+                    bpm: bpm
+                });
+
+                // Update UI immediately for responsiveness
+                metronomeState.isRunning = true;
+                metronomeState.bpm = bpm;
+                updateMetronomeUI();
+
+                logMessage(`Starting metronome at ${bpm} BPM`);
+            };
+
+            const stopMetronome = () => {
+                sendMessage({
+                    type: 'stopMetronome'
+                });
+
+                // Update UI immediately for responsiveness
+                metronomeState.isRunning = false;
+                updateMetronomeUI();
+
+                logMessage('Stopping metronome');
+            };
+
+            const updateMetronomeUI = () => {
+                if (metronomeState.isRunning) {
+                    startMetronomeButton.style.display = 'none';
+                    stopMetronomeButton.style.display = 'inline-block';
+                    metronomeStatusElement.textContent = `Running at ${metronomeState.bpm} BPM`;
+                    metronomeStatusElement.style.color = '#4CAF50';
+                } else {
+                    startMetronomeButton.style.display = 'inline-block';
+                    stopMetronomeButton.style.display = 'none';
+                    metronomeStatusElement.textContent = 'Stopped';
+                    metronomeStatusElement.style.color = '#666';
+                }
+            };
+
             // Event listeners
             reconnectButton.addEventListener('click', connectWebSocket);
             resyncButton.addEventListener('click', () => {
@@ -1219,6 +1892,7 @@
             playReverseButton.addEventListener('click', () => playSequence(true));
             playAllButton.addEventListener('click', playAll);
 
+
             // Musical scale definitions
             const scales = {
                 // Major scale: W-W-H-W-W-W-H (whole and half steps)
@@ -1231,6 +1905,125 @@
                 minorPentatonic: [0, 3, 5, 7, 10],
                 // Blues scale: minor pentatonic plus blue note
                 blues: [0, 3, 5, 6, 7, 10]
+            };
+
+            // Chord definitions (intervals from root)
+            const chordTypes = {
+                // Major and minor triads
+                major: [0, 4, 7],
+                minor: [0, 3, 7],
+                diminished: [0, 3, 6],
+                augmented: [0, 4, 8],
+                // Seventh chords
+                major7: [0, 4, 7, 11],
+                minor7: [0, 3, 7, 10],
+                dominant7: [0, 4, 7, 10]
+            };
+
+            // Roman numeral to chord mapping
+            const romanNumeralChords = {
+                // Major key chord progressions
+                'I': { root: 0, type: 'major' },
+                'ii': { root: 1, type: 'minor' },
+                'iii': { root: 2, type: 'minor' },
+                'IV': { root: 3, type: 'major' },
+                'V': { root: 4, type: 'major' },
+                'vi': { root: 5, type: 'minor' },
+                'vii°': { root: 6, type: 'diminished' },
+                // Minor key chord progressions
+                'i': { root: 0, type: 'minor' },
+                'ii°': { root: 1, type: 'diminished' },
+                'III': { root: 2, type: 'major' },
+                'iv': { root: 3, type: 'minor' },
+                'v': { root: 4, type: 'minor' },
+                'VI': { root: 5, type: 'major' },
+                'VII': { root: 6, type: 'major' }
+            };
+
+            // Pre-defined chord progressions
+            const chordProgressions = {
+                // Pop & Rock
+                'I-V-vi-IV': ['I', 'V', 'vi', 'IV'],
+                'vi-IV-I-V': ['vi', 'IV', 'I', 'V'],
+                'I-vi-IV-V': ['I', 'vi', 'IV', 'V'],
+                'vi-V-IV-V': ['vi', 'V', 'IV', 'V'],
+                // Jazz & Blues
+                'ii-V-I': ['ii', 'V', 'I'],
+                'I-vi-ii-V': ['I', 'vi', 'ii', 'V'],
+                'I-IV-V': ['I', 'IV', 'V'],
+                'I-IV-V-IV': ['I', 'IV', 'V', 'IV'],
+                // Minor & Modal
+                'i-VII-VI-VII': ['i', 'VII', 'VI', 'VII'],
+                'i-iv-V': ['i', 'iv', 'V'],
+                'i-VI-VII': ['i', 'VI', 'VII'],
+                'i-ii°-V': ['i', 'ii°', 'V'],
+                // Extended
+                'I-iii-vi-IV': ['I', 'iii', 'vi', 'IV'],
+                'I-V-vi-iii-IV-I-IV-V': ['I', 'V', 'vi', 'iii', 'IV', 'I', 'IV', 'V'],
+                'vi-ii-V-I': ['vi', 'ii', 'V', 'I']
+            };
+
+            // Rhythm patterns - each array represents steps in a measure (16th notes)
+            // 1 = trigger, 0 = rest
+            const rhythmPatterns = {
+                'kick-snare': {
+                    steps: 16,
+                    tracks: {
+                        kick: [1,0,0,0, 1,0,0,0, 1,0,0,0, 1,0,0,0],
+                        snare: [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
+                        hihat: [1,0,1,0, 1,0,1,0, 1,0,1,0, 1,0,1,0]
+                    }
+                },
+                'four-on-floor': {
+                    steps: 16,
+                    tracks: {
+                        kick: [1,0,0,0, 1,0,0,0, 1,0,0,0, 1,0,0,0],
+                        hihat: [0,0,1,0, 0,0,1,0, 0,0,1,0, 0,0,1,0],
+                        openhat: [0,0,0,0, 0,0,0,0, 1,0,0,0, 0,0,0,0]
+                    }
+                },
+                'breakbeat': {
+                    steps: 16,
+                    tracks: {
+                        kick: [1,0,0,0, 0,0,1,0, 0,0,0,0, 1,0,0,0],
+                        snare: [0,0,0,0, 1,0,0,1, 0,0,0,0, 1,0,0,0],
+                        hihat: [1,1,0,1, 0,1,0,1, 1,1,0,1, 0,1,1,0]
+                    }
+                },
+                'latin': {
+                    steps: 16,
+                    tracks: {
+                        kick: [1,0,0,1, 0,0,1,0, 0,1,0,0, 1,0,0,0],
+                        snare: [0,0,1,0, 0,1,0,0, 1,0,0,1, 0,0,0,0],
+                        clave: [1,0,0,1, 0,0,1,0, 0,0,1,0, 0,1,0,0]
+                    }
+                },
+                'shuffle': {
+                    steps: 12, // 12/8 time
+                    tracks: {
+                        kick: [1,0,0, 0,0,0, 1,0,0, 0,0,0],
+                        snare: [0,0,0, 1,0,0, 0,0,0, 1,0,0],
+                        hihat: [1,0,1, 1,0,1, 1,0,1, 1,0,1]
+                    }
+                },
+                'polyrhythm': {
+                    steps: 16,
+                    tracks: {
+                        kick: [1,0,0,1, 0,0,1,0, 0,1,0,0, 1,0,0,0], // 5 against 4
+                        snare: [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0], // Every 4
+                        perc: [1,0,1,0, 1,0,1, 0,1,0,1, 0,1,0,1,0] // 7 against 4
+                    }
+                }
+            };
+
+            // Sound mappings for rhythm tracks
+            const rhythmSounds = {
+                kick: { frequency: 60, type: 'sine', attack: 0.01, decay: 0.3, sustain: 0.1, release: 0.3 },
+                snare: { frequency: 200, type: 'square', attack: 0.01, decay: 0.1, sustain: 0.05, release: 0.2 },
+                hihat: { frequency: 8000, type: 'square', attack: 0.01, decay: 0.05, sustain: 0.01, release: 0.05 },
+                openhat: { frequency: 6000, type: 'square', attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.3 },
+                clave: { frequency: 2500, type: 'square', attack: 0.01, decay: 0.05, sustain: 0.01, release: 0.1 },
+                perc: { frequency: 800, type: 'triangle', attack: 0.01, decay: 0.1, sustain: 0.05, release: 0.2 }
             };
 
             // Musical key definitions (semitones from C)
@@ -1246,12 +2039,15 @@
 
             // Store pitch settings for each client
             const clientPitches = new Map();
+            
+            // Global transpose settings
+            let transposeOffset = 0; // In semitones
 
             // Calculate frequency for a note (A4 = 440Hz)
             const noteToFrequency = (note, octave) => {
                 // A4 is 9 semitones above C4
                 const A4 = 440;
-                const semitoneFromA4 = (octave - 4) * 12 + note - 9;
+                const semitoneFromA4 = (octave - 4) * 12 + note - 9 + transposeOffset;
                 return A4 * Math.pow(2, semitoneFromA4 / 12);
             };
 
@@ -1438,20 +2234,20 @@
             };
 
             // Trigger a specific note on a client
-            const triggerClientNote = (clientId, frequency) => {
+            const triggerClientNote = (clientId, frequency, soundType = null, adsrOverride = null) => {
                 if (!isSynced) {
                     logMessage('Cannot trigger note: controller not synced.');
                     return;
                 }
 
-                const sound = soundTypeSelect.value;
+                const sound = soundType || soundTypeSelect.value;
                 const now = performance.now();
                 const serverNow = now + serverTimeOffset;
                 // Adaptive lead time: based on RTT, not offset. Minimum 50ms.
                 const leadTime = Math.max(50, lastRtt * 1.5);
                 const playTime = serverNow + leadTime;
 
-                const adsr = {
+                const adsr = adsrOverride || {
                     attack: parseFloat(document.getElementById('attackTime').value),
                     decay: parseFloat(document.getElementById('decayTime').value),
                     sustain: parseFloat(document.getElementById('sustainLevel').value),
@@ -1459,10 +2255,17 @@
                 };
 
                 const lfo = {
+                    enabled: document.getElementById('lfoEnabled').checked,
                     type: document.getElementById('lfoType').value,
                     rate: parseFloat(document.getElementById('lfoRate').value),
                     depth: parseFloat(document.getElementById('lfoDepth').value),
                     target: document.getElementById('lfoTarget').value
+                };
+
+                const effects = {
+                    chain: effectsChain.filter(e => !e.bypassed),
+                    wetDry: parseFloat(document.getElementById('effectsWetDry').value) / 100,
+                    gain: parseFloat(document.getElementById('effectsGain').value) / 100
                 };
 
                 const pan = clientPositions.has(clientId) ? clientPositions.get(clientId).pan : 0;
@@ -1475,6 +2278,7 @@
                     playTime: playTime,
                     adsr: adsr,
                     lfo: lfo,
+                    effects: effects,
                     pan: pan
                 });
 
@@ -1617,6 +2421,678 @@
             // Variables for the loop
             // let loopInterval = null;
             // let isLooping = false;
+
+            // Chord progression functions
+            const getChordNotes = (romanNumeral) => {
+                const keyRoot = keys[document.getElementById('musicalKey').value];
+                const baseOctave = parseInt(document.getElementById('octave').value);
+                
+                const chordInfo = romanNumeralChords[romanNumeral];
+                if (!chordInfo) {
+                    console.error(`Unknown chord: ${romanNumeral}`);
+                    return [];
+                }
+                
+                const scaleNotes = scales.major; // Use major scale for chord calculation
+                const chordRoot = (keyRoot + scaleNotes[chordInfo.root]) % 12;
+                const chordIntervals = chordTypes[chordInfo.type];
+                
+                return chordIntervals.map(interval => {
+                    const semitone = (chordRoot + interval) % 12;
+                    const octave = baseOctave + Math.floor((chordRoot + interval) / 12);
+                    return {
+                        semitone: semitone,
+                        octave: octave,
+                        frequency: noteToFrequency(semitone, octave)
+                    };
+                });
+            };
+
+            const playChord = (romanNumeral) => {
+                if (clients.length === 0) {
+                    logMessage('No clients to play chord on');
+                    return;
+                }
+
+                const chordNotes = getChordNotes(romanNumeral);
+                if (chordNotes.length === 0) return;
+
+                logMessage(`Playing ${romanNumeral} chord with ${chordNotes.length} notes`);
+
+                // Distribute chord notes across available clients
+                const sortedClients = [...clients].sort();
+                
+                sortedClients.forEach((clientId, index) => {
+                    if (index < chordNotes.length) {
+                        // Assign specific chord tone
+                        const note = chordNotes[index];
+                        triggerClientNote(clientId, note.frequency);
+                    } else {
+                        // For extra clients, cycle through chord tones
+                        const note = chordNotes[index % chordNotes.length];
+                        // Transpose to higher octave for variety
+                        const higherOctaveFreq = note.frequency * Math.pow(2, Math.floor(index / chordNotes.length));
+                        triggerClientNote(clientId, higherOctaveFreq);
+                    }
+                });
+            };
+
+            const startChordProgression = () => {
+                if (chordProgressionState.isPlaying) {
+                    stopChordProgression();
+                }
+
+                if (clients.length === 0) {
+                    logMessage('No clients to play chord progression on');
+                    return;
+                }
+
+                const progression = getActiveProgression();
+                if (progression.length === 0) {
+                    logMessage('No chord progression defined');
+                    return;
+                }
+
+                let duration;
+                if (chordProgressionState.currentMode === 'sequencer') {
+                    const bpm = parseInt(document.getElementById('sequencerBpm').value) || 120;
+                    const stepsPerChord = parseInt(document.getElementById('stepsPerChord').value) || 4;
+                    duration = (60000 / bpm) * (stepsPerChord / 4); // Convert to milliseconds
+                } else {
+                    duration = parseInt(document.getElementById('chordDuration').value);
+                }
+
+                chordProgressionState.isPlaying = true;
+                chordProgressionState.currentChord = 0;
+                chordProgressionState.sequencerCurrentStep = 0;
+                
+                playChordProgressionButton.style.display = 'none';
+                stopChordProgressionButton.style.display = 'inline-block';
+                document.getElementById('pauseChordProgressionButton').style.display = 'inline-block';
+
+                logMessage(`Starting chord progression (${chordProgressionState.currentMode} mode): ${progression.join(' - ')}`);
+
+                // Play first chord immediately
+                playChord(progression[chordProgressionState.currentChord]);
+                updateProgressionVisualization();
+
+                // Set up interval for subsequent chords
+                chordProgressionState.interval = setInterval(() => {
+                    chordProgressionState.currentChord = (chordProgressionState.currentChord + 1) % progression.length;
+                    
+                    if (chordProgressionState.currentMode === 'sequencer') {
+                        chordProgressionState.sequencerCurrentStep = (chordProgressionState.sequencerCurrentStep + 1) % 16;
+                        highlightSequencerStep(chordProgressionState.sequencerCurrentStep);
+                    }
+                    
+                    playChord(progression[chordProgressionState.currentChord]);
+                    updateProgressionVisualization();
+                    
+                    // Log which chord we're playing
+                    const currentChordName = progression[chordProgressionState.currentChord];
+                    logMessage(`Playing chord ${chordProgressionState.currentChord + 1}/${progression.length}: ${currentChordName}`);
+                }, duration);
+            };
+
+            const highlightSequencerStep = (step) => {
+                document.querySelectorAll('.sequencer-step').forEach((stepEl, index) => {
+                    stepEl.classList.toggle('playing', index === step);
+                });
+            };
+
+            const stopChordProgression = () => {
+                if (chordProgressionState.interval) {
+                    clearInterval(chordProgressionState.interval);
+                    chordProgressionState.interval = null;
+                }
+                
+                chordProgressionState.isPlaying = false;
+                chordProgressionState.isPaused = false;
+                chordProgressionState.currentChord = 0;
+                chordProgressionState.sequencerCurrentStep = 0;
+                
+                playChordProgressionButton.style.display = 'inline-block';
+                stopChordProgressionButton.style.display = 'none';
+                document.getElementById('pauseChordProgressionButton').style.display = 'none';
+                
+                updateProgressionVisualization();
+                logMessage('Chord progression stopped');
+            };
+
+            // New chord progression mode functions
+            window.switchProgressionMode = (mode) => {
+                chordProgressionState.currentMode = mode;
+                
+                // Update mode buttons
+                document.querySelectorAll('.mode-button').forEach(btn => btn.classList.remove('active'));
+                document.getElementById(mode + 'ModeBtn').classList.add('active');
+                
+                // Show/hide mode sections
+                document.querySelectorAll('.progression-mode').forEach(section => {
+                    section.style.display = 'none';
+                });
+                document.getElementById(mode + 'Mode').style.display = 'block';
+                
+                // Initialize mode-specific functionality
+                if (mode === 'sequencer') {
+                    initializeSequencerGrid();
+                } else if (mode === 'custom') {
+                    updateCustomProgressionDisplay();
+                }
+                
+                updateProgressionVisualization();
+                logMessage(`Switched to ${mode} mode`);
+            };
+
+            const initializeSequencerGrid = () => {
+                const grid = document.getElementById('chordSequencerGrid');
+                grid.innerHTML = '';
+                
+                for (let i = 0; i < 16; i++) {
+                    const step = document.createElement('div');
+                    step.className = 'sequencer-step';
+                    step.dataset.step = i;
+                    step.textContent = chordProgressionState.sequencerSteps[i] || (i + 1);
+                    
+                    step.addEventListener('click', () => {
+                        const chord = chordProgressionState.selectedChord;
+                        chordProgressionState.sequencerSteps[i] = chord;
+                        step.textContent = chord || (i + 1);
+                        step.classList.toggle('active', chord !== '');
+                        updateProgressionVisualization();
+                    });
+                    
+                    if (chordProgressionState.sequencerSteps[i]) {
+                        step.classList.add('active');
+                    }
+                    
+                    grid.appendChild(step);
+                }
+            };
+
+            const updateCustomProgressionDisplay = () => {
+                const builder = document.getElementById('customChordBuilder');
+                builder.innerHTML = '';
+                
+                if (chordProgressionState.customProgression.length === 0) {
+                    builder.innerHTML = '<div class="chord-placeholder">Click chords below to build your progression</div>';
+                    return;
+                }
+                
+                chordProgressionState.customProgression.forEach((chord, index) => {
+                    const chordElement = document.createElement('div');
+                    chordElement.className = `custom-chord-item ${getChordClass(chord)}`;
+                    chordElement.innerHTML = `
+                        ${chord}
+                        <button class="remove-chord" onclick="removeChordFromCustom(${index})">×</button>
+                    `;
+                    builder.appendChild(chordElement);
+                });
+            };
+
+            window.removeChordFromCustom = (index) => {
+                chordProgressionState.customProgression.splice(index, 1);
+                updateCustomProgressionDisplay();
+                updateProgressionVisualization();
+            };
+
+            const getChordClass = (chord) => {
+                const chordInfo = romanNumeralChords[chord];
+                if (!chordInfo) return 'major';
+                return chordInfo.type;
+            };
+
+            const updateProgressionVisualization = () => {
+                const visualization = document.getElementById('progressionVisualization');
+                const position = document.getElementById('progressionPosition');
+                
+                let currentProgression = [];
+                
+                if (chordProgressionState.currentMode === 'preset') {
+                    const progressionName = document.getElementById('chordProgression').value;
+                    currentProgression = chordProgressions[progressionName] || [];
+                } else if (chordProgressionState.currentMode === 'custom') {
+                    currentProgression = chordProgressionState.customProgression;
+                } else if (chordProgressionState.currentMode === 'sequencer') {
+                    currentProgression = chordProgressionState.sequencerSteps.filter(step => step !== '');
+                }
+                
+                if (currentProgression.length === 0) {
+                    visualization.innerHTML = '<div class="progression-chord-display">No progression selected</div>';
+                    position.textContent = 'Ready';
+                    return;
+                }
+                
+                visualization.innerHTML = '';
+                currentProgression.forEach((chord, index) => {
+                    const chordElement = document.createElement('div');
+                    chordElement.className = `progression-chord-display ${getChordClass(chord)}`;
+                    chordElement.textContent = chord;
+                    
+                    if (chordProgressionState.isPlaying) {
+                        if (index === chordProgressionState.currentChord) {
+                            chordElement.classList.add('current');
+                        }
+                        position.textContent = `${chordProgressionState.currentChord + 1}/${currentProgression.length}`;
+                    } else {
+                        position.textContent = `${currentProgression.length} chords`;
+                    }
+                    
+                    visualization.appendChild(chordElement);
+                });
+            };
+
+            const getActiveProgression = () => {
+                if (chordProgressionState.currentMode === 'preset') {
+                    const progressionName = document.getElementById('chordProgression').value;
+                    return chordProgressions[progressionName] || [];
+                } else if (chordProgressionState.currentMode === 'custom') {
+                    return chordProgressionState.customProgression;
+                } else if (chordProgressionState.currentMode === 'sequencer') {
+                    return chordProgressionState.sequencerSteps.filter(step => step !== '');
+                }
+                return [];
+            };
+
+            // ===== EFFECTS SYSTEM =====
+            
+            const effectDefinitions = {
+                reverb: {
+                    name: 'Reverb',
+                    icon: '🏛️',
+                    parameters: {
+                        roomSize: { min: 0, max: 1, default: 0.5, label: 'Room Size' },
+                        decay: { min: 0.1, max: 10, default: 2, label: 'Decay Time (s)' },
+                        wetness: { min: 0, max: 1, default: 0.3, label: 'Wet Level' }
+                    }
+                },
+                delay: {
+                    name: 'Delay',
+                    icon: '⏰',
+                    parameters: {
+                        time: { min: 0.01, max: 1, default: 0.25, label: 'Delay Time (s)' },
+                        feedback: { min: 0, max: 0.95, default: 0.3, label: 'Feedback' },
+                        wetness: { min: 0, max: 1, default: 0.3, label: 'Wet Level' }
+                    }
+                },
+                distortion: {
+                    name: 'Distortion',
+                    icon: '🔥',
+                    parameters: {
+                        amount: { min: 0, max: 50, default: 5, label: 'Drive Amount' },
+                        curve: { min: 0, max: 100, default: 50, label: 'Curve Shape' },
+                        gain: { min: 0, max: 2, default: 0.5, label: 'Output Gain' }
+                    }
+                },
+                chorus: {
+                    name: 'Chorus',
+                    icon: '🌊',
+                    parameters: {
+                        rate: { min: 0.1, max: 10, default: 1.5, label: 'Rate (Hz)' },
+                        depth: { min: 0, max: 1, default: 0.35, label: 'Depth' },
+                        delay: { min: 0.001, max: 0.05, default: 0.025, label: 'Delay (s)' }
+                    }
+                },
+                filter: {
+                    name: 'Filter',
+                    icon: '🎚️',
+                    parameters: {
+                        frequency: { min: 20, max: 20000, default: 1000, label: 'Cutoff (Hz)' },
+                        resonance: { min: 0.1, max: 30, default: 1, label: 'Resonance' },
+                        type: { options: ['lowpass', 'highpass', 'bandpass'], default: 'lowpass', label: 'Filter Type' }
+                    }
+                },
+                compressor: {
+                    name: 'Compressor',
+                    icon: '📦',
+                    parameters: {
+                        threshold: { min: -60, max: 0, default: -24, label: 'Threshold (dB)' },
+                        ratio: { min: 1, max: 20, default: 6, label: 'Ratio' },
+                        attack: { min: 0.001, max: 1, default: 0.003, label: 'Attack (s)' },
+                        release: { min: 0.01, max: 1, default: 0.25, label: 'Release (s)' }
+                    }
+                },
+                eq: {
+                    name: 'EQ',
+                    icon: '📊',
+                    parameters: {
+                        lowGain: { min: -20, max: 20, default: 0, label: 'Low Gain (dB)' },
+                        midGain: { min: -20, max: 20, default: 0, label: 'Mid Gain (dB)' },
+                        highGain: { min: -20, max: 20, default: 0, label: 'High Gain (dB)' },
+                        midFreq: { min: 200, max: 5000, default: 1000, label: 'Mid Freq (Hz)' }
+                    }
+                },
+                phaser: {
+                    name: 'Phaser',
+                    icon: '🌀',
+                    parameters: {
+                        rate: { min: 0.1, max: 10, default: 0.5, label: 'Rate (Hz)' },
+                        depth: { min: 0, max: 1, default: 0.5, label: 'Depth' },
+                        stages: { min: 2, max: 8, default: 4, label: 'Stages' }
+                    }
+                }
+            };
+
+            const addEffect = (effectType) => {
+                const effectDef = effectDefinitions[effectType];
+                if (!effectDef) return;
+
+                const effectId = `effect_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                const effectInstance = {
+                    id: effectId,
+                    type: effectType,
+                    name: effectDef.name,
+                    icon: effectDef.icon,
+                    bypassed: false,
+                    parameters: {}
+                };
+
+                // Initialize parameters with default values
+                Object.entries(effectDef.parameters).forEach(([key, param]) => {
+                    effectInstance.parameters[key] = param.default;
+                });
+
+                effectsChain.push(effectInstance);
+                updateEffectsChainDisplay();
+                logMessage(`Added ${effectDef.name} to effects chain`);
+            };
+
+            const removeEffect = (effectId) => {
+                const index = effectsChain.findIndex(e => e.id === effectId);
+                if (index > -1) {
+                    const effect = effectsChain[index];
+                    effectsChain.splice(index, 1);
+                    updateEffectsChainDisplay();
+                    logMessage(`Removed ${effect.name} from effects chain`);
+                    
+                    // Close parameter panel if this effect was being edited
+                    const panel = document.getElementById('effectParametersPanel');
+                    if (panel.style.display !== 'none' && panel.dataset.effectId === effectId) {
+                        panel.style.display = 'none';
+                    }
+                }
+            };
+
+            const toggleEffectBypass = (effectId) => {
+                const effect = effectsChain.find(e => e.id === effectId);
+                if (effect) {
+                    effect.bypassed = !effect.bypassed;
+                    updateEffectsChainDisplay();
+                    logMessage(`${effect.bypassed ? 'Bypassed' : 'Enabled'} ${effect.name}`);
+                }
+            };
+
+            const editEffect = (effectId) => {
+                const effect = effectsChain.find(e => e.id === effectId);
+                if (!effect) return;
+
+                const panel = document.getElementById('effectParametersPanel');
+                const title = document.getElementById('currentEffectTitle');
+                const content = document.getElementById('effectParametersContent');
+
+                title.textContent = `${effect.icon} ${effect.name} Parameters`;
+                panel.dataset.effectId = effectId;
+
+                // Build parameter controls
+                const effectDef = effectDefinitions[effect.type];
+                content.innerHTML = '';
+
+                Object.entries(effectDef.parameters).forEach(([paramKey, paramDef]) => {
+                    const paramDiv = document.createElement('div');
+                    paramDiv.className = 'effect-parameter';
+
+                    if (paramDef.options) {
+                        // Dropdown for options
+                        paramDiv.innerHTML = `
+                            <label>${paramDef.label}:</label>
+                            <select onchange="updateEffectParameter('${effectId}', '${paramKey}', this.value)">
+                                ${paramDef.options.map(opt => 
+                                    `<option value="${opt}" ${effect.parameters[paramKey] === opt ? 'selected' : ''}>${opt}</option>`
+                                ).join('')}
+                            </select>
+                            <span>${effect.parameters[paramKey]}</span>
+                        `;
+                    } else {
+                        // Slider + number input
+                        paramDiv.innerHTML = `
+                            <label>${paramDef.label}:</label>
+                            <input type="range" min="${paramDef.min}" max="${paramDef.max}" 
+                                   step="${(paramDef.max - paramDef.min) / 100}" value="${effect.parameters[paramKey]}"
+                                   oninput="updateEffectParameter('${effectId}', '${paramKey}', this.value); this.nextElementSibling.value = this.value">
+                            <input type="number" min="${paramDef.min}" max="${paramDef.max}" 
+                                   step="${(paramDef.max - paramDef.min) / 100}" value="${effect.parameters[paramKey]}"
+                                   onchange="updateEffectParameter('${effectId}', '${paramKey}', this.value); this.previousElementSibling.value = this.value">
+                        `;
+                    }
+
+                    content.appendChild(paramDiv);
+                });
+
+                panel.style.display = 'block';
+                
+                // Update visual state
+                document.querySelectorAll('.effect-chain-item').forEach(item => {
+                    item.classList.toggle('editing', item.dataset.effectId === effectId);
+                });
+            };
+
+            window.updateEffectParameter = (effectId, paramKey, value) => {
+                const effect = effectsChain.find(e => e.id === effectId);
+                if (effect) {
+                    effect.parameters[paramKey] = parseFloat(value) || value;
+                    logMessage(`Updated ${effect.name} ${paramKey}: ${value}`);
+                }
+            };
+
+            const updateEffectsChainDisplay = () => {
+                const display = document.getElementById('effectsChainDisplay');
+                
+                if (effectsChain.length === 0) {
+                    display.innerHTML = '<div class="effects-placeholder">No effects active - Add effects below</div>';
+                    return;
+                }
+
+                display.innerHTML = '';
+                effectsChain.forEach(effect => {
+                    const effectElement = document.createElement('div');
+                    effectElement.className = `effect-chain-item ${effect.bypassed ? 'bypassed' : ''}`;
+                    effectElement.dataset.effectId = effect.id;
+                    effectElement.innerHTML = `
+                        <span>${effect.icon} ${effect.name}</span>
+                        <div class="effect-controls">
+                            <button class="bypass-btn" onclick="toggleEffectBypass('${effect.id}')" title="Bypass">
+                                ${effect.bypassed ? 'ON' : 'BYP'}
+                            </button>
+                            <button class="remove-btn" onclick="removeEffect('${effect.id}')" title="Remove">×</button>
+                        </div>
+                    `;
+                    
+                    effectElement.addEventListener('click', (e) => {
+                        if (!e.target.classList.contains('bypass-btn') && !e.target.classList.contains('remove-btn')) {
+                            editEffect(effect.id);
+                        }
+                    });
+                    
+                    display.appendChild(effectElement);
+                });
+            };
+
+            const clearEffectsChain = () => {
+                effectsChain = [];
+                updateEffectsChainDisplay();
+                document.getElementById('effectParametersPanel').style.display = 'none';
+                logMessage('Cleared all effects from chain');
+            };
+
+            const bypassAllEffects = () => {
+                const allBypassed = effectsChain.every(e => e.bypassed);
+                effectsChain.forEach(effect => {
+                    effect.bypassed = !allBypassed;
+                });
+                updateEffectsChainDisplay();
+                logMessage(`${allBypassed ? 'Enabled' : 'Bypassed'} all effects`);
+            };
+
+            // ===== LFO SYSTEM =====
+            
+            const updateLFOVisualization = () => {
+                const indicator = document.getElementById('lfoIndicator');
+                const enabled = document.getElementById('lfoEnabled').checked;
+                
+                if (enabled && lfoState.depth > 0) {
+                    const rate = parseFloat(document.getElementById('lfoRate').value);
+                    indicator.style.animationDuration = `${2 / rate}s`;
+                    indicator.classList.add('animated');
+                } else {
+                    indicator.classList.remove('animated');
+                    indicator.style.left = '0';
+                }
+            };
+
+            const updateLFOState = () => {
+                lfoState.enabled = document.getElementById('lfoEnabled').checked;
+                lfoState.rate = parseFloat(document.getElementById('lfoRate').value);
+                lfoState.depth = parseFloat(document.getElementById('lfoDepth').value);
+                lfoState.type = document.getElementById('lfoType').value;
+                lfoState.target = document.getElementById('lfoTarget').value;
+                
+                updateLFOVisualization();
+            };
+
+            // Rhythm pattern functions
+            const playRhythmStep = (pattern, step) => {
+                if (clients.length === 0) return;
+
+                const tracks = Object.keys(pattern.tracks);
+                const clientsPerTrack = Math.max(1, Math.floor(clients.length / tracks.length));
+                const sortedClients = [...clients].sort();
+                
+                tracks.forEach((trackName, trackIndex) => {
+                    const trackPattern = pattern.tracks[trackName];
+                    if (trackPattern[step] === 1) { // Should trigger on this step
+                        // Assign clients to this track
+                        const startIndex = trackIndex * clientsPerTrack;
+                        const endIndex = Math.min(startIndex + clientsPerTrack, sortedClients.length);
+                        
+                        for (let i = startIndex; i < endIndex; i++) {
+                            const clientId = sortedClients[i];
+                            const soundInfo = rhythmSounds[trackName];
+                            
+                            if (soundInfo) {
+                                // Create ADSR envelope for this sound
+                                const adsr = {
+                                    attack: soundInfo.attack,
+                                    decay: soundInfo.decay,
+                                    sustain: soundInfo.sustain,
+                                    release: soundInfo.release
+                                };
+                                
+                                triggerClientNote(clientId, soundInfo.frequency, soundInfo.type, adsr);
+                            }
+                        }
+                    }
+                });
+            };
+
+
+            const startRhythm = () => {
+                if (rhythmState.isPlaying) {
+                    stopRhythm();
+                }
+
+                if (clients.length === 0) {
+                    logMessage('No clients to play rhythm on');
+                    return;
+                }
+
+                const patternName = rhythmPatternSelect.value;
+                const tempo = parseInt(rhythmTempoInput.value);
+                const pattern = rhythmPatterns[patternName];
+
+                if (!pattern) {
+                    logMessage(`Unknown rhythm pattern: ${patternName}`);
+                    return;
+                }
+
+                rhythmState.isPlaying = true;
+                rhythmState.currentStep = 0;
+                rhythmState.pattern = pattern;
+                playRhythmButton.style.display = 'none';
+                stopRhythmButton.style.display = 'inline-block';
+
+                // Calculate step duration based on tempo (16th notes)
+                const stepDuration = (60 / tempo / 4) * 1000; // milliseconds per 16th note
+
+                logMessage(`Starting rhythm pattern: ${patternName} at ${tempo} BPM`);
+
+                // Play first step immediately
+                playRhythmStep(pattern, rhythmState.currentStep);
+
+                // Set up interval for subsequent steps
+                rhythmState.interval = setInterval(() => {
+                    rhythmState.currentStep = (rhythmState.currentStep + 1) % pattern.steps;
+                    playRhythmStep(pattern, rhythmState.currentStep);
+                }, stepDuration);
+            };
+
+            const stopRhythm = () => {
+                if (rhythmState.interval) {
+                    clearInterval(rhythmState.interval);
+                    rhythmState.interval = null;
+                }
+                
+                rhythmState.isPlaying = false;
+                rhythmState.currentStep = 0;
+                rhythmState.pattern = null;
+                playRhythmButton.style.display = 'inline-block';
+                stopRhythmButton.style.display = 'none';
+
+                logMessage('Rhythm pattern stopped');
+            };
+
+            // Transpose functions
+            const transposeUp = () => {
+                transposeOffset += 1;
+                updateAllClientPitches();
+                logMessage(`Transposed orchestra up 1 semitone (total: ${transposeOffset > 0 ? '+' : ''}${transposeOffset})`);
+            };
+
+            const transposeDown = () => {
+                transposeOffset -= 1;
+                updateAllClientPitches();
+                logMessage(`Transposed orchestra down 1 semitone (total: ${transposeOffset > 0 ? '+' : ''}${transposeOffset})`);
+            };
+
+            const transposeOctaveUp = () => {
+                transposeOffset += 12;
+                updateAllClientPitches();
+                logMessage(`Transposed orchestra up 1 octave (total: ${transposeOffset > 0 ? '+' : ''}${transposeOffset})`);
+            };
+
+            const transposeOctaveDown = () => {
+                transposeOffset -= 12;
+                updateAllClientPitches();
+                logMessage(`Transposed orchestra down 1 octave (total: ${transposeOffset > 0 ? '+' : ''}${transposeOffset})`);
+            };
+
+            const resetTranspose = () => {
+                transposeOffset = 0;
+                updateAllClientPitches();
+                logMessage('Orchestra transpose reset to original pitch');
+            };
+
+            const updateAllClientPitches = () => {
+                // Recalculate all client frequencies with new transpose offset
+                clients.forEach(clientId => {
+                    if (clientPitches.has(clientId)) {
+                        const settings = clientPitches.get(clientId);
+                        // Recalculate frequency using the current semitone and octave but with new transpose
+                        const newFrequency = noteToFrequency(settings.semitone, settings.octave);
+                        settings.frequency = newFrequency;
+                    }
+                });
+                updatePitchControls();
+            };
 
             // Start the sound loop
             const startLoop = () => {
@@ -2049,13 +3525,23 @@
                 loopDelayInput.value = values.loopDelayTime;
                 loopDurationInput.value = values.loopDuration;
                 loopPatternSelect.value = values.loopPattern;
+                
+                // Set ADSR values and sync sliders
                 document.getElementById('attackTime').value = values.attackTime;
+                document.getElementById('attackSlider').value = values.attackTime;
                 document.getElementById('decayTime').value = values.decayTime;
+                document.getElementById('decaySlider').value = values.decayTime;
                 document.getElementById('sustainLevel').value = values.sustainLevel;
+                document.getElementById('sustainSlider').value = values.sustainLevel;
                 document.getElementById('releaseTime').value = values.releaseTime;
+                document.getElementById('releaseSlider').value = values.releaseTime;
+                
+                // Set LFO values and sync sliders
                 document.getElementById('lfoType').value = values.lfoType;
                 document.getElementById('lfoRate').value = values.lfoRate;
+                document.getElementById('lfoRateSlider').value = values.lfoRate;
                 document.getElementById('lfoDepth').value = values.lfoDepth;
+                document.getElementById('lfoDepthSlider').value = values.lfoDepth;
                 document.getElementById('lfoTarget').value = values.lfoTarget;
                 bpmInput.value = values.bpm;
                 clientPitches = new Map(values.clientPitches);
@@ -2127,6 +3613,104 @@
                 drawPanningCanvas();
                 populatePresetList();
                 initWebMidi();
+                
+                // Initialize chord progression visualization
+                updateProgressionVisualization();
+                
+                // Initialize effects system
+                updateEffectsChainDisplay();
+                updateLFOVisualization();
+
+                // Add all event listeners after functions are defined
+                // Add metronome event listeners
+                startMetronomeButton.addEventListener('click', startMetronome);
+                stopMetronomeButton.addEventListener('click', stopMetronome);
+
+                // Add chord progression event listeners
+                playChordProgressionButton.addEventListener('click', startChordProgression);
+                stopChordProgressionButton.addEventListener('click', stopChordProgression);
+                
+                // Add new chord progression controls
+                document.getElementById('progressionVolume').addEventListener('input', (e) => {
+                    document.getElementById('progressionVolumeValue').textContent = e.target.value + '%';
+                });
+                
+                // Custom progression chord palette
+                document.querySelectorAll('#chordPalette .chord-button').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const chord = button.dataset.chord;
+                        chordProgressionState.customProgression.push(chord);
+                        updateCustomProgressionDisplay();
+                        updateProgressionVisualization();
+                        logMessage(`Added ${chord} to custom progression`);
+                    });
+                });
+                
+                // Clear custom progression
+                document.getElementById('clearCustomProgression').addEventListener('click', () => {
+                    chordProgressionState.customProgression = [];
+                    updateCustomProgressionDisplay();
+                    updateProgressionVisualization();
+                    logMessage('Custom progression cleared');
+                });
+                
+                // Sequencer chord selection
+                document.querySelectorAll('.chord-select').forEach(button => {
+                    button.addEventListener('click', () => {
+                        document.querySelectorAll('.chord-select').forEach(b => b.classList.remove('selected'));
+                        button.classList.add('selected');
+                        chordProgressionState.selectedChord = button.dataset.chord;
+                        logMessage(`Selected chord: ${chordProgressionState.selectedChord}`);
+                    });
+                });
+                
+                // Preset change listener
+                document.getElementById('chordProgression').addEventListener('change', updateProgressionVisualization);
+
+                // Effects system event listeners
+                document.querySelectorAll('.effect-add-button').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const effectType = button.dataset.effect;
+                        addEffect(effectType);
+                    });
+                });
+
+                document.getElementById('clearEffectsChain').addEventListener('click', clearEffectsChain);
+                document.getElementById('bypassAllEffects').addEventListener('click', bypassAllEffects);
+                
+                document.getElementById('closeEffectPanel').addEventListener('click', () => {
+                    document.getElementById('effectParametersPanel').style.display = 'none';
+                    document.querySelectorAll('.effect-chain-item').forEach(item => {
+                        item.classList.remove('editing');
+                    });
+                });
+
+                // Effects global controls
+                document.getElementById('effectsWetDry').addEventListener('input', (e) => {
+                    document.getElementById('effectsWetDryValue').textContent = e.target.value + '%';
+                });
+
+                document.getElementById('effectsGain').addEventListener('input', (e) => {
+                    document.getElementById('effectsGainValue').textContent = e.target.value + '%';
+                });
+
+                // LFO controls
+                document.getElementById('lfoEnabled').addEventListener('change', updateLFOState);
+                document.getElementById('lfoRate').addEventListener('input', updateLFOState);
+                document.getElementById('lfoDepth').addEventListener('input', updateLFOState);
+                document.getElementById('lfoType').addEventListener('change', updateLFOState);
+                document.getElementById('lfoTarget').addEventListener('change', updateLFOState);
+
+                // Add rhythm pattern event listeners
+                playRhythmButton.addEventListener('click', startRhythm);
+                stopRhythmButton.addEventListener('click', stopRhythm);
+
+                // Add transpose event listeners
+                transposeUpButton.addEventListener('click', transposeUp);
+                transposeDownButton.addEventListener('click', transposeDown);
+                transposeOctaveUpButton.addEventListener('click', transposeOctaveUp);
+                transposeOctaveDownButton.addEventListener('click', transposeOctaveDown);
+                resetTransposeButton.addEventListener('click', resetTranspose);
 
                 // Add event listeners for navigation
                 document.querySelectorAll('.nav-item').forEach(item => {

@@ -51,8 +51,17 @@ app.get('/api/network-info', (req, res) => {
 });
 
 // Store connected clients
-// Store connected clients
-const clients = new Map(); // Maps WebSocket to a client object { id, ws }
+const clients = new Map(); // Maps WebSocket to a client object { id, ws, isController, connectedAt, lastActivity, notesPlayed }
+const clientLatencies = new Map(); // Track client latencies for connection quality
+
+// Metronome state
+let metronomeState = {
+  isRunning: false,
+  bpm: 120,
+  interval: null,
+  startTime: null,
+  beatCount: 0
+};
 
 // Utility function to send to a specific client
 const sendToClient = (clientId, message) => {
@@ -87,6 +96,63 @@ const getClientIds = () => {
     .map(c => c.id);
 };
 
+// Validate client ID format (basic UUID validation)
+const isValidClientId = (id) => {
+  if (!id || typeof id !== 'string') return false;
+  // Basic UUID format check
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const controllerRegex = /^controller-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(id) || controllerRegex.test(id);
+};
+
+// Metronome functions
+const startMetronome = (bpm = 120) => {
+  if (metronomeState.isRunning) {
+    stopMetronome();
+  }
+  
+  metronomeState.bpm = bpm;
+  metronomeState.isRunning = true;
+  metronomeState.startTime = performance.now();
+  metronomeState.beatCount = 0;
+  
+  const beatInterval = 60000 / bpm; // milliseconds per beat
+  
+  metronomeState.interval = setInterval(() => {
+    metronomeState.beatCount++;
+    const currentTime = performance.now();
+    
+    // Send metronome click to all clients
+    broadcast({
+      type: 'metronomeClick',
+      beatNumber: metronomeState.beatCount,
+      serverTime: currentTime,
+      bpm: metronomeState.bpm,
+      isDownbeat: metronomeState.beatCount % 4 === 1
+    });
+    
+    console.log(`Metronome beat ${metronomeState.beatCount} at ${bpm} BPM`);
+  }, beatInterval);
+  
+  console.log(`Metronome started at ${bpm} BPM`);
+};
+
+const stopMetronome = () => {
+  if (metronomeState.interval) {
+    clearInterval(metronomeState.interval);
+    metronomeState.interval = null;
+  }
+  metronomeState.isRunning = false;
+  metronomeState.beatCount = 0;
+  
+  // Notify all clients that metronome stopped
+  broadcast({
+    type: 'metronomeStopped'
+  });
+  
+  console.log('Metronome stopped');
+};
+
 // WebSocket connection handling
 wss.on('connection', (ws, req) => {
   // When a client connects, it can either be new or reconnecting with an ID.
@@ -108,13 +174,21 @@ wss.on('connection', (ws, req) => {
           clientId = 'controller-' + randomUUID();
           isController = true;
           isNew = true;
-        } else if (!clientId || ![...clients.values()].some(c => c.id === clientId)) {
-          // If the client has no ID, or its ID is not in our list, it's a new client.
+        } else if (!clientId || !isValidClientId(clientId) || ![...clients.values()].some(c => c.id === clientId)) {
+          // If the client has no ID, invalid ID, or its ID is not in our list, it's a new client.
           clientId = randomUUID();
           isNew = true;
+          console.log('Generated new client ID due to invalid or missing stored ID');
         }
 
-        const client = { id: clientId, ws: ws, isController: isController };
+        const client = { 
+          id: clientId, 
+          ws: ws, 
+          isController: isController,
+          connectedAt: new Date(),
+          lastActivity: new Date(),
+          notesPlayed: 0
+        };
         clients.set(ws, client);
 
         console.log(`${isController ? 'Controller' : 'Client'} registered with ID ${clientId} (${clients.size} total connected). New: ${isNew}`);
@@ -124,6 +198,16 @@ wss.on('connection', (ws, req) => {
           type: 'id',
           id: clientId
         }));
+
+        // Send current metronome state to new client
+        if (!isController) {
+          ws.send(JSON.stringify({
+            type: 'metronomeState',
+            isRunning: metronomeState.isRunning,
+            bpm: metronomeState.bpm,
+            beatCount: metronomeState.beatCount
+          }));
+        }
 
         // Only notify about client connections, not controller connections
         if (!isController) {
@@ -197,11 +281,96 @@ const createMessageHandler = (clientId) => (message) => {
 
       case 'sync':
         // Immediately reply with the original t0 and the current server time
-        sendToClient(clientId, {
+        const syncReply = {
           type: 'sync-reply',
           t0: data.t0,
           serverTime: performance.now()
+        };
+        sendToClient(clientId, syncReply);
+        
+        // Calculate and store latency for connection quality
+        if (data.t0) {
+          const rtt = performance.now() - data.t0;
+          clientLatencies.set(clientId, rtt);
+          
+          // Broadcast latency info to controllers
+          broadcast({
+            type: 'clientLatency',
+            clientId: clientId,
+            latency: Math.round(rtt)
+          }, clientId);
+        }
+        break;
+
+      case 'startMetronome':
+        if (data.bpm && data.bpm > 0) {
+          startMetronome(data.bpm);
+        } else {
+          startMetronome();
+        }
+        break;
+
+      case 'stopMetronome':
+        stopMetronome();
+        break;
+
+      case 'getMetronomeState':
+        sendToClient(clientId, {
+          type: 'metronomeState',
+          isRunning: metronomeState.isRunning,
+          bpm: metronomeState.bpm,
+          beatCount: metronomeState.beatCount
         });
+        break;
+
+      case 'setClientVolume':
+        // Forward volume control to specific client
+        if (data.clientId && data.volume !== undefined) {
+          sendToClient(data.clientId, {
+            type: 'setVolume',
+            volume: data.volume
+          });
+          console.log(`Volume set to ${Math.round(data.volume * 100)}% for client ${data.clientId}`);
+        }
+        break;
+
+      case 'disconnectClient':
+        // Disconnect a specific client
+        if (data.clientId) {
+          for (const [ws, client] of clients.entries()) {
+            if (client.id === data.clientId && !client.isController) {
+              console.log(`Forcibly disconnecting client ${data.clientId}`);
+              ws.close(1000, 'Disconnected by administrator');
+              break;
+            }
+          }
+        }
+        break;
+
+      case 'clientPlayingNote':
+        // Track when clients are playing notes for activity monitoring
+        const client = Array.from(clients.values()).find(c => c.id === clientId);
+        if (client && !client.isController) {
+          client.lastActivity = new Date();
+          client.notesPlayed++;
+          
+          // Broadcast activity to controllers
+          broadcast({
+            type: 'clientActivity',
+            clientId: clientId,
+            isActive: true,
+            notesPlayed: client.notesPlayed
+          }, clientId);
+          
+          // Auto-reset activity after 2 seconds
+          setTimeout(() => {
+            broadcast({
+              type: 'clientActivity',
+              clientId: clientId,
+              isActive: false
+            }, clientId);
+          }, 2000);
+        }
         break;
 
       default:
