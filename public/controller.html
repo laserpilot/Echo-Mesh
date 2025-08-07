@@ -923,8 +923,155 @@
                     </div>
                 </div>
 
+                <!-- Advanced Timing & Arpeggiation Controls -->
+                <div id="timingControls" style="background-color: #e8f4f8; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #2196F3;">
+                    <h4 style="margin-top: 0; color: #1976D2;">🎹 Timing & Arpeggiation</h4>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                        <!-- Arpeggiator Pattern -->
+                        <div>
+                            <label for="arpeggioPattern" style="font-weight: bold;">Arpeggio Pattern:</label>
+                            <select id="arpeggioPattern" style="width: 100%; padding: 5px;">
+                                <option value="chord">Chord (All Together)</option>
+                                <option value="up">Up</option>
+                                <option value="down">Down</option>
+                                <option value="up-down">Up-Down</option>
+                                <option value="down-up">Down-Up</option>
+                                <option value="random">Random</option>
+                                <option value="inside-out">Inside-Out</option>
+                                <option value="outside-in">Outside-In</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Subdivision -->
+                        <div>
+                            <label for="subdivision" style="font-weight: bold;">Subdivision:</label>
+                            <select id="subdivision" style="width: 100%; padding: 5px;">
+                                <option value="4n">Quarter Notes (1/4)</option>
+                                <option value="8n" selected>Eighth Notes (1/8)</option>
+                                <option value="16n">Sixteenth Notes (1/16)</option>
+                                <option value="8t">Eighth Triplets</option>
+                                <option value="16t">Sixteenth Triplets</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Swing Amount -->
+                        <div>
+                            <label for="swingAmount" style="font-weight: bold;">Swing: <span id="swingValue">0%</span></label>
+                            <input type="range" id="swingAmount" min="0" max="100" value="0" style="width: 100%;">
+                        </div>
+                        
+                        <!-- Velocity Curve -->
+                        <div>
+                            <label for="velocityCurve" style="font-weight: bold;">Velocity Curve:</label>
+                            <select id="velocityCurve" style="width: 100%; padding: 5px;">
+                                <option value="even">Even</option>
+                                <option value="accent-downbeat">Accent Downbeat</option>
+                                <option value="crescendo">Crescendo</option>
+                                <option value="diminuendo">Diminuendo</option>
+                                <option value="alternate">Alternate</option>
+                                <option value="random">Random</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <!-- Client Timing Offset -->
+                        <div>
+                            <label for="clientOffset" style="font-weight: bold;">Client Stagger: <span id="offsetValue">0ms</span></label>
+                            <input type="range" id="clientOffset" min="0" max="500" value="0" step="10" style="width: 100%;">
+                        </div>
+                        
+                        <!-- Note Duration -->
+                        <div>
+                            <label for="noteDuration" style="font-weight: bold;">Note Duration:</label>
+                            <select id="noteDuration" style="width: 100%; padding: 5px;">
+                                <option value="gate">Gate (Short)</option>
+                                <option value="sustain" selected>Sustain (Hold)</option>
+                                <option value="overlap">Overlap (Legato)</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Pattern Length -->
+                        <div>
+                            <label for="patternLength" style="font-weight: bold;">Pattern Length:</label>
+                            <select id="patternLength" style="width: 100%; padding: 5px;">
+                                <option value="2">2 Bars</option>
+                                <option value="4" selected>4 Bars</option>
+                                <option value="8">8 Bars</option>
+                                <option value="16">16 Bars</option>
+                                <option value="32">32 Bars</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Humanization -->
+                        <div>
+                            <label for="humanization" style="font-weight: bold;">Humanize: <span id="humanizeValue">0%</span></label>
+                            <input type="range" id="humanization" min="0" max="50" value="0" step="5" style="width: 100%;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pattern Chaining & Live Controls -->
+                <div id="patternChaining" style="background-color: #f8e8f8; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #9C27B0;">
+                    <h4 style="margin-top: 0; color: #7B1FA2;">🔗 Pattern Chaining & Live Control</h4>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                        <!-- Pattern Queue -->
+                        <div>
+                            <label style="font-weight: bold; display: block; margin-bottom: 8px;">Pattern Queue:</label>
+                            <div id="patternQueue" style="min-height: 60px; background-color: #fff; border: 2px dashed #ccc; border-radius: 6px; padding: 10px; display: flex; flex-wrap: wrap; gap: 5px; align-items: center;">
+                                <span style="color: #999; font-style: italic;">Click patterns below to queue them</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Quick Pattern Presets -->
+                        <div>
+                            <label style="font-weight: bold; display: block; margin-bottom: 8px;">Quick Add to Queue:</label>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+                                <button class="button small" onclick="queuePattern('I-V-vi-IV')" style="font-size: 11px; padding: 4px;">I-V-vi-IV</button>
+                                <button class="button small" onclick="queuePattern('vi-IV-I-V')" style="font-size: 11px; padding: 4px;">vi-IV-I-V</button>
+                                <button class="button small" onclick="queuePattern('I-vi-ii-V')" style="font-size: 11px; padding: 4px;">I-vi-ii-V</button>
+                                <button class="button small" onclick="queuePattern('IV-V-vi-I')" style="font-size: 11px; padding: 4px;">IV-V-vi-I</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+                        <button id="playQueueButton" class="button" style="background-color: #9C27B0;">▶️ Play Queue</button>
+                        <button id="stopQueueButton" class="button" style="background-color: #F44336; display: none;">⏹️ Stop Queue</button>
+                        <button id="nextPatternButton" class="button" style="background-color: #FF9800;">⏭️ Next Pattern</button>
+                        <button id="clearQueueButton" class="button" style="background-color: #607D8B;">🗑️ Clear Queue</button>
+                        
+                        <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
+                            <label for="autoAdvance">Auto-advance:</label>
+                            <input type="checkbox" id="autoAdvance" checked>
+                            
+                            <div style="margin-left: 15px; display: flex; align-items: center; gap: 8px;">
+                                <label for="tempoAutomation">Tempo Automation:</label>
+                                <select id="tempoAutomation" style="padding: 4px;">
+                                    <option value="none">None</option>
+                                    <option value="accelerando">Accelerando (Speed Up)</option>
+                                    <option value="ritardando">Ritardando (Slow Down)</option>
+                                    <option value="rubato">Rubato (Flexible)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="currentPattern" style="background-color: #fff; padding: 10px; border-radius: 6px; border: 2px solid #9C27B0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-weight: bold;">Now Playing:</span>
+                            <span id="queuePosition" style="font-size: 14px; color: #666;">Queue Empty</span>
+                        </div>
+                        <div id="currentPatternDisplay" style="font-size: 18px; color: #9C27B0; margin-top: 5px;">
+                            No pattern loaded
+                        </div>
+                    </div>
+                </div>
+
                 <p style="color: #666; font-size: 14px; margin: 0;">
-                    Create and play chord progressions using presets, custom builder, or step sequencer. Progressions play across all connected clients using roman numeral notation.
+                    Create and play chord progressions using presets, custom builder, or step sequencer. Advanced timing controls add arpeggiator patterns, swing, and client staggering for natural feel. Use pattern chaining for seamless live performance.
                 </p>
             </div>
 
@@ -1335,6 +1482,31 @@
                 sequencerSteps: new Array(16).fill(''),
                 sequencerCurrentStep: 0,
                 selectedChord: 'I'
+            };
+
+            // Timing control state
+            let timingControls = {
+                arpeggioPattern: 'chord',
+                subdivision: '8n',
+                swingAmount: 0,
+                velocityCurve: 'even',
+                clientOffset: 0,
+                noteDuration: 'sustain',
+                patternLength: 4,
+                humanization: 0
+            };
+
+            // Pattern queue state
+            let patternQueue = {
+                queue: [],
+                currentIndex: 0,
+                isPlaying: false,
+                autoAdvance: true,
+                patternInterval: null,
+                currentPatternChordIndex: 0,
+                tempoAutomation: 'none',
+                initialTempo: 120,
+                currentTempo: 120
             };
             let rhythmState = {
                 isPlaying: false,
@@ -2234,7 +2406,7 @@
             };
 
             // Trigger a specific note on a client
-            const triggerClientNote = (clientId, frequency, soundType = null, adsrOverride = null) => {
+            const triggerClientNote = (clientId, frequency, soundType = null, adsrOverride = null, velocity = 0.8) => {
                 if (!isSynced) {
                     logMessage('Cannot trigger note: controller not synced.');
                     return;
@@ -2275,11 +2447,14 @@
                     clientId: clientId,
                     sound: sound,
                     frequency: frequency,
+                    velocity: velocity,
                     playTime: playTime,
                     adsr: adsr,
                     lfo: lfo,
                     effects: effects,
-                    pan: pan
+                    pan: pan,
+                    duration: timingControls.noteDuration === 'gate' ? 200 : 
+                             timingControls.noteDuration === 'sustain' ? 1000 : 1500
                 });
 
                 logMessage(`Scheduled ${sound} note at ${Math.round(frequency)}Hz on client ${clientId}`);
@@ -2457,25 +2632,325 @@
                 const chordNotes = getChordNotes(romanNumeral);
                 if (chordNotes.length === 0) return;
 
-                logMessage(`Playing ${romanNumeral} chord with ${chordNotes.length} notes`);
+                logMessage(`Playing ${romanNumeral} chord with ${chordNotes.length} notes (${timingControls.arpeggioPattern} pattern)`);
 
-                // Distribute chord notes across available clients
+                // Get arpeggio pattern order
+                const pattern = getArpeggioPattern(chordNotes, timingControls.arpeggioPattern);
                 const sortedClients = [...clients].sort();
                 
-                sortedClients.forEach((clientId, index) => {
-                    if (index < chordNotes.length) {
-                        // Assign specific chord tone
-                        const note = chordNotes[index];
-                        triggerClientNote(clientId, note.frequency);
-                    } else {
-                        // For extra clients, cycle through chord tones
-                        const note = chordNotes[index % chordNotes.length];
-                        // Transpose to higher octave for variety
-                        const higherOctaveFreq = note.frequency * Math.pow(2, Math.floor(index / chordNotes.length));
-                        triggerClientNote(clientId, higherOctaveFreq);
-                    }
-                });
+                if (timingControls.arpeggioPattern === 'chord') {
+                    // Play all notes simultaneously with optional client stagger
+                    sortedClients.forEach((clientId, index) => {
+                        const staggerDelay = index * timingControls.clientOffset;
+                        const note = pattern[index % pattern.length];
+                        const velocity = getVelocityForNote(index, pattern.length, timingControls.velocityCurve);
+                        
+                        setTimeout(() => {
+                            triggerClientNote(clientId, note.frequency, null, null, velocity);
+                        }, staggerDelay + getHumanizationOffset());
+                    });
+                } else {
+                    // Play arpeggiated pattern
+                    const subdivisionDelay = getSubdivisionDelay(timingControls.subdivision);
+                    
+                    pattern.forEach((note, noteIndex) => {
+                        const clientIndex = noteIndex % sortedClients.length;
+                        const clientId = sortedClients[clientIndex];
+                        const velocity = getVelocityForNote(noteIndex, pattern.length, timingControls.velocityCurve);
+                        
+                        let delay = noteIndex * subdivisionDelay;
+                        
+                        // Apply swing
+                        if (timingControls.swingAmount > 0 && noteIndex % 2 === 1) {
+                            delay += subdivisionDelay * (timingControls.swingAmount / 100) * 0.5;
+                        }
+                        
+                        setTimeout(() => {
+                            triggerClientNote(clientId, note.frequency, null, null, velocity);
+                        }, delay + getHumanizationOffset());
+                    });
+                }
             };
+
+            // Arpeggio pattern generation
+            const getArpeggioPattern = (chordNotes, pattern) => {
+                switch (pattern) {
+                    case 'chord':
+                        return chordNotes;
+                    case 'up':
+                        return [...chordNotes];
+                    case 'down':
+                        return [...chordNotes].reverse();
+                    case 'up-down':
+                        return [...chordNotes, ...[...chordNotes].reverse().slice(1, -1)];
+                    case 'down-up':
+                        return [...chordNotes].reverse().concat([...chordNotes].slice(1, -1));
+                    case 'inside-out':
+                        const middle = Math.floor(chordNotes.length / 2);
+                        const result = [chordNotes[middle]];
+                        for (let i = 1; i <= middle; i++) {
+                            if (middle - i >= 0) result.push(chordNotes[middle - i]);
+                            if (middle + i < chordNotes.length) result.push(chordNotes[middle + i]);
+                        }
+                        return result;
+                    case 'outside-in':
+                        const outsideIn = [];
+                        let left = 0, right = chordNotes.length - 1;
+                        while (left <= right) {
+                            outsideIn.push(chordNotes[left]);
+                            if (left !== right) outsideIn.push(chordNotes[right]);
+                            left++; right--;
+                        }
+                        return outsideIn;
+                    case 'random':
+                        return [...chordNotes].sort(() => Math.random() - 0.5);
+                    default:
+                        return chordNotes;
+                }
+            };
+
+            // Velocity curve calculation
+            const getVelocityForNote = (noteIndex, totalNotes, curve) => {
+                const baseVelocity = 0.8;
+                switch (curve) {
+                    case 'even':
+                        return baseVelocity;
+                    case 'accent-downbeat':
+                        return noteIndex === 0 ? 1.0 : 0.6;
+                    case 'crescendo':
+                        return baseVelocity * (0.5 + 0.5 * (noteIndex / Math.max(totalNotes - 1, 1)));
+                    case 'diminuendo':
+                        return baseVelocity * (1.0 - 0.5 * (noteIndex / Math.max(totalNotes - 1, 1)));
+                    case 'alternate':
+                        return noteIndex % 2 === 0 ? 0.9 : 0.6;
+                    case 'random':
+                        return 0.5 + Math.random() * 0.5;
+                    default:
+                        return baseVelocity;
+                }
+            };
+
+            // Subdivision timing calculation
+            const getSubdivisionDelay = (subdivision) => {
+                const baseTempo = 120; // BPM
+                const quarterNote = 60000 / baseTempo; // milliseconds per quarter note
+                
+                switch (subdivision) {
+                    case '4n': return quarterNote;
+                    case '8n': return quarterNote / 2;
+                    case '16n': return quarterNote / 4;
+                    case '8t': return quarterNote / 3;
+                    case '16t': return quarterNote / 6;
+                    default: return quarterNote / 2;
+                }
+            };
+
+            // Humanization timing offset
+            const getHumanizationOffset = () => {
+                if (timingControls.humanization === 0) return 0;
+                const maxOffset = timingControls.humanization * 2; // milliseconds
+                return (Math.random() - 0.5) * maxOffset;
+            };
+
+
+            // Pattern queue management functions
+            const queuePattern = (patternName) => {
+                const progression = chordProgressions[patternName];
+                if (progression) {
+                    patternQueue.queue.push({
+                        name: patternName,
+                        progression: [...progression],
+                        length: timingControls.patternLength
+                    });
+                    updatePatternQueueDisplay();
+                    logMessage(`Queued pattern: ${patternName}`);
+                }
+            };
+
+            const updatePatternQueueDisplay = () => {
+                const queueElement = document.getElementById('patternQueue');
+                const positionElement = document.getElementById('queuePosition');
+                const currentDisplayElement = document.getElementById('currentPatternDisplay');
+
+                if (patternQueue.queue.length === 0) {
+                    queueElement.innerHTML = '<span style="color: #999; font-style: italic;">Click patterns below to queue them</span>';
+                    positionElement.textContent = 'Queue Empty';
+                    currentDisplayElement.textContent = 'No pattern loaded';
+                    return;
+                }
+
+                // Update queue display
+                queueElement.innerHTML = '';
+                patternQueue.queue.forEach((item, index) => {
+                    const patternElement = document.createElement('div');
+                    patternElement.className = `queued-pattern ${index === patternQueue.currentIndex ? 'current' : ''}`;
+                    patternElement.style.cssText = `
+                        background: ${index === patternQueue.currentIndex ? '#9C27B0' : '#e0e0e0'};
+                        color: ${index === patternQueue.currentIndex ? 'white' : 'black'};
+                        padding: 6px 12px;
+                        border-radius: 4px;
+                        font-size: 12px;
+                        cursor: pointer;
+                        position: relative;
+                    `;
+                    patternElement.innerHTML = `
+                        ${item.name}
+                        <span onclick="removeFromQueue(${index})" style="margin-left: 8px; cursor: pointer; font-weight: bold;">×</span>
+                    `;
+                    queueElement.appendChild(patternElement);
+                });
+
+                // Update position display
+                positionElement.textContent = `${patternQueue.currentIndex + 1} / ${patternQueue.queue.length}`;
+                
+                // Update current pattern display
+                if (patternQueue.queue[patternQueue.currentIndex]) {
+                    const current = patternQueue.queue[patternQueue.currentIndex];
+                    currentDisplayElement.textContent = `${current.name}: ${current.progression.join(' - ')}`;
+                }
+            };
+
+            const removeFromQueue = (index) => {
+                patternQueue.queue.splice(index, 1);
+                if (patternQueue.currentIndex >= index && patternQueue.currentIndex > 0) {
+                    patternQueue.currentIndex--;
+                }
+                updatePatternQueueDisplay();
+                logMessage(`Removed pattern from queue`);
+            };
+
+            const playPatternQueue = () => {
+                if (patternQueue.queue.length === 0) {
+                    logMessage('Queue is empty');
+                    return;
+                }
+
+                patternQueue.isPlaying = true;
+                patternQueue.currentPatternChordIndex = 0;
+                
+                document.getElementById('playQueueButton').style.display = 'none';
+                document.getElementById('stopQueueButton').style.display = 'inline-block';
+                
+                playCurrentQueuedPattern();
+                logMessage('Started pattern queue playback');
+            };
+
+            const stopPatternQueue = () => {
+                patternQueue.isPlaying = false;
+                if (patternQueue.patternInterval) {
+                    clearInterval(patternQueue.patternInterval);
+                    patternQueue.patternInterval = null;
+                }
+                
+                document.getElementById('playQueueButton').style.display = 'inline-block';
+                document.getElementById('stopQueueButton').style.display = 'none';
+                
+                logMessage('Stopped pattern queue playback');
+            };
+
+            const nextPattern = () => {
+                if (patternQueue.queue.length === 0) return;
+                
+                patternQueue.currentIndex = (patternQueue.currentIndex + 1) % patternQueue.queue.length;
+                patternQueue.currentPatternChordIndex = 0;
+                updatePatternQueueDisplay();
+                
+                if (patternQueue.isPlaying) {
+                    playCurrentQueuedPattern();
+                }
+                
+                logMessage(`Advanced to pattern: ${patternQueue.queue[patternQueue.currentIndex].name}`);
+            };
+
+            const clearPatternQueue = () => {
+                stopPatternQueue();
+                patternQueue.queue = [];
+                patternQueue.currentIndex = 0;
+                updatePatternQueueDisplay();
+                logMessage('Cleared pattern queue');
+            };
+
+            const playCurrentQueuedPattern = () => {
+                if (patternQueue.patternInterval) {
+                    clearInterval(patternQueue.patternInterval);
+                }
+
+                const currentPattern = patternQueue.queue[patternQueue.currentIndex];
+                if (!currentPattern) return;
+
+                const progression = currentPattern.progression;
+                patternQueue.initialTempo = parseInt(document.getElementById('metronomeBpm').value) || 120;
+                patternQueue.currentTempo = patternQueue.initialTempo;
+                
+                // Play first chord immediately
+                playChord(progression[patternQueue.currentPatternChordIndex]);
+                updatePatternQueueDisplay();
+
+                // Use setTimeout for dynamic tempo changes instead of setInterval
+                const scheduleNextChord = () => {
+                    patternQueue.currentPatternChordIndex++;
+                    
+                    if (patternQueue.currentPatternChordIndex >= progression.length) {
+                        // Pattern finished
+                        if (patternQueue.autoAdvance && patternQueue.queue.length > 1) {
+                            nextPattern();
+                        } else {
+                            patternQueue.currentPatternChordIndex = 0; // Loop current pattern
+                            if (patternQueue.isPlaying) {
+                                // Reset tempo for loop
+                                patternQueue.currentTempo = patternQueue.initialTempo;
+                                scheduleNextChord();
+                            }
+                        }
+                        return;
+                    }
+
+                    // Apply tempo automation
+                    const progressRatio = patternQueue.currentPatternChordIndex / progression.length;
+                    patternQueue.currentTempo = calculateAutomatedTempo(patternQueue.initialTempo, progressRatio, patternQueue.tempoAutomation);
+                    
+                    const chordDuration = (60000 / patternQueue.currentTempo) * 4; // Whole notes
+                    
+                    patternQueue.patternInterval = setTimeout(() => {
+                        if (patternQueue.isPlaying) {
+                            playChord(progression[patternQueue.currentPatternChordIndex]);
+                            updatePatternQueueDisplay();
+                            scheduleNextChord();
+                        }
+                    }, chordDuration);
+                };
+
+                // Start the chain
+                const initialChordDuration = (60000 / patternQueue.currentTempo) * 4;
+                patternQueue.patternInterval = setTimeout(() => {
+                    if (patternQueue.isPlaying) {
+                        scheduleNextChord();
+                    }
+                }, initialChordDuration);
+            };
+
+            // Calculate automated tempo based on progress and automation type
+            const calculateAutomatedTempo = (baseTempo, progress, automationType) => {
+                switch (automationType) {
+                    case 'accelerando':
+                        // Speed up by 20% over the course of the pattern
+                        return baseTempo * (1 + progress * 0.2);
+                    case 'ritardando':
+                        // Slow down by 20% over the course of the pattern
+                        return baseTempo * (1 - progress * 0.2);
+                    case 'rubato':
+                        // Flexible timing with slight variations
+                        const variation = Math.sin(progress * Math.PI * 4) * 0.1;
+                        return baseTempo * (1 + variation);
+                    case 'none':
+                    default:
+                        return baseTempo;
+                }
+            };
+
+            // Make queue functions globally accessible
+            window.queuePattern = queuePattern;
+            window.removeFromQueue = removeFromQueue;
 
             const startChordProgression = () => {
                 if (chordProgressionState.isPlaying) {
@@ -3633,6 +4108,63 @@
                 // Add new chord progression controls
                 document.getElementById('progressionVolume').addEventListener('input', (e) => {
                     document.getElementById('progressionVolumeValue').textContent = e.target.value + '%';
+                });
+
+                // Timing control event listeners
+                document.getElementById('arpeggioPattern').addEventListener('change', (e) => {
+                    timingControls.arpeggioPattern = e.target.value;
+                    logMessage(`Arpeggio pattern: ${e.target.value}`);
+                });
+
+                document.getElementById('subdivision').addEventListener('change', (e) => {
+                    timingControls.subdivision = e.target.value;
+                    logMessage(`Subdivision: ${e.target.value}`);
+                });
+
+                document.getElementById('swingAmount').addEventListener('input', (e) => {
+                    timingControls.swingAmount = parseInt(e.target.value);
+                    document.getElementById('swingValue').textContent = e.target.value + '%';
+                });
+
+                document.getElementById('velocityCurve').addEventListener('change', (e) => {
+                    timingControls.velocityCurve = e.target.value;
+                    logMessage(`Velocity curve: ${e.target.value}`);
+                });
+
+                document.getElementById('clientOffset').addEventListener('input', (e) => {
+                    timingControls.clientOffset = parseInt(e.target.value);
+                    document.getElementById('offsetValue').textContent = e.target.value + 'ms';
+                });
+
+                document.getElementById('noteDuration').addEventListener('change', (e) => {
+                    timingControls.noteDuration = e.target.value;
+                    logMessage(`Note duration: ${e.target.value}`);
+                });
+
+                document.getElementById('patternLength').addEventListener('change', (e) => {
+                    timingControls.patternLength = parseInt(e.target.value);
+                    logMessage(`Pattern length: ${e.target.value} bars`);
+                });
+
+                document.getElementById('humanization').addEventListener('input', (e) => {
+                    timingControls.humanization = parseInt(e.target.value);
+                    document.getElementById('humanizeValue').textContent = e.target.value + '%';
+                });
+
+                // Pattern queue event listeners
+                document.getElementById('playQueueButton').addEventListener('click', playPatternQueue);
+                document.getElementById('stopQueueButton').addEventListener('click', stopPatternQueue);
+                document.getElementById('nextPatternButton').addEventListener('click', nextPattern);
+                document.getElementById('clearQueueButton').addEventListener('click', clearPatternQueue);
+                
+                document.getElementById('autoAdvance').addEventListener('change', (e) => {
+                    patternQueue.autoAdvance = e.target.checked;
+                    logMessage(`Auto-advance: ${e.target.checked ? 'enabled' : 'disabled'}`);
+                });
+
+                document.getElementById('tempoAutomation').addEventListener('change', (e) => {
+                    patternQueue.tempoAutomation = e.target.value;
+                    logMessage(`Tempo automation: ${e.target.value}`);
                 });
                 
                 // Custom progression chord palette
