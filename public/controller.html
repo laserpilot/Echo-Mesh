@@ -1788,7 +1788,7 @@
                         break;
 
                     case 'clientList':
-                        updateClientListWithStatus(data.clients);
+                        updateClientList(data.clients);
                         break;
 
                     case 'clientConnected':
@@ -1815,7 +1815,9 @@
 
             // Update the client list
             const updateClientList = (newClients) => {
+                console.log('updateClientList called with:', newClients);
                 clients = newClients || [];
+                console.log('clients array updated to:', clients);
                 clientCountElement.textContent = clients.length;
 
                 // Clear existing clients
@@ -1878,7 +1880,7 @@
                         clientPositions.delete(clientId);
                     }
                     
-                    updateClientListWithStatus(clients);
+                    updateClientList(clients);
                     updatePitchControls(); // Update pitch controls when client is removed
                     buildSequencerGrid(); // Rebuild sequencer grid when client is removed
                     initClientPositions(); // Update positions when client is removed
@@ -2407,8 +2409,12 @@
 
             // Trigger a specific note on a client
             const triggerClientNote = (clientId, frequency, soundType = null, adsrOverride = null, velocity = 0.8) => {
+                console.log('triggerClientNote called:', {clientId, frequency, soundType, velocity});
+                console.log('isSynced:', isSynced);
+                
                 if (!isSynced) {
                     logMessage('Cannot trigger note: controller not synced.');
+                    console.log('ERROR: Controller not synced');
                     return;
                 }
 
@@ -2624,13 +2630,22 @@
             };
 
             const playChord = (romanNumeral) => {
+                console.log('playChord called with:', romanNumeral);
+                console.log('clients array:', clients);
+                console.log('clients.length:', clients.length);
+                
                 if (clients.length === 0) {
                     logMessage('No clients to play chord on');
+                    console.log('ERROR: No clients available');
                     return;
                 }
 
                 const chordNotes = getChordNotes(romanNumeral);
-                if (chordNotes.length === 0) return;
+                console.log('chordNotes:', chordNotes);
+                if (chordNotes.length === 0) {
+                    console.log('ERROR: No chord notes generated');
+                    return;
+                }
 
                 logMessage(`Playing ${romanNumeral} chord with ${chordNotes.length} notes (${timingControls.arpeggioPattern} pattern)`);
 
@@ -2953,12 +2968,17 @@
             window.removeFromQueue = removeFromQueue;
 
             const startChordProgression = () => {
+                console.log('startChordProgression called');
+                console.log('chordProgressionState.isPlaying:', chordProgressionState.isPlaying);
+                
                 if (chordProgressionState.isPlaying) {
                     stopChordProgression();
                 }
 
+                console.log('clients.length in startChordProgression:', clients.length);
                 if (clients.length === 0) {
                     logMessage('No clients to play chord progression on');
+                    console.log('ERROR: No clients in startChordProgression');
                     return;
                 }
 
