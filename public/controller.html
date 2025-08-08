@@ -606,6 +606,174 @@
             animation: pulse 1s infinite ease-in-out;
             background-color: #ff4d4f !important;
         }
+        /* Group Styles */
+        .group-card {
+            background-color: #fff;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border-left: 6px solid #4CAF50;
+            transition: all 0.3s ease;
+            min-height: 200px;
+        }
+
+        .group-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .group-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .group-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .group-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .group-controls .mini-button {
+            padding: 4px 8px;
+            font-size: 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .group-controls .mute { background-color: #FF9800; color: white; }
+        .group-controls .mute:hover { background-color: #F57C00; }
+        .group-controls .solo { background-color: #9C27B0; color: white; }
+        .group-controls .solo:hover { background-color: #7B1FA2; }
+        .group-controls .delete { background-color: #f44336; color: white; }
+        .group-controls .delete:hover { background-color: #d32f2f; }
+
+        .group-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .group-clients {
+            min-height: 80px;
+            background-color: #fafafa;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .group-clients.drag-over {
+            border-color: #4CAF50;
+            background-color: #e8f5e8;
+        }
+
+        .client-chip {
+            background-color: #e3f2fd;
+            color: #1976d2;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: move;
+            user-select: none;
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .client-chip:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .client-chip.dragging {
+            opacity: 0.5;
+            transform: rotate(5deg);
+        }
+
+        .client-chip .remove-client {
+            background-color: #f44336;
+            color: white;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            cursor: pointer;
+            margin-left: 4px;
+        }
+
+        .group-volume-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .group-volume-slider {
+            flex: 1;
+            height: 4px;
+            border-radius: 2px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .group-volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+        }
+
+        .group-volume-slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+            border: none;
+        }
+
+        .empty-group-message {
+            text-align: center;
+            color: #999;
+            font-style: italic;
+            padding: 20px 0;
+        }
+
+        /* Color themes for different group types */
+        .group-card.strings { border-left-color: #8BC34A; }
+        .group-card.brass { border-left-color: #FF9800; }
+        .group-card.woodwinds { border-left-color: #2196F3; }
+        .group-card.percussion { border-left-color: #f44336; }
+        .group-card.vocals { border-left-color: #9C27B0; }
+        .group-card.custom { border-left-color: #607D8B; }
+
     </style>
 </head>
 
@@ -1132,6 +1300,62 @@
             </div>
 
             <div class="container">
+                <h3>🎭 Client Groups</h3>
+                
+                <!-- Group Management Controls -->
+                <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 20px;">
+                    <button id="createGroupButton" class="button" style="background-color: #4CAF50;">+ Create Group</button>
+                    <button id="clearGroupsButton" class="button" style="background-color: #f44336;">Clear All Groups</button>
+                    <button id="autoArrangeButton" class="button" style="background-color: #2196F3;">Auto-Arrange Sections</button>
+                    
+                    <div style="margin-left: auto;">
+                        <label for="groupMode">Mode:</label>
+                        <select id="groupMode" style="padding: 5px;">
+                            <option value="sections">Orchestra Sections</option>
+                            <option value="choirs">Vocal Choirs</option>
+                            <option value="custom">Custom Groups</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Groups Display -->
+                <div id="groupsContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                    <div class="group-placeholder" style="padding: 40px; text-align: center; background-color: #f9f9f9; border: 2px dashed #ccc; border-radius: 8px; color: #666;">
+                        <div style="font-size: 48px; margin-bottom: 10px;">🎵</div>
+                        <div>No groups created yet</div>
+                        <div style="font-size: 14px; margin-top: 5px;">Click "Create Group" to start organizing clients</div>
+                    </div>
+                </div>
+
+                <!-- Unassigned Clients Pool -->
+                <div style="background-color: #f0f0f0; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <h4 style="margin-top: 0; color: #333;">📋 Unassigned Clients</h4>
+                    <div id="unassignedClients" style="display: flex; flex-wrap: wrap; gap: 8px; min-height: 50px; padding: 10px; background-color: #fff; border: 2px dashed #ddd; border-radius: 6px;">
+                        <div style="color: #999; font-style: italic; align-self: center;">Clients will appear here when connected</div>
+                    </div>
+                </div>
+
+                <!-- Group Master Controls -->
+                <div style="background-color: #e8f4f8; padding: 15px; border-radius: 8px; border-left: 4px solid #2196F3;">
+                    <h4 style="margin-top: 0; color: #1976D2;">🎛️ Master Group Controls</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div>
+                            <label>Master Volume: <span id="masterVolumeValue">100%</span></label>
+                            <input type="range" id="masterVolume" min="0" max="100" value="100" style="width: 100%;">
+                        </div>
+                        <div>
+                            <button id="muteAllGroupsButton" class="button" style="background-color: #FF9800;">🔇 Mute All</button>
+                            <button id="soloModeButton" class="button" style="background-color: #9C27B0;">👑 Solo Mode</button>
+                        </div>
+                    </div>
+                </div>
+
+                <p style="color: #666; font-size: 14px; margin: 15px 0 0 0;">
+                    Organize clients into groups for sectional control. Drag clients between groups to assign them. Each group can have independent volume, effects, and musical patterns.
+                </p>
+            </div>
+
+            <div class="container">
                 <h3>Rhythm Patterns</h3>
                 <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 15px;">
                     <label for="rhythmPattern">Pattern:</label>
@@ -1460,6 +1684,12 @@
             let isSynced = false;
             let lastRtt = 0;
             let effectsChain = [];
+
+            // Client grouping system
+            let clientGroups = new Map(); // groupId -> { name, type, clients: Set(), volume, muted, soloed, color }
+            let groupIdCounter = 1;
+            let soloMode = false;
+            let unassignedClients = new Set();
             let lfoState = {
                 enabled: false,
                 rate: 5,
@@ -1852,6 +2082,10 @@
                     clients.push(clientId);
                     clientCountElement.textContent = clients.length;
                     
+                    // Add to unassigned clients for grouping system
+                    unassignedClients.add(clientId);
+                    updateUnassignedClientsDisplay();
+                    
                     // Initialize default pitch settings for the client
                     if (!clientPitches.has(clientId)) {
                         const frequency = generateFrequencyForClient(clientId);
@@ -1872,6 +2106,12 @@
                     clients.splice(index, 1);
                     clientCountElement.textContent = clients.length;
                     
+                    // Remove from grouping system
+                    removeClientFromAllGroups(clientId);
+                    unassignedClients.delete(clientId);
+                    updateGroupsDisplay();
+                    updateUnassignedClientsDisplay();
+                    
                     // Clean up pitch settings and positions for removed client
                     if (clientPitches.has(clientId)) {
                         clientPitches.delete(clientId);
@@ -1886,6 +2126,306 @@
                     initClientPositions(); // Update positions when client is removed
                 }
             };
+
+            // ===== CLIENT GROUPING SYSTEM =====
+
+            // Create a new group
+            const createGroup = (name, type = 'custom') => {
+                const groupId = `group-${groupIdCounter++}`;
+                const group = {
+                    id: groupId,
+                    name: name || `Group ${groupIdCounter - 1}`,
+                    type: type,
+                    clients: new Set(),
+                    volume: 100,
+                    muted: false,
+                    soloed: false,
+                    color: getGroupColor(type)
+                };
+                
+                clientGroups.set(groupId, group);
+                updateGroupsDisplay();
+                logMessage(`Created group: ${group.name}`);
+                return groupId;
+            };
+
+            // Get color theme for group type
+            const getGroupColor = (type) => {
+                const colors = {
+                    strings: '#8BC34A',
+                    brass: '#FF9800', 
+                    woodwinds: '#2196F3',
+                    percussion: '#f44336',
+                    vocals: '#9C27B0',
+                    custom: '#607D8B'
+                };
+                return colors[type] || colors.custom;
+            };
+
+            // Add client to group
+            const addClientToGroup = (clientId, groupId) => {
+                // Remove from current group if assigned
+                removeClientFromAllGroups(clientId);
+                
+                const group = clientGroups.get(groupId);
+                if (group) {
+                    group.clients.add(clientId);
+                    unassignedClients.delete(clientId);
+                    updateGroupsDisplay();
+                    updateUnassignedClientsDisplay();
+                    logMessage(`Moved client ${clientId.substring(0, 8)} to ${group.name}`);
+                }
+            };
+
+            // Remove client from all groups
+            const removeClientFromAllGroups = (clientId) => {
+                for (const group of clientGroups.values()) {
+                    if (group.clients.has(clientId)) {
+                        group.clients.delete(clientId);
+                    }
+                }
+                unassignedClients.add(clientId);
+            };
+
+            // Delete a group
+            const deleteGroup = (groupId) => {
+                const group = clientGroups.get(groupId);
+                if (group) {
+                    // Move all clients back to unassigned
+                    for (const clientId of group.clients) {
+                        unassignedClients.add(clientId);
+                    }
+                    clientGroups.delete(groupId);
+                    updateGroupsDisplay();
+                    updateUnassignedClientsDisplay();
+                    logMessage(`Deleted group: ${group.name}`);
+                }
+            };
+
+            // Toggle group mute
+            const toggleGroupMute = (groupId) => {
+                const group = clientGroups.get(groupId);
+                if (group) {
+                    group.muted = !group.muted;
+                    updateGroupsDisplay();
+                    logMessage(`${group.muted ? 'Muted' : 'Unmuted'} group: ${group.name}`);
+                }
+            };
+
+            // Toggle group solo
+            const toggleGroupSolo = (groupId) => {
+                const group = clientGroups.get(groupId);
+                if (group) {
+                    group.soloed = !group.soloed;
+                    
+                    // Check if any groups are soloed
+                    soloMode = Array.from(clientGroups.values()).some(g => g.soloed);
+                    
+                    updateGroupsDisplay();
+                    updateMasterControls();
+                    logMessage(`${group.soloed ? 'Soloed' : 'Unsoloed'} group: ${group.name}`);
+                }
+            };
+
+            // Set group volume
+            const setGroupVolume = (groupId, volume) => {
+                const group = clientGroups.get(groupId);
+                if (group) {
+                    group.volume = volume;
+                    // Apply volume to all clients in group
+                    for (const clientId of group.clients) {
+                        // Send volume change to server for this client
+                        if (ws && ws.readyState === WebSocket.OPEN) {
+                            ws.send(JSON.stringify({
+                                type: 'setClientVolume',
+                                clientId: clientId,
+                                volume: volume / 100
+                            }));
+                        }
+                    }
+                }
+            };
+
+            // Auto-arrange clients into orchestra sections
+            const autoArrangeOrchestra = () => {
+                const mode = document.getElementById('groupMode').value;
+                
+                // Clear existing groups
+                clientGroups.clear();
+                unassignedClients = new Set(clients);
+                
+                let groupNames = [];
+                if (mode === 'sections') {
+                    groupNames = [
+                        { name: '🎻 Strings', type: 'strings' },
+                        { name: '🎺 Brass', type: 'brass' },
+                        { name: '🎷 Woodwinds', type: 'woodwinds' },
+                        { name: '🥁 Percussion', type: 'percussion' }
+                    ];
+                } else if (mode === 'choirs') {
+                    groupNames = [
+                        { name: '🎤 Soprano', type: 'vocals' },
+                        { name: '🎤 Alto', type: 'vocals' },
+                        { name: '🎤 Tenor', type: 'vocals' },
+                        { name: '🎤 Bass', type: 'vocals' }
+                    ];
+                }
+                
+                // Create groups
+                groupNames.forEach(({name, type}) => createGroup(name, type));
+                
+                // Distribute clients evenly across groups
+                const groups = Array.from(clientGroups.keys());
+                clients.forEach((clientId, index) => {
+                    const groupId = groups[index % groups.length];
+                    addClientToGroup(clientId, groupId);
+                });
+                
+                logMessage(`Auto-arranged ${clients.length} clients into ${groups.length} ${mode}`);
+            };
+
+            // Create a group card element
+            const createGroupCard = (group) => {
+                const card = document.createElement('div');
+                card.className = `group-card ${group.type}`;
+                card.innerHTML = `
+                    <div class="group-header">
+                        <div class="group-name">${group.name}</div>
+                        <div class="group-controls">
+                            <button class="mini-button mute" onclick="toggleGroupMute('${group.id}')" 
+                                    style="opacity: ${group.muted ? '1' : '0.6'}">
+                                ${group.muted ? '🔇' : '🔊'}
+                            </button>
+                            <button class="mini-button solo" onclick="toggleGroupSolo('${group.id}')"
+                                    style="opacity: ${group.soloed ? '1' : '0.6'}">
+                                👑
+                            </button>
+                            <button class="mini-button delete" onclick="deleteGroup('${group.id}')">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                    <div class="group-info">
+                        <span>${group.clients.size} clients</span>
+                        <span>${group.type}</span>
+                    </div>
+                    <div class="group-clients" 
+                         ondrop="dropClientInGroup(event, '${group.id}')" 
+                         ondragover="allowDrop(event)">
+                        ${group.clients.size === 0 ? 
+                            '<div class="empty-group-message">Drop clients here</div>' : 
+                            Array.from(group.clients).map(clientId => 
+                                `<div class="client-chip" draggable="true" 
+                                      ondragstart="dragClient(event, '${clientId}')"
+                                      data-client-id="${clientId}">
+                                    ${clientId.substring(0, 8).toUpperCase()}
+                                    <div class="remove-client" onclick="removeClientFromGroup('${clientId}', '${group.id}')">×</div>
+                                 </div>`
+                            ).join('')
+                        }
+                    </div>
+                    <div class="group-volume-control">
+                        <span>🔊</span>
+                        <input type="range" class="group-volume-slider" 
+                               min="0" max="100" value="${group.volume}"
+                               onchange="setGroupVolume('${group.id}', this.value)">
+                        <span>${group.volume}%</span>
+                    </div>
+                `;
+                return card;
+            };
+
+            // Update the groups display
+            const updateGroupsDisplay = () => {
+                const container = document.getElementById('groupsContainer');
+                container.innerHTML = '';
+                
+                if (clientGroups.size === 0) {
+                    container.innerHTML = `
+                        <div class="group-placeholder" style="padding: 40px; text-align: center; background-color: #f9f9f9; border: 2px dashed #ccc; border-radius: 8px; color: #666;">
+                            <div style="font-size: 48px; margin-bottom: 10px;">🎵</div>
+                            <div>No groups created yet</div>
+                            <div style="font-size: 14px; margin-top: 5px;">Click "Create Group" to start organizing clients</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                for (const group of clientGroups.values()) {
+                    container.appendChild(createGroupCard(group));
+                }
+            };
+
+            // Update unassigned clients display
+            const updateUnassignedClientsDisplay = () => {
+                const container = document.getElementById('unassignedClients');
+                container.innerHTML = '';
+                
+                if (unassignedClients.size === 0) {
+                    container.innerHTML = '<div style="color: #999; font-style: italic; align-self: center;">All clients are assigned to groups</div>';
+                    return;
+                }
+                
+                for (const clientId of unassignedClients) {
+                    const chip = document.createElement('div');
+                    chip.className = 'client-chip';
+                    chip.draggable = true;
+                    chip.dataset.clientId = clientId;
+                    chip.innerHTML = `
+                        ${clientId.substring(0, 8).toUpperCase()}
+                        <div class="remove-client" onclick="removeClientFromUnassigned('${clientId}')">×</div>
+                    `;
+                    chip.addEventListener('dragstart', (e) => dragClient(e, clientId));
+                    container.appendChild(chip);
+                }
+            };
+
+            // Update master controls
+            const updateMasterControls = () => {
+                const soloButton = document.getElementById('soloModeButton');
+                soloButton.textContent = soloMode ? '👑 Solo Mode ON' : '👑 Solo Mode';
+                soloButton.style.opacity = soloMode ? '1' : '0.6';
+            };
+
+            // Drag and drop functions
+            window.dragClient = (event, clientId) => {
+                event.dataTransfer.setData('text/plain', clientId);
+                event.target.classList.add('dragging');
+            };
+
+            window.allowDrop = (event) => {
+                event.preventDefault();
+                event.target.closest('.group-clients').classList.add('drag-over');
+            };
+
+            window.dropClientInGroup = (event, groupId) => {
+                event.preventDefault();
+                const clientId = event.dataTransfer.getData('text/plain');
+                addClientToGroup(clientId, groupId);
+                document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+                document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+            };
+
+            window.removeClientFromGroup = (clientId, groupId) => {
+                const group = clientGroups.get(groupId);
+                if (group && group.clients.has(clientId)) {
+                    group.clients.delete(clientId);
+                    unassignedClients.add(clientId);
+                    updateGroupsDisplay();
+                    updateUnassignedClientsDisplay();
+                }
+            };
+
+            window.removeClientFromUnassigned = (clientId) => {
+                unassignedClients.delete(clientId);
+                updateUnassignedClientsDisplay();
+            };
+
+            // Make grouping functions globally accessible
+            window.toggleGroupMute = toggleGroupMute;
+            window.toggleGroupSolo = toggleGroupSolo;
+            window.deleteGroup = deleteGroup;
+            window.setGroupVolume = setGroupVolume;
 
             // Create a client element
             const addClientElement = (clientId) => {
@@ -2647,15 +3187,21 @@
                     return;
                 }
 
-                logMessage(`Playing ${romanNumeral} chord with ${chordNotes.length} notes (${timingControls.arpeggioPattern} pattern)`);
+                // Get active clients (considering grouping, mute/solo states)
+                const activeClients = getActiveClientsForChord();
+                if (activeClients.length === 0) {
+                    logMessage('No active clients (all muted or solo mode with no soloed groups)');
+                    return;
+                }
+
+                logMessage(`Playing ${romanNumeral} chord with ${chordNotes.length} notes across ${activeClients.length} clients (${timingControls.arpeggioPattern} pattern)`);
 
                 // Get arpeggio pattern order
                 const pattern = getArpeggioPattern(chordNotes, timingControls.arpeggioPattern);
-                const sortedClients = [...clients].sort();
                 
                 if (timingControls.arpeggioPattern === 'chord') {
                     // Play all notes simultaneously with optional client stagger
-                    sortedClients.forEach((clientId, index) => {
+                    activeClients.forEach((clientId, index) => {
                         const staggerDelay = index * timingControls.clientOffset;
                         const note = pattern[index % pattern.length];
                         const velocity = getVelocityForNote(index, pattern.length, timingControls.velocityCurve);
@@ -2669,8 +3215,8 @@
                     const subdivisionDelay = getSubdivisionDelay(timingControls.subdivision);
                     
                     pattern.forEach((note, noteIndex) => {
-                        const clientIndex = noteIndex % sortedClients.length;
-                        const clientId = sortedClients[clientIndex];
+                        const clientIndex = noteIndex % activeClients.length;
+                        const clientId = activeClients[clientIndex];
                         const velocity = getVelocityForNote(noteIndex, pattern.length, timingControls.velocityCurve);
                         
                         let delay = noteIndex * subdivisionDelay;
@@ -2685,6 +3231,37 @@
                         }, delay + getHumanizationOffset());
                     });
                 }
+            };
+
+            // Get active clients considering group mute/solo states
+            const getActiveClientsForChord = () => {
+                let activeClients = [];
+
+                if (clientGroups.size === 0) {
+                    // No groups - use all clients
+                    return [...clients].sort();
+                }
+
+                // Check if we're in solo mode
+                if (soloMode) {
+                    // Only include clients from soloed groups
+                    for (const group of clientGroups.values()) {
+                        if (group.soloed && !group.muted) {
+                            activeClients.push(...Array.from(group.clients));
+                        }
+                    }
+                } else {
+                    // Include clients from non-muted groups + unassigned clients
+                    for (const group of clientGroups.values()) {
+                        if (!group.muted) {
+                            activeClients.push(...Array.from(group.clients));
+                        }
+                    }
+                    // Add unassigned clients
+                    activeClients.push(...Array.from(unassignedClients));
+                }
+
+                return [...new Set(activeClients)].sort(); // Remove duplicates and sort
             };
 
             // Arpeggio pattern generation
@@ -4116,6 +4693,11 @@
                 updateEffectsChainDisplay();
                 updateLFOVisualization();
 
+                // Initialize grouping system
+                updateGroupsDisplay();
+                updateUnassignedClientsDisplay();
+                updateMasterControls();
+
                 // Add all event listeners after functions are defined
                 // Add metronome event listeners
                 startMetronomeButton.addEventListener('click', startMetronome);
@@ -4185,6 +4767,77 @@
                 document.getElementById('tempoAutomation').addEventListener('change', (e) => {
                     patternQueue.tempoAutomation = e.target.value;
                     logMessage(`Tempo automation: ${e.target.value}`);
+                });
+
+                // Group management event listeners
+                document.getElementById('createGroupButton').addEventListener('click', () => {
+                    const groupName = prompt('Enter group name:', 'New Group');
+                    if (groupName) {
+                        const mode = document.getElementById('groupMode').value;
+                        let groupType = 'custom';
+                        if (mode === 'sections') {
+                            const sectionTypes = ['strings', 'brass', 'woodwinds', 'percussion'];
+                            groupType = sectionTypes[clientGroups.size % sectionTypes.length];
+                        } else if (mode === 'choirs') {
+                            groupType = 'vocals';
+                        }
+                        createGroup(groupName, groupType);
+                    }
+                });
+
+                document.getElementById('clearGroupsButton').addEventListener('click', () => {
+                    if (confirm('Clear all groups? This will move all clients back to unassigned.')) {
+                        // Move all clients back to unassigned
+                        for (const group of clientGroups.values()) {
+                            for (const clientId of group.clients) {
+                                unassignedClients.add(clientId);
+                            }
+                        }
+                        clientGroups.clear();
+                        updateGroupsDisplay();
+                        updateUnassignedClientsDisplay();
+                        logMessage('All groups cleared');
+                    }
+                });
+
+                document.getElementById('autoArrangeButton').addEventListener('click', () => {
+                    if (clients.length === 0) {
+                        logMessage('No clients to arrange');
+                        return;
+                    }
+                    autoArrangeOrchestra();
+                });
+
+                document.getElementById('masterVolume').addEventListener('input', (e) => {
+                    const volume = parseInt(e.target.value);
+                    document.getElementById('masterVolumeValue').textContent = volume + '%';
+                    
+                    // Apply to all groups
+                    for (const group of clientGroups.values()) {
+                        setGroupVolume(group.id, volume);
+                    }
+                    logMessage(`Master volume set to ${volume}%`);
+                });
+
+                document.getElementById('muteAllGroupsButton').addEventListener('click', () => {
+                    for (const group of clientGroups.values()) {
+                        group.muted = true;
+                    }
+                    updateGroupsDisplay();
+                    logMessage('All groups muted');
+                });
+
+                document.getElementById('soloModeButton').addEventListener('click', () => {
+                    soloMode = !soloMode;
+                    if (!soloMode) {
+                        // Clear all solos
+                        for (const group of clientGroups.values()) {
+                            group.soloed = false;
+                        }
+                    }
+                    updateGroupsDisplay();
+                    updateMasterControls();
+                    logMessage(`Solo mode ${soloMode ? 'enabled' : 'disabled'}`);
                 });
                 
                 // Custom progression chord palette
