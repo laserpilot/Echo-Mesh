@@ -1173,6 +1173,7 @@
             const updateNavigationState = () => {
                 const testNav = document.querySelector('[data-section="test"]');
                 const composeNav = document.querySelector('[data-section="compose"]');
+                const spatialNav = document.querySelector('[data-section="spatial"]');
                 const performNav = document.querySelector('[data-section="perform"]');
 
                 console.log('Updating navigation state:', {
@@ -1187,17 +1188,20 @@
                 } else {
                     testNav.classList.add('disabled');
                     composeNav.classList.add('disabled');
+                    spatialNav.classList.add('disabled');
                     performNav.classList.add('disabled');
                     return;
                 }
 
-                // Enable Compose section when server is connected (relaxed requirement for testing)
+                // Enable Compose and Spatial sections when server is connected (relaxed requirement for testing)
                 // Original: if (clients.length > 0 && isSynced)
                 if (ws && ws.readyState === WebSocket.OPEN) {
                     composeNav.classList.remove('disabled');
-                    console.log('Compose section enabled');
+                    spatialNav.classList.remove('disabled');
+                    console.log('Compose and Spatial sections enabled');
                 } else {
                     composeNav.classList.add('disabled');
+                    spatialNav.classList.add('disabled');
                     performNav.classList.add('disabled');
                     return;
                 }
@@ -1460,6 +1464,14 @@
                 buildSequencerGrid();
                 initClientPositions();
                 updatePitchControls();
+                
+                // Update MIDI keyboard distribution and spatial device positions
+                if (typeof updateNoteDistribution === 'function') {
+                    updateNoteDistribution();
+                }
+                if (typeof initializeSpatialDevices === 'function') {
+                    initializeSpatialDevices();
+                }
             };
 
             // Add a client to the UI
@@ -3989,12 +4001,7 @@
                 keysToRemove.forEach(key => activeMidiNotes.delete(key));
             };
 
-            // Update distribution when clients change
-            const originalUpdateClientsDisplayMidi = updateClientsDisplay;
-            updateClientsDisplay = () => {
-                originalUpdateClientsDisplayMidi();
-                updateNoteDistribution();
-            };
+            // Hook into client updates - these functions will be called from updateClientList
 
             // --- Web MIDI API for Real-time Input ---
             const initWebMidi = () => {
@@ -4715,12 +4722,7 @@
                 return baseFreq * root * tone;
             };
 
-            // Initialize spatial system when clients change
-            const originalUpdateClientsDisplay = updateClientsDisplay;
-            updateClientsDisplay = () => {
-                originalUpdateClientsDisplay();
-                initializeSpatialDevices();
-            };
+            // Spatial system initialization is now handled in the combined updateClientList override above
 
             // --- Initialization ---
             const init = () => {
