@@ -908,6 +908,69 @@
             </div>
 
             <div class="container">
+                <h3>🎹 Live MIDI Keyboard</h3>
+                <p>Connect a USB MIDI keyboard to your computer for real-time performance across your device orchestra.</p>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
+                    <div>
+                        <h4>Distribution Mode</h4>
+                        <div style="margin-bottom: 15px;">
+                            <input type="radio" id="midiModeBroadcast" name="midiMode" value="broadcast" checked>
+                            <label for="midiModeBroadcast" style="margin-left: 8px; font-weight: bold;">🌐 Broadcast Mode</label>
+                            <p style="margin: 5px 0; color: #666; font-size: 14px;">Every note plays on every device (traditional synthesizer)</p>
+                        </div>
+                        <div>
+                            <input type="radio" id="midiModeDistributed" name="midiMode" value="distributed">
+                            <label for="midiModeDistributed" style="margin-left: 8px; font-weight: bold;">🎼 Distributed Mode</label>
+                            <p style="margin: 5px 0; color: #666; font-size: 14px;">Notes split across devices for spatial polyphony</p>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h4>Distribution Strategy</h4>
+                        <select id="midiDistributionStrategy" style="width: 100%; padding: 8px; margin-bottom: 10px;" disabled>
+                            <option value="round-robin">Round Robin (alternating notes)</option>
+                            <option value="pitch-zones">Pitch Zones (low/high split)</option>
+                            <option value="chromatic">Chromatic (every Nth note)</option>
+                            <option value="chord-tones">Chord Tones (group by harmony)</option>
+                        </select>
+                        <p style="margin: 0; color: #666; font-size: 14px;">How notes are distributed across devices</p>
+                    </div>
+                </div>
+
+                <div style="margin: 20px 0; padding: 15px; background: #f0f8ff; border-radius: 8px; border-left: 4px solid #4CAF50;">
+                    <h4 style="margin: 0 0 10px 0;">🎹 MIDI Status</h4>
+                    <div id="midiStatus" style="margin: 10px 0; padding: 10px; background: white; border-radius: 5px; font-family: monospace;">
+                        <div id="midiConnectionStatus">Checking for MIDI devices...</div>
+                        <div id="midiDeviceList" style="margin-top: 10px;"></div>
+                    </div>
+                </div>
+
+                <div style="margin: 20px 0;">
+                    <h4>📊 Note Distribution Visualization</h4>
+                    <div id="noteDistributionVisualization" style="background: white; border: 2px solid #ddd; border-radius: 8px; padding: 20px; min-height: 200px;">
+                        <div style="text-align: center; color: #999; padding: 40px 0;">
+                            Connect clients to see note distribution mapping
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin: 20px 0; padding: 15px; background: #fffbf0; border-radius: 8px; border-left: 4px solid #ff9800;">
+                    <h4 style="margin: 0 0 10px 0;">💡 How it works:</h4>
+                    <div style="font-size: 14px; color: #666;">
+                        <div style="margin-bottom: 10px;"><strong>Broadcast Mode:</strong> Perfect for traditional playing where all devices create a massive unison sound</div>
+                        <div style="margin-bottom: 10px;"><strong>Distributed Mode:</strong> Each device gets assigned specific notes, creating spatial polyphony</div>
+                        <ul style="margin: 5px 0; padding-left: 20px;">
+                            <li><strong>2 devices:</strong> Alternating notes (C, D, E, F# vs C#, D#, F, G...)</li>
+                            <li><strong>4 devices:</strong> Each device gets every 4th note</li>
+                            <li><strong>7 devices:</strong> Each device gets every 7th note</li>
+                        </ul>
+                        <div><strong>Result:</strong> Playing chords automatically spreads notes across devices for incredible spatial effects!</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="container">
                 <h3>Recording & Playback</h3>
                 <p><em>Recording functionality will be added in a future update to capture and save performances.</em></p>
             </div>
@@ -3663,6 +3726,276 @@
                 });
             });
 
+            // --- Live MIDI Keyboard System ---
+            let midiKeyboardMode = 'broadcast';
+            let midiDistributionStrategy = 'round-robin';
+            let activeMidiNotes = new Map(); // note -> {clientId, noteId}
+            let noteDistributionMap = new Map(); // MIDI note -> clientId
+
+            // UI elements for MIDI keyboard
+            const midiModeBroadcast = document.getElementById('midiModeBroadcast');
+            const midiModeDistributed = document.getElementById('midiModeDistributed');
+            const midiDistributionStrategySelect = document.getElementById('midiDistributionStrategy');
+            const midiConnectionStatus = document.getElementById('midiConnectionStatus');
+            const midiDeviceList = document.getElementById('midiDeviceList');
+            const noteDistributionVisualization = document.getElementById('noteDistributionVisualization');
+
+            // Note distribution algorithms
+            const getNoteDistribution = () => {
+                if (midiKeyboardMode === 'broadcast') {
+                    // Broadcast mode: every note goes to every device
+                    const distribution = new Map();
+                    for (let note = 0; note < 128; note++) {
+                        distribution.set(note, [...clients]); // All clients for each note
+                    }
+                    return distribution;
+                }
+
+                // Distributed mode: different algorithms
+                const distribution = new Map();
+                const clientCount = clients.length;
+                
+                if (clientCount === 0) return distribution;
+
+                for (let note = 0; note < 128; note++) {
+                    let targetClients = [];
+                    
+                    switch (midiDistributionStrategy) {
+                        case 'round-robin':
+                        case 'chromatic':
+                            // Each client gets every Nth note
+                            const clientIndex = note % clientCount;
+                            targetClients = [clients[clientIndex]];
+                            break;
+                            
+                        case 'pitch-zones':
+                            // Divide keyboard into zones
+                            const notesPerZone = Math.ceil(128 / clientCount);
+                            const zoneIndex = Math.floor(note / notesPerZone);
+                            const actualZoneIndex = Math.min(zoneIndex, clientCount - 1);
+                            targetClients = [clients[actualZoneIndex]];
+                            break;
+                            
+                        case 'chord-tones':
+                            // Distribute based on note position within chord
+                            // This groups notes that typically form chords together
+                            const chordPosition = note % 4; // 4-note chords
+                            const clientForChordTone = chordPosition % clientCount;
+                            targetClients = [clients[clientForChordTone]];
+                            break;
+                    }
+                    
+                    distribution.set(note, targetClients);
+                }
+                
+                return distribution;
+            };
+
+            const updateNoteDistribution = () => {
+                noteDistributionMap = getNoteDistribution();
+                updateDistributionVisualization();
+            };
+
+            const updateDistributionVisualization = () => {
+                if (clients.length === 0) {
+                    noteDistributionVisualization.innerHTML = `
+                        <div style="text-align: center; color: #999; padding: 40px 0;">
+                            Connect clients to see note distribution mapping
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '';
+                
+                if (midiKeyboardMode === 'broadcast') {
+                    html = `
+                        <div style="text-align: center; padding: 20px;">
+                            <h4 style="color: #4CAF50; margin: 0;">🌐 Broadcast Mode Active</h4>
+                            <p style="margin: 10px 0; color: #666;">All ${clients.length} devices will play every note simultaneously</p>
+                            <div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 15px;">
+                                ${clients.map(clientId => `
+                                    <div style="background: #4CAF50; color: white; padding: 6px 12px; border-radius: 15px; font-size: 12px;">
+                                        ${clientId.slice(-3)}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // Show distributed mode visualization
+                    const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+                    const octaveStart = 3; // Start from C3
+                    const octaveEnd = 6; // End at B6 (4 octaves)
+                    
+                    html = `
+                        <div style="text-align: center; margin-bottom: 15px;">
+                            <h4 style="color: #2196F3; margin: 0;">🎼 Distributed Mode: ${midiDistributionStrategy}</h4>
+                            <p style="margin: 5px 0; color: #666;">${clients.length} devices, each assigned specific notes</p>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 5px;">
+                    `;
+                    
+                    // Create visual keyboard showing distribution
+                    for (let octave = octaveStart; octave <= octaveEnd; octave++) {
+                        html += `<div style="display: flex; gap: 2px; justify-content: center; align-items: center;">`;
+                        html += `<span style="width: 30px; font-size: 12px; color: #666;">C${octave}</span>`;
+                        
+                        for (let noteInOctave = 0; noteInOctave < 12; noteInOctave++) {
+                            const midiNote = (octave * 12) + noteInOctave;
+                            const noteName = noteNames[noteInOctave];
+                            const assignedClients = noteDistributionMap.get(midiNote) || [];
+                            const clientId = assignedClients[0]; // First (or only) client for this note
+                            const isSharp = noteName.includes('#');
+                            
+                            const clientIndex = clientId ? clients.indexOf(clientId) : -1;
+                            const colors = ['#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#F44336', '#00BCD4', '#795548'];
+                            const bgColor = clientIndex >= 0 ? colors[clientIndex % colors.length] : '#ddd';
+                            
+                            html += `
+                                <div style="
+                                    background: ${bgColor}; 
+                                    color: ${clientIndex >= 0 ? 'white' : '#999'};
+                                    width: ${isSharp ? '20px' : '28px'}; 
+                                    height: ${isSharp ? '30px' : '45px'};
+                                    display: flex; 
+                                    align-items: center; 
+                                    justify-content: center; 
+                                    font-size: 10px; 
+                                    border-radius: 3px;
+                                    border: 1px solid #ccc;
+                                    position: relative;
+                                    font-weight: bold;
+                                " title="MIDI ${midiNote} (${noteName}${octave}) → ${clientId ? clientId.slice(-3) : 'none'}">
+                                    ${clientId ? clientId.slice(-3) : ''}
+                                </div>
+                            `;
+                        }
+                        html += `</div>`;
+                    }
+                    
+                    html += `
+                        </div>
+                        <div style="margin-top: 15px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+                    `;
+                    
+                    // Legend showing which client gets which color
+                    clients.forEach((clientId, index) => {
+                        const colors = ['#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#F44336', '#00BCD4', '#795548'];
+                        const color = colors[index % colors.length];
+                        html += `
+                            <div style="display: flex; align-items: center; gap: 5px;">
+                                <div style="width: 12px; height: 12px; background: ${color}; border-radius: 2px;"></div>
+                                <span style="font-size: 12px; color: #666;">${clientId.slice(-3)}</span>
+                            </div>
+                        `;
+                    });
+                    
+                    html += `</div>`;
+                }
+                
+                noteDistributionVisualization.innerHTML = html;
+            };
+
+            // Event handlers for MIDI keyboard controls
+            midiModeBroadcast.addEventListener('change', () => {
+                midiKeyboardMode = 'broadcast';
+                midiDistributionStrategySelect.disabled = true;
+                updateNoteDistribution();
+            });
+
+            midiModeDistributed.addEventListener('change', () => {
+                midiKeyboardMode = 'distributed';
+                midiDistributionStrategySelect.disabled = false;
+                updateNoteDistribution();
+            });
+
+            midiDistributionStrategySelect.addEventListener('change', (e) => {
+                midiDistributionStrategy = e.target.value;
+                updateNoteDistribution();
+            });
+
+            // Enhanced MIDI message handling
+            const handleMidiKeyboardInput = (message) => {
+                const command = message.data[0];
+                const note = message.data[1];
+                const velocity = (message.data.length > 2) ? message.data[2] : 0;
+                
+                switch (command) {
+                    case 144: // Note On
+                        if (velocity > 0) {
+                            handleMidiNoteOn(note, velocity);
+                        } else {
+                            handleMidiNoteOff(note); // Some keyboards send note-on with velocity 0 for note-off
+                        }
+                        break;
+                        
+                    case 128: // Note Off
+                        handleMidiNoteOff(note);
+                        break;
+                }
+            };
+
+            const handleMidiNoteOn = (midiNote, velocity) => {
+                const frequency = 440 * Math.pow(2, (midiNote - 69) / 12);
+                const assignedClients = noteDistributionMap.get(midiNote) || [];
+                
+                // Velocity to volume scaling (0-127 to 0-1)
+                const volume = velocity / 127;
+                
+                assignedClients.forEach(clientId => {
+                    if (clients.includes(clientId)) {
+                        // Generate unique note ID for tracking
+                        const noteId = `${midiNote}-${Date.now()}-${Math.random()}`;
+                        
+                        // Store active note for proper note-off handling
+                        activeMidiNotes.set(`${midiNote}-${clientId}`, { clientId, noteId, startTime: performance.now() });
+                        
+                        // Trigger note with proper waveform and volume
+                        const waveformType = document.getElementById('globalWaveform')?.value || 'sine';
+                        sendMessage({
+                            type: 'triggerNote',
+                            clientId: clientId,
+                            sound: waveformType,
+                            frequency: frequency,
+                            noteId: noteId,
+                            velocity: volume,
+                            sustain: true // Keep note playing until note-off
+                        });
+                        
+                        logMessage(`MIDI Note ${midiNote} (${frequency.toFixed(2)}Hz) ON → ${clientId.slice(-8)} (vel: ${velocity})`);
+                    }
+                });
+            };
+
+            const handleMidiNoteOff = (midiNote) => {
+                // Find and stop all instances of this note
+                const keysToRemove = [];
+                for (let [key, noteInfo] of activeMidiNotes) {
+                    if (key.startsWith(`${midiNote}-`)) {
+                        // Send note-off message
+                        sendMessage({
+                            type: 'stopNote',
+                            clientId: noteInfo.clientId,
+                            noteId: noteInfo.noteId
+                        });
+                        
+                        keysToRemove.push(key);
+                        logMessage(`MIDI Note ${midiNote} OFF → ${noteInfo.clientId.slice(-8)}`);
+                    }
+                }
+                
+                // Clean up tracking
+                keysToRemove.forEach(key => activeMidiNotes.delete(key));
+            };
+
+            // Update distribution when clients change
+            const originalUpdateClientsDisplayMidi = updateClientsDisplay;
+            updateClientsDisplay = () => {
+                originalUpdateClientsDisplayMidi();
+                updateNoteDistribution();
+            };
+
             // --- Web MIDI API for Real-time Input ---
             const initWebMidi = () => {
                 if (navigator.requestMIDIAccess) {
@@ -3674,48 +4007,66 @@
             }
 
             const onMIDISuccess = (midiAccess) => {
-                logMessage('Web MIDI access granted.');
+                midiConnectionStatus.textContent = 'Web MIDI access granted';
+                midiConnectionStatus.style.color = '#4CAF50';
+                
+                let deviceListHTML = '';
                 for (var input of midiAccess.inputs.values()) {
-                    input.onmidimessage = getMIDIMessage;
+                    input.onmidimessage = handleMidiKeyboardInput; // Use new enhanced handler
+                    deviceListHTML += `<div style="color: #4CAF50; margin: 5px 0;">✓ ${input.name}</div>`;
                     logMessage(`MIDI input connected: ${input.name}`);
                 }
+                
+                if (deviceListHTML === '') {
+                    deviceListHTML = '<div style="color: #999;">No MIDI input devices found</div>';
+                }
+                midiDeviceList.innerHTML = deviceListHTML;
 
                 midiAccess.onstatechange = (event) => {
                     if (event.port.state === "connected") {
                         logMessage(`MIDI port connected: ${event.port.name}`);
-                        event.port.onmidimessage = getMIDIMessage;
+                        event.port.onmidimessage = handleMidiKeyboardInput; // Use new enhanced handler
+                        
+                        // Update device list
+                        let updatedDeviceListHTML = '';
+                        for (var input of midiAccess.inputs.values()) {
+                            if (input.state === 'connected') {
+                                updatedDeviceListHTML += `<div style="color: #4CAF50; margin: 5px 0;">✓ ${input.name}</div>`;
+                            }
+                        }
+                        if (updatedDeviceListHTML === '') {
+                            updatedDeviceListHTML = '<div style="color: #999;">No MIDI input devices found</div>';
+                        }
+                        midiDeviceList.innerHTML = updatedDeviceListHTML;
+                        
                     } else if (event.port.state === "disconnected") {
                         logMessage(`MIDI port disconnected: ${event.port.name}`);
+                        
+                        // Update device list
+                        let updatedDeviceListHTML = '';
+                        for (var input of midiAccess.inputs.values()) {
+                            if (input.state === 'connected') {
+                                updatedDeviceListHTML += `<div style="color: #4CAF50; margin: 5px 0;">✓ ${input.name}</div>`;
+                            }
+                        }
+                        if (updatedDeviceListHTML === '') {
+                            updatedDeviceListHTML = '<div style="color: #999;">No MIDI input devices found</div>';
+                        }
+                        midiDeviceList.innerHTML = updatedDeviceListHTML;
                     }
                 };
             }
 
             const onMIDIFailure = () => {
+                midiConnectionStatus.textContent = 'Could not access MIDI devices';
+                midiConnectionStatus.style.color = '#f44336';
+                midiDeviceList.innerHTML = '<div style="color: #f44336;">MIDI access denied or not supported</div>';
                 logMessage('Could not access your MIDI devices.');
             }
 
+            // Legacy MIDI handler for file playback (keep separate from keyboard)
             let liveNoteCounter = 0;
-            const getMIDIMessage = (message) => {
-                const command = message.data[0];
-                const note = message.data[1];
-                const velocity = (message.data.length > 2) ? message.data[2] : 0; // a velocity value might not be included with a noteOff command
-
-                switch (command) {
-                    case 144: // noteOn
-                        if (velocity > 0) {
-                            const frequency = 440 * Math.pow(2, (note - 69) / 12);
-                            const targetClientId = clients[liveNoteCounter % clients.length];
-                            liveNoteCounter++;
-                            if(targetClientId) {
-                                triggerClientNote(targetClientId, frequency);
-                            }
-                        }
-                        break;
-                    case 128: // noteOff
-                        // Note Off logic would go here if we implement ADSR
-                        break;
-                }
-            }
+            const getMIDIMessage = handleMidiKeyboardInput; // Redirect to new handler
 
             // --- Step Sequencer Logic ---
             const sequencerGrid = document.getElementById('sequencer-grid');
@@ -4382,6 +4733,9 @@
                 drawPanningCanvas();
                 populatePresetList();
                 initWebMidi();
+                
+                // Initialize MIDI keyboard system
+                updateNoteDistribution();
                 
                 // Initialize spatial wave system
                 initializeSpatialDevices();
