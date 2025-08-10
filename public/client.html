@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Audio Client</title>
+    <title>Echo Mesh - Client</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -190,7 +190,7 @@
 <body>
     <div class="log" id="log"></div>
 
-    <h1>Audio Client</h1>
+    <h1>Echo Mesh</h1>
     <div class="client-header">
         <div class="sound-indicator" id="soundIndicator">READY</div>
         <div class="client-id" id="clientId">--</div>
@@ -907,7 +907,7 @@
                 // Connection opened
                 ws.addEventListener('open', (event) => {
                     logMessage('WebSocket connected, sending registration...');
-                    const storedId = localStorage.getItem('multichannelClientId');
+                    const storedId = localStorage.getItem('echoMeshClientId');
                     // Add retry mechanism for registration
                     let registrationRetries = 0;
                     const maxRetries = 3;
@@ -953,7 +953,7 @@
                     // Clear client ID if the connection was closed unexpectedly
                     if (event.code !== 1000) { // 1000 is normal closure
                         logMessage('Unexpected disconnection, clearing stored ID');
-                        localStorage.removeItem('multichannelClientId');
+                        localStorage.removeItem('echoMeshClientId');
                         clientId = null;
                         clientIdElement.textContent = '--';
                     }
@@ -977,7 +977,7 @@
                     case 'id':
                         if (data.id && data.id !== clientId) {
                             clientId = data.id;
-                            localStorage.setItem('multichannelClientId', clientId);
+                            localStorage.setItem('echoMeshClientId', clientId);
                             // Show only the first 8 characters for readability
                             const shortId = clientId.substring(0, 8).toUpperCase();
                             clientIdElement.textContent = shortId;

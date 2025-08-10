@@ -1,7 +1,7 @@
 {
-    "name": "multichannel-audio-experiment",
+    "name": "echo-mesh",
     "version": "1.0.0",
-    "description": "A web-based multichannel audio experiment for Android phones",
+    "description": "Echo Mesh - A distributed mobile orchestra using web audio synthesis",
     "main": "server.js",
     "scripts": {
         "start": "node server.js",

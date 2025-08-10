@@ -5,783 +5,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Audio Controller</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f5f5f5;
-            display: flex;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        h1,
-        h2 {
-            color: #333;
-        }
-
-        .sidebar {
-            width: 250px;
-            background-color: #2c3e50;
-            color: white;
-            padding: 0;
-            overflow-y: auto;
-            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-        }
-
-        .sidebar-header {
-            padding: 20px;
-            background-color: #34495e;
-            border-bottom: 1px solid #1a252f;
-        }
-
-        .sidebar-header h1 {
-            color: white;
-            margin: 0;
-            font-size: 18px;
-        }
-
-        .nav-section {
-            padding: 10px 0;
-            border-bottom: 1px solid #34495e;
-        }
-
-        .nav-item {
-            display: flex;
-            align-items: center;
-            padding: 12px 20px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            border: none;
-            background: none;
-            color: white;
-            width: 100%;
-            text-align: left;
-        }
-
-        .nav-item:hover {
-            background-color: #34495e;
-        }
-
-        .nav-item.active {
-            background-color: #3498db;
-        }
-
-        .nav-item.disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .nav-icon {
-            margin-right: 10px;
-            font-size: 16px;
-            width: 20px;
-        }
-
-        .status-panel {
-            padding: 15px 20px;
-            background-color: #1a252f;
-            margin-top: auto;
-        }
-
-        .status-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin: 5px 0;
-            font-size: 12px;
-        }
-
-        .status-indicator {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            margin-left: 5px;
-        }
-
-        .status-ready { background-color: #27ae60; }
-        .status-warning { background-color: #f39c12; }
-        .status-error { background-color: #e74c3c; }
-
-        .main-content {
-            flex: 1;
-            overflow-y: auto;
-            background-color: #f5f5f5;
-        }
-
-        .content-section {
-            display: none;
-            padding: 20px;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .content-section.active {
-            display: block;
-        }
-
-        .section-header {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-        }
-
-        .section-header h2 {
-            margin: 0 0 10px 0;
-            color: #2c3e50;
-        }
-
-        .section-description {
-            color: #7f8c8d;
-            margin: 0;
-        }
-
-        .container {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-        }
-
-        .status {
-            margin: 20px 0;
-            padding: 15px;
-            background-color: #e0e0e0;
-            border-radius: 5px;
-        }
-
-        .connection-info {
-            margin: 20px 0;
-            padding: 15px;
-            background-color: #e0f7fa;
-            border-radius: 5px;
-            border-left: 4px solid #00bcd4;
-        }
-
-        .clients-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
-        }
-
-        .client-card {
-            padding: 15px;
-            background-color: #f0f0f0;
-            border-radius: 5px;
-            border-left: 4px solid #4CAF50;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .client-id {
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-
-        .button {
-            background-color: #2196F3;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
-            margin: 5px 0;
-        }
-
-        .mode-button {
-            padding: 8px 16px;
-            margin: 0;
-            opacity: 0.7;
-            transition: all 0.3s ease;
-        }
-
-        .mode-button.active {
-            opacity: 1;
-            background-color: #4CAF50;
-            transform: scale(1.05);
-        }
-
-        .chord-button, .chord-select {
-            padding: 12px 8px;
-            border: 2px solid;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            min-width: 50px;
-        }
-
-        .chord-button.major, .chord-select.major {
-            background-color: #4CAF50;
-            border-color: #4CAF50;
-            color: white;
-        }
-
-        .chord-button.minor, .chord-select.minor {
-            background-color: #2196F3;
-            border-color: #2196F3;
-            color: white;
-        }
-
-        .chord-button.diminished, .chord-select.diminished {
-            background-color: #f44336;
-            border-color: #f44336;
-            color: white;
-        }
-
-        .chord-button.rest, .chord-select.rest {
-            background-color: #999;
-            border-color: #999;
-            color: white;
-        }
-
-        .chord-button:hover, .chord-select:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
-
-        .chord-select.selected {
-            box-shadow: 0 0 0 3px rgba(255,193,7,0.5);
-            transform: scale(1.1);
-        }
-
-        .custom-chord-item {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .custom-chord-item .remove-chord {
-            background: rgba(255,255,255,0.3);
-            border: none;
-            border-radius: 3px;
-            color: white;
-            cursor: pointer;
-            font-size: 12px;
-            padding: 2px 4px;
-        }
-
-        .sequencer-step {
-            aspect-ratio: 1;
-            border: 2px solid #ccc;
-            border-radius: 6px;
-            background-color: #f9f9f9;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 12px;
-            transition: all 0.2s ease;
-            position: relative;
-        }
-
-        .sequencer-step.active {
-            background-color: #4CAF50;
-            color: white;
-            border-color: #4CAF50;
-        }
-
-        .sequencer-step.playing {
-            animation: sequencerPulse 0.3s ease;
-            box-shadow: 0 0 15px rgba(76, 175, 80, 0.8);
-        }
-
-        @keyframes sequencerPulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.2); }
-            100% { transform: scale(1); }
-        }
-
-        .progression-chord-display {
-            display: inline-flex;
-            align-items: center;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-weight: bold;
-            margin: 2px;
-            position: relative;
-        }
-
-        .progression-chord-display.current {
-            animation: currentChordPulse 1s ease-in-out infinite;
-            box-shadow: 0 0 10px rgba(76, 175, 80, 0.6);
-        }
-
-        @keyframes currentChordPulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }
-
-        .effect-add-button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 12px 8px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            transition: all 0.3s ease;
-            text-align: center;
-        }
-
-        .effect-add-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
-
-        .effect-chain-item {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 15px;
-            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-            color: white;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            border: 2px solid transparent;
-        }
-
-        .effect-chain-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
-
-        .effect-chain-item.bypassed {
-            background: linear-gradient(135deg, #9E9E9E 0%, #757575 100%);
-            opacity: 0.7;
-        }
-
-        .effect-chain-item.editing {
-            border-color: #FFC107;
-            box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.3);
-        }
-
-        .effect-chain-item .effect-controls {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .effect-chain-item .bypass-btn,
-        .effect-chain-item .remove-btn {
-            background: rgba(255,255,255,0.2);
-            border: none;
-            border-radius: 3px;
-            color: white;
-            cursor: pointer;
-            font-size: 11px;
-            padding: 2px 5px;
-            transition: background 0.2s;
-        }
-
-        .effect-chain-item .bypass-btn:hover,
-        .effect-chain-item .remove-btn:hover {
-            background: rgba(255,255,255,0.4);
-        }
-
-        .effect-parameter {
-            display: grid;
-            grid-template-columns: 1fr 100px 60px;
-            gap: 10px;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .effect-parameter label {
-            font-weight: 500;
-            color: #333;
-        }
-
-        .effect-parameter input[type="range"] {
-            width: 100%;
-        }
-
-        .effect-parameter input[type="number"] {
-            width: 100%;
-            padding: 4px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-
-        .lfo-visualization {
-            position: relative;
-            height: 40px;
-            background: linear-gradient(90deg, #ddd 0%, #4CAF50 50%, #ddd 100%);
-            border-radius: 3px;
-            overflow: hidden;
-        }
-
-        .lfo-indicator {
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            width: 3px;
-            background: #f44336;
-            transition: left 0.1s ease;
-        }
-
-        @keyframes lfoAnimation {
-            0% { left: 0; }
-            50% { left: calc(100% - 3px); }
-            100% { left: 0; }
-        }
-
-        .lfo-indicator.animated {
-            animation: lfoAnimation ease-in-out infinite;
-        }
-
-        .button:hover {
-            background-color: #0b7dda;
-        }
-
-        .button.sound {
-            background-color: #4CAF50;
-        }
-
-        .button.sound:hover {
-            background-color: #45a049;
-        }
-
-        .controls {
-            margin: 20px 0;
-            padding: 15px;
-            background-color: #fff8e1;
-            border-radius: 5px;
-            border-left: 4px solid #ffc107;
-        }
-
-        .controls-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 10px;
-            margin-top: 15px;
-        }
-
-        .log {
-            height: 150px;
-            overflow-y: auto;
-            background-color: #f5f5f5;
-            padding: 10px;
-            border-radius: 5px;
-            font-family: monospace;
-            margin-top: 20px;
-            border: 1px solid #ddd;
-        }
-
-        .log-entry {
-            margin: 5px 0;
-            padding: 5px 0;
-            border-bottom: 1px solid #e0e0e0;
-        }
-
-        .sequence-controls {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin: 15px 0;
-            align-items: center;
-        }
-
-        input,
-        select {
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-
-        .music-panel {
-            margin: 20px 0;
-            padding: 15px;
-            background-color: #e6f7ff;
-            border-radius: 5px;
-            border-left: 4px solid #1890ff;
-        }
-
-        .pitch-controls {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
-        }
-
-        .pitch-card {
-            background-color: #f5f5f5;
-            border-radius: 5px;
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .pitch-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .pitch-range {
-            width: 100%;
-        }
-
-        .key-controls {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin: 15px 0;
-            align-items: center;
-        }
-
-        .randomize-button {
-            background-color: #1890ff;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-left: 10px;
-        }
-
-        .loop-controls {
-            margin: 15px 0;
-            padding: 15px;
-            background-color: #fff1f0;
-            border-radius: 5px;
-            border-left: 4px solid #ff4d4f;
-        }
-
-        .loop-settings {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 15px;
-            align-items: center;
-        }
-
-        .loop-button {
-            padding: 12px 25px;
-            font-size: 16px;
-            font-weight: bold;
-        }
-
-        .pattern-buttons {
-            display: flex;
-            gap: 10px;
-            margin: 15px 0;
-        }
-
-        @keyframes pulse {
-            0% {
-                transform: scale(1);
-            }
-
-            50% {
-                transform: scale(1.05);
-            }
-
-            100% {
-                transform: scale(1);
-            }
-        }
-
-        .pulsing {
-            animation: pulse 1s infinite ease-in-out;
-            background-color: #ff4d4f !important;
-        }
-        /* Group Styles */
-        .group-card {
-            background-color: #fff;
-            border-radius: 12px;
-            padding: 16px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            border-left: 6px solid #4CAF50;
-            transition: all 0.3s ease;
-            min-height: 200px;
-        }
-
-        .group-card:hover {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            transform: translateY(-2px);
-        }
-
-        .group-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-
-        .group-name {
-            font-size: 18px;
-            font-weight: bold;
-            color: #333;
-        }
-
-        .group-controls {
-            display: flex;
-            gap: 8px;
-        }
-
-        .group-controls .mini-button {
-            padding: 4px 8px;
-            font-size: 12px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .group-controls .mute { background-color: #FF9800; color: white; }
-        .group-controls .mute:hover { background-color: #F57C00; }
-        .group-controls .solo { background-color: #9C27B0; color: white; }
-        .group-controls .solo:hover { background-color: #7B1FA2; }
-        .group-controls .delete { background-color: #f44336; color: white; }
-        .group-controls .delete:hover { background-color: #d32f2f; }
-
-        .group-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 10px;
-        }
-
-        .group-clients {
-            min-height: 80px;
-            background-color: #fafafa;
-            border: 2px dashed #ddd;
-            border-radius: 8px;
-            padding: 8px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-bottom: 12px;
-        }
-
-        .group-clients.drag-over {
-            border-color: #4CAF50;
-            background-color: #e8f5e8;
-        }
-
-        .client-chip {
-            background-color: #e3f2fd;
-            color: #1976d2;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 500;
-            cursor: move;
-            user-select: none;
-            transition: all 0.2s ease;
-            border: 2px solid transparent;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .client-chip:hover {
-            transform: scale(1.05);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        .client-chip.dragging {
-            opacity: 0.5;
-            transform: rotate(5deg);
-        }
-
-        .client-chip .remove-client {
-            background-color: #f44336;
-            color: white;
-            border-radius: 50%;
-            width: 16px;
-            height: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            cursor: pointer;
-            margin-left: 4px;
-        }
-
-        .group-volume-control {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-top: 8px;
-        }
-
-        .group-volume-slider {
-            flex: 1;
-            height: 4px;
-            border-radius: 2px;
-            background: #ddd;
-            outline: none;
-            -webkit-appearance: none;
-        }
-
-        .group-volume-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: #4CAF50;
-            cursor: pointer;
-        }
-
-        .group-volume-slider::-moz-range-thumb {
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: #4CAF50;
-            cursor: pointer;
-            border: none;
-        }
-
-        .empty-group-message {
-            text-align: center;
-            color: #999;
-            font-style: italic;
-            padding: 20px 0;
-        }
-
-        /* Color themes for different group types */
-        .group-card.strings { border-left-color: #8BC34A; }
-        .group-card.brass { border-left-color: #FF9800; }
-        .group-card.woodwinds { border-left-color: #2196F3; }
-        .group-card.percussion { border-left-color: #f44336; }
-        .group-card.vocals { border-left-color: #9C27B0; }
-        .group-card.custom { border-left-color: #607D8B; }
-
-    </style>
+    <title>Echo Mesh - Controller</title>
+    <link rel="stylesheet" href="css/controller.css">
 </head>
 
 <body>
     <!-- Sidebar Navigation -->
     <div class="sidebar">
         <div class="sidebar-header">
-            <h1>Audio Controller</h1>
+            <h1>Echo Mesh</h1>
         </div>
         
         <div class="nav-section">
@@ -796,6 +28,10 @@
             <button class="nav-item disabled" data-section="compose">
                 <span class="nav-icon">🎵</span>
                 Compose
+            </button>
+            <button class="nav-item disabled" data-section="spatial">
+                <span class="nav-icon">🌊</span>
+                Spatial Waves
             </button>
             <button class="nav-item disabled" data-section="perform">
                 <span class="nav-icon">🎭</span>
@@ -1551,6 +787,93 @@
                 <select id="presetList"></select>
                 <button id="loadPresetButton" class="button">Load Preset</button>
                 <button id="deletePresetButton" class="button" style="background-color: #F44336;">Delete Preset</button>
+            </div>
+        </div>
+
+        <!-- Spatial Waves Section -->
+        <div class="content-section" id="spatial-section">
+            <div class="section-header">
+                <h2>🌊 Spatial Waves</h2>
+                <p class="section-description">Trigger sound waves that ripple across your device orchestra in space</p>
+            </div>
+
+            <div class="container">
+                <h3>Spatial Canvas</h3>
+                <div style="position: relative; border: 2px solid #333; border-radius: 10px; margin: 20px 0; background: linear-gradient(45deg, #1a1a1a 25%, transparent 25%), linear-gradient(-45deg, #1a1a1a 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #1a1a1a 75%), linear-gradient(-45deg, transparent 75%, #1a1a1a 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px;">
+                    <canvas id="spatialCanvas" width="800" height="600" style="display: block; border-radius: 8px; cursor: crosshair;">
+                        Your browser doesn't support canvas
+                    </canvas>
+                    <div id="canvasInstructions" style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); color: white; padding: 10px; border-radius: 5px; font-size: 12px;">
+                        Click to trigger waves • Drag devices to reposition • Wave hits = sound triggers
+                    </div>
+                </div>
+
+                <h3>Wave Controls</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0;">
+                    <div>
+                        <label for="waveSpeed" style="font-weight: bold;">Wave Speed: <span id="waveSpeedValue">100px/s</span></label>
+                        <input type="range" id="waveSpeed" min="20" max="500" value="100" style="width: 100%;">
+                    </div>
+                    <div>
+                        <label for="waveType" style="font-weight: bold;">Wave Type:</label>
+                        <select id="waveType" style="width: 100%; padding: 5px;">
+                            <option value="circle">Circle</option>
+                            <option value="spiral">Spiral</option>
+                            <option value="beam">Directional Beam</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="waveCount" style="font-weight: bold;">Multiple Waves: <span id="waveCountValue">1</span></label>
+                        <input type="range" id="waveCount" min="1" max="8" value="1" style="width: 100%;">
+                    </div>
+                </div>
+
+                <h3>Harmonic Wave Settings</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0;">
+                    <div>
+                        <label for="waveChordMode" style="font-weight: bold;">Chord Mode:</label>
+                        <select id="waveChordMode" style="width: 100%; padding: 5px;">
+                            <option value="current">Use Current Chord</option>
+                            <option value="progression">Cycle Through Progression</option>
+                            <option value="fixed">Fixed Note</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="waveFixedNote" style="font-weight: bold;">Fixed Note:</label>
+                        <select id="waveFixedNote" style="width: 100%; padding: 5px;">
+                            <option value="C">C</option>
+                            <option value="C#">C#</option>
+                            <option value="D">D</option>
+                            <option value="D#">D#</option>
+                            <option value="E">E</option>
+                            <option value="F">F</option>
+                            <option value="F#">F#</option>
+                            <option value="G">G</option>
+                            <option value="G#">G#</option>
+                            <option value="A">A</option>
+                            <option value="A#">A#</option>
+                            <option value="B">B</option>
+                        </select>
+                    </div>
+                </div>
+
+                <h3>Pattern Presets</h3>
+                <div class="controls-grid">
+                    <button id="orbitWaveButton" class="button">🌌 Orbital Wave</button>
+                    <button id="spiralWaveButton" class="button">🌀 Spiral Burst</button>
+                    <button id="pulseWaveButton" class="button">💓 Pulse Wave</button>
+                    <button id="clearWavesButton" class="button" style="background-color: #F44336;">Clear All Waves</button>
+                </div>
+
+                <div style="margin-top: 20px; padding: 15px; background: #2a2a2a; border-radius: 8px;">
+                    <h4 style="margin: 0 0 10px 0; color: #888;">How it works:</h4>
+                    <ul style="margin: 0; padding-left: 20px; color: #ccc; font-size: 14px;">
+                        <li>Click anywhere on the canvas to trigger a wave from that point</li>
+                        <li>Drag device icons to position them in virtual space</li>
+                        <li>When a wave reaches a device, it triggers the assigned chord tone</li>
+                        <li>Use different wave types and speeds for varied musical patterns</li>
+                    </ul>
+                </div>
             </div>
         </div>
 
@@ -4674,6 +3997,380 @@
             loadPresetButton.addEventListener('click', loadPreset);
             deletePresetButton.addEventListener('click', deletePreset);
 
+            // --- Spatial Wave System ---
+            let spatialWaves = [];
+            let devicePositions = new Map(); // clientId -> {x, y}
+            let animationId = null;
+            let isDragging = false;
+            let spatialDraggedClient = null;
+
+            const spatialCanvas = document.getElementById('spatialCanvas');
+            const spatialCtx = spatialCanvas.getContext('2d');
+            const waveSpeedSlider = document.getElementById('waveSpeed');
+            const waveSpeedValue = document.getElementById('waveSpeedValue');
+            const waveTypeSelect = document.getElementById('waveType');
+            const waveCountSlider = document.getElementById('waveCount');
+            const waveCountValue = document.getElementById('waveCountValue');
+            const waveChordModeSelect = document.getElementById('waveChordMode');
+
+            // Wave class
+            class SpatialWave {
+                constructor(x, y, type = 'circle', speed = 100, count = 1, chordMode = 'current') {
+                    this.startX = x;
+                    this.startY = y;
+                    this.radius = 0;
+                    this.type = type;
+                    this.speed = speed;
+                    this.count = count;
+                    this.chordMode = chordMode;
+                    this.hitDevices = new Set();
+                    this.createdTime = performance.now();
+                    this.angle = 0;
+                    this.spiralTightness = 0.3;
+                    this.alive = true;
+                }
+
+                update(deltaTime) {
+                    if (!this.alive) return;
+                    
+                    this.radius += this.speed * deltaTime / 1000;
+                    this.angle += 2 * deltaTime / 1000; // For spiral waves
+                    
+                    // Remove wave if it's too big
+                    if (this.radius > Math.max(spatialCanvas.width, spatialCanvas.height)) {
+                        this.alive = false;
+                    }
+                    
+                    this.checkCollisions();
+                }
+
+                checkCollisions() {
+                    for (let [clientId, pos] of devicePositions) {
+                        if (this.hitDevices.has(clientId)) continue;
+                        
+                        const distance = Math.sqrt(
+                            Math.pow(pos.x - this.startX, 2) + 
+                            Math.pow(pos.y - this.startY, 2)
+                        );
+                        
+                        if (Math.abs(distance - this.radius) < 20) { // Hit detection threshold
+                            this.triggerDevice(clientId);
+                            this.hitDevices.add(clientId);
+                        }
+                    }
+                }
+
+                triggerDevice(clientId) {
+                    // Get the note based on chord mode and device position
+                    let frequency;
+                    
+                    if (this.chordMode === 'current') {
+                        // Use current chord progression system
+                        const chordIndex = getChordIndexForClient(clientId);
+                        frequency = getCurrentChordFrequency(chordIndex);
+                    } else if (this.chordMode === 'fixed') {
+                        const fixedNote = document.getElementById('waveFixedNote').value;
+                        frequency = spatialNoteToFrequency(fixedNote, 4); // Default octave 4
+                    } else if (this.chordMode === 'progression') {
+                        // Cycle through progression
+                        const progressionIndex = Array.from(devicePositions.keys()).indexOf(clientId) % chordProgression.length;
+                        frequency = getChordFrequencyFromProgression(progressionIndex, 0); // Root note
+                    }
+
+                    // Trigger the note
+                    const waveformType = document.getElementById('globalWaveform')?.value || 'sine';
+                    sendMessage({
+                        type: 'triggerNote',
+                        clientId: clientId,
+                        sound: waveformType,
+                        frequency: frequency,
+                        duration: 1000 // 1 second duration
+                    });
+
+                    // Visual feedback
+                    this.createHitEffect(devicePositions.get(clientId));
+                }
+
+                createHitEffect(pos) {
+                    // Create a visual effect when a device is hit
+                    const effect = {
+                        x: pos.x,
+                        y: pos.y,
+                        radius: 0,
+                        maxRadius: 30,
+                        opacity: 1,
+                        createdTime: performance.now()
+                    };
+                    
+                    spatialHitEffects.push(effect);
+                }
+
+                draw(ctx) {
+                    if (!this.alive) return;
+                    
+                    ctx.strokeStyle = `rgba(100, 200, 255, ${Math.max(0.1, 1 - this.radius / 400)})`;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    
+                    if (this.type === 'circle') {
+                        ctx.arc(this.startX, this.startY, this.radius, 0, 2 * Math.PI);
+                    } else if (this.type === 'spiral') {
+                        this.drawSpiral(ctx);
+                    } else if (this.type === 'beam') {
+                        this.drawBeam(ctx);
+                    }
+                    
+                    ctx.stroke();
+                }
+
+                drawSpiral(ctx) {
+                    ctx.beginPath();
+                    const maxAngle = this.angle + Math.PI * 4;
+                    for (let a = this.angle; a < maxAngle; a += 0.1) {
+                        const r = this.radius * (a - this.angle) / (Math.PI * 4) * this.spiralTightness;
+                        const x = this.startX + r * Math.cos(a);
+                        const y = this.startY + r * Math.sin(a);
+                        if (a === this.angle) {
+                            ctx.moveTo(x, y);
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                }
+
+                drawBeam(ctx) {
+                    // Simple directional beam - could be enhanced with mouse direction
+                    const endX = this.startX + this.radius;
+                    const endY = this.startY;
+                    ctx.beginPath();
+                    ctx.moveTo(this.startX, this.startY);
+                    ctx.lineTo(endX, endY);
+                    ctx.lineWidth = 10;
+                }
+            }
+
+            let spatialHitEffects = [];
+            let lastFrameTime = 0;
+
+            // Initialize device positions in a circle
+            const initializeSpatialDevices = () => {
+                const centerX = spatialCanvas.width / 2;
+                const centerY = spatialCanvas.height / 2;
+                const radius = Math.min(centerX, centerY) * 0.7;
+                
+                clients.forEach((clientId, index) => {
+                    const angle = (index / clients.length) * 2 * Math.PI;
+                    const x = centerX + radius * Math.cos(angle);
+                    const y = centerY + radius * Math.sin(angle);
+                    devicePositions.set(clientId, { x, y });
+                });
+            };
+
+            // Animation loop
+            const animateSpatialWaves = (currentTime) => {
+                const deltaTime = currentTime - lastFrameTime;
+                lastFrameTime = currentTime;
+                
+                // Clear canvas
+                spatialCtx.fillStyle = 'rgba(20, 20, 20, 0.1)'; // Slight trail effect
+                spatialCtx.fillRect(0, 0, spatialCanvas.width, spatialCanvas.height);
+                
+                // Update and draw waves
+                spatialWaves = spatialWaves.filter(wave => {
+                    wave.update(deltaTime);
+                    wave.draw(spatialCtx);
+                    return wave.alive;
+                });
+                
+                // Update and draw hit effects
+                spatialHitEffects = spatialHitEffects.filter(effect => {
+                    const age = currentTime - effect.createdTime;
+                    const progress = age / 500; // 500ms duration
+                    
+                    if (progress >= 1) return false;
+                    
+                    effect.radius = effect.maxRadius * progress;
+                    effect.opacity = 1 - progress;
+                    
+                    spatialCtx.strokeStyle = `rgba(255, 255, 100, ${effect.opacity})`;
+                    spatialCtx.lineWidth = 3;
+                    spatialCtx.beginPath();
+                    spatialCtx.arc(effect.x, effect.y, effect.radius, 0, 2 * Math.PI);
+                    spatialCtx.stroke();
+                    
+                    return true;
+                });
+                
+                // Draw devices
+                drawSpatialDevices();
+                
+                animationId = requestAnimationFrame(animateSpatialWaves);
+            };
+
+            const drawSpatialDevices = () => {
+                devicePositions.forEach((pos, clientId) => {
+                    const isOnline = clients.includes(clientId);
+                    
+                    // Device circle
+                    spatialCtx.fillStyle = isOnline ? '#4CAF50' : '#666';
+                    spatialCtx.beginPath();
+                    spatialCtx.arc(pos.x, pos.y, 15, 0, 2 * Math.PI);
+                    spatialCtx.fill();
+                    
+                    // Device label
+                    spatialCtx.fillStyle = 'white';
+                    spatialCtx.font = '12px Arial';
+                    spatialCtx.textAlign = 'center';
+                    spatialCtx.fillText(clientId.slice(-3), pos.x, pos.y + 4);
+                });
+            };
+
+            // Event handlers
+            spatialCanvas.addEventListener('click', (e) => {
+                if (isDragging) return;
+                
+                const rect = spatialCanvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                const waveType = waveTypeSelect.value;
+                const speed = parseFloat(waveSpeedSlider.value);
+                const count = parseInt(waveCountSlider.value);
+                const chordMode = waveChordModeSelect.value;
+                
+                for (let i = 0; i < count; i++) {
+                    setTimeout(() => {
+                        spatialWaves.push(new SpatialWave(x, y, waveType, speed, count, chordMode));
+                    }, i * 200); // Stagger multiple waves
+                }
+            });
+
+            spatialCanvas.addEventListener('mousedown', (e) => {
+                const rect = spatialCanvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                // Check if clicking on a device
+                for (let [clientId, pos] of devicePositions) {
+                    const distance = Math.sqrt(Math.pow(x - pos.x, 2) + Math.pow(y - pos.y, 2));
+                    if (distance < 20) {
+                        isDragging = true;
+                        spatialDraggedClient = clientId;
+                        spatialCanvas.style.cursor = 'grabbing';
+                        break;
+                    }
+                }
+            });
+
+            spatialCanvas.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                
+                const rect = spatialCanvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                if (spatialDraggedClient && devicePositions.has(spatialDraggedClient)) {
+                    devicePositions.set(spatialDraggedClient, { x, y });
+                }
+            });
+
+            spatialCanvas.addEventListener('mouseup', () => {
+                isDragging = false;
+                spatialDraggedClient = null;
+                spatialCanvas.style.cursor = 'crosshair';
+            });
+
+            // Control updates
+            waveSpeedSlider.addEventListener('input', (e) => {
+                waveSpeedValue.textContent = `${e.target.value}px/s`;
+            });
+
+            waveCountSlider.addEventListener('input', (e) => {
+                waveCountValue.textContent = e.target.value;
+            });
+
+            // Pattern presets
+            document.getElementById('orbitWaveButton').addEventListener('click', () => {
+                // Create orbiting waves around the center
+                const centerX = spatialCanvas.width / 2;
+                const centerY = spatialCanvas.height / 2;
+                const radius = 100;
+                
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i / 8) * 2 * Math.PI;
+                    const x = centerX + radius * Math.cos(angle);
+                    const y = centerY + radius * Math.sin(angle);
+                    
+                    setTimeout(() => {
+                        spatialWaves.push(new SpatialWave(x, y, 'circle', 150, 1, 'current'));
+                    }, i * 100);
+                }
+            });
+
+            document.getElementById('spiralWaveButton').addEventListener('click', () => {
+                const centerX = spatialCanvas.width / 2;
+                const centerY = spatialCanvas.height / 2;
+                spatialWaves.push(new SpatialWave(centerX, centerY, 'spiral', 200, 1, 'progression'));
+            });
+
+            document.getElementById('pulseWaveButton').addEventListener('click', () => {
+                const centerX = spatialCanvas.width / 2;
+                const centerY = spatialCanvas.height / 2;
+                
+                for (let i = 0; i < 3; i++) {
+                    setTimeout(() => {
+                        spatialWaves.push(new SpatialWave(centerX, centerY, 'circle', 100, 1, 'current'));
+                    }, i * 500);
+                }
+            });
+
+            document.getElementById('clearWavesButton').addEventListener('click', () => {
+                spatialWaves = [];
+                spatialHitEffects = [];
+            });
+
+            // Helper functions for chord integration
+            const getChordIndexForClient = (clientId) => {
+                const clientIndex = clients.indexOf(clientId);
+                return clientIndex % 4; // Assuming 4-note chords
+            };
+
+            const getCurrentChordFrequency = (chordIndex) => {
+                // This should integrate with your existing chord system
+                // For now, return a basic chord tone
+                const baseFreq = 440; // A4
+                const chordTones = [1, 1.25, 1.5, 2]; // Major chord ratios
+                return baseFreq * chordTones[chordIndex % chordTones.length];
+            };
+
+            const spatialNoteToFrequency = (note, octave) => {
+                const noteMap = {
+                    'C': -9, 'C#': -8, 'D': -7, 'D#': -6, 'E': -5, 'F': -4,
+                    'F#': -3, 'G': -2, 'G#': -1, 'A': 0, 'A#': 1, 'B': 2
+                };
+                const semitones = noteMap[note] + (octave - 4) * 12;
+                return 440 * Math.pow(2, semitones / 12);
+            };
+
+            const getChordFrequencyFromProgression = (progressionIndex, chordToneIndex) => {
+                // This should integrate with your chord progression system
+                const baseFreq = 440;
+                const progressionRoots = [1, 1.33, 1.67, 1.5]; // I-V-vi-IV roots
+                const chordTones = [1, 1.25, 1.5, 2];
+                
+                const root = progressionRoots[progressionIndex % progressionRoots.length];
+                const tone = chordTones[chordToneIndex % chordTones.length];
+                
+                return baseFreq * root * tone;
+            };
+
+            // Initialize spatial system when clients change
+            const originalUpdateClientsDisplay = updateClientsDisplay;
+            updateClientsDisplay = () => {
+                originalUpdateClientsDisplay();
+                initializeSpatialDevices();
+            };
+
             // --- Initialization ---
             const init = () => {
                 detectServerInfo();
@@ -4685,6 +4382,10 @@
                 drawPanningCanvas();
                 populatePresetList();
                 initWebMidi();
+                
+                // Initialize spatial wave system
+                initializeSpatialDevices();
+                animateSpatialWaves(performance.now());
                 
                 // Initialize chord progression visualization
                 updateProgressionVisualization();

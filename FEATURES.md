@@ -1,4 +1,4 @@
-# Mobile Orchestra - Feature Roadmap
+# Echo Mesh - Feature Roadmap
 
 ## 🎵 Performance & Usability Improvements
 
