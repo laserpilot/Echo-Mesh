@@ -1,0 +1,49 @@
+/* Client-specific styles */
+
+body {
+    text-align: center;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+h1 {
+    margin: 0 0 10px 0;
+    font-size: 24px;
+}
+
+.client-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 10px 0;
+    gap: 20px;
+}
+
+.client-id {
+    font-size: 24px;
+    font-weight: bold;
+    color: #4CAF50;
+    font-family: 'Courier New', monospace;
+}
+
+.status {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+}
+
+.test-button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 20px;
+}

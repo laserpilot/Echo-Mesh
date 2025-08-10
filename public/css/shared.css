@@ -1,0 +1,191 @@
+/* Shared styles used by both controller and client */
+
+/* Base styles */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #121212;
+    color: white;
+    box-sizing: border-box;
+}
+
+/* Common button styles */
+.button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.button:hover {
+    background-color: #45a049;
+}
+
+.button:disabled {
+    background-color: #666;
+    cursor: not-allowed;
+}
+
+.button.secondary {
+    background-color: #2196F3;
+}
+
+.button.danger {
+    background-color: #F44336;
+}
+
+/* Sound indicator styles */
+.sound-indicator {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 12px;
+    background-color: #333;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    flex-shrink: 0;
+}
+
+.sound-indicator.sine {
+    background-color: #2196F3;
+    box-shadow: 0 0 40px rgba(33, 150, 243, 0.5);
+}
+
+.sound-indicator.square {
+    background-color: #9C27B0;
+    box-shadow: 0 0 40px rgba(156, 39, 176, 0.5);
+}
+
+.sound-indicator.sawtooth {
+    background-color: #FF9800;
+    box-shadow: 0 0 40px rgba(255, 152, 0, 0.5);
+}
+
+.sound-indicator.triangle {
+    background-color: #F44336;
+    box-shadow: 0 0 40px rgba(244, 67, 54, 0.5);
+}
+
+/* Status and logging */
+.status {
+    margin: 10px 0;
+    padding: 10px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.log {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    text-align: left;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.5);
+    max-width: 300px;
+    max-height: 100px;
+    overflow-y: auto;
+    padding: 5px;
+}
+
+.log-message {
+    margin: 2px 0;
+}
+
+/* Piano keyboard styles */
+.piano-keyboard {
+    display: flex;
+    justify-content: center;
+    margin: 20px auto;
+    max-width: 100%;
+    overflow-x: auto;
+    padding: 10px;
+}
+
+.piano-key {
+    border: none;
+    cursor: pointer;
+    transition: all 0.1s ease;
+    font-size: 12px;
+    font-weight: bold;
+    user-select: none;
+    touch-action: manipulation;
+}
+
+.piano-key.white {
+    background-color: #f0f0f0;
+    color: #333;
+    width: 40px;
+    height: 120px;
+    border: 1px solid #ccc;
+    margin: 0 1px;
+}
+
+.piano-key.black {
+    background-color: #333;
+    color: white;
+    width: 28px;
+    height: 80px;
+    margin: 0 -14px;
+    z-index: 2;
+    position: relative;
+}
+
+.piano-key:active,
+.piano-key.pressed {
+    transform: scale(0.95);
+}
+
+.piano-key.white:active,
+.piano-key.white.pressed {
+    background-color: #4CAF50;
+}
+
+.piano-key.black:active,
+.piano-key.black.pressed {
+    background-color: #81C784;
+}
+
+.piano-key.playing {
+    background-color: #2196F3 !important;
+    box-shadow: 0 0 10px #2196F3;
+}
+
+.piano-key.disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.piano-key.disabled:active {
+    transform: none;
+}
+
+/* Utility classes */
+.hidden {
+    display: none;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.mb-10 {
+    margin-bottom: 10px;
+}
+
+.mt-10 {
+    margin-top: 10px;
+}
+
+.p-10 {
+    padding: 10px;
+}
