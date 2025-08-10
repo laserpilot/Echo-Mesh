@@ -857,7 +857,15 @@
                     </div>
                 </div>
 
-                <h3>Pattern Presets</h3>
+                <h3>Device Auto-Placement</h3>
+                <div class="controls-grid">
+                    <button id="arrangeCircleButton" class="button">⭕ Circle Formation</button>
+                    <button id="arrangeLineButton" class="button">➖ Line Formation</button>
+                    <button id="arrangeGridButton" class="button">⬜ Grid Formation</button>
+                    <button id="arrangeRandomButton" class="button">🎲 Random Placement</button>
+                </div>
+
+                <h3>Wave Pattern Presets</h3>
                 <div class="controls-grid">
                     <button id="orbitWaveButton" class="button">🌌 Orbital Wave</button>
                     <button id="spiralWaveButton" class="button">🌀 Spiral Burst</button>
@@ -4512,16 +4520,34 @@
 
             // Initialize device positions in a circle
             const initializeSpatialDevices = () => {
+                if (clients.length === 0) {
+                    devicePositions.clear();
+                    redrawSpatialCanvas();
+                    return;
+                }
+
                 const centerX = spatialCanvas.width / 2;
                 const centerY = spatialCanvas.height / 2;
-                const radius = Math.min(centerX, centerY) * 0.7;
+                const radius = Math.min(centerX, centerY) * 0.6;
                 
                 clients.forEach((clientId, index) => {
-                    const angle = (index / clients.length) * 2 * Math.PI;
-                    const x = centerX + radius * Math.cos(angle);
-                    const y = centerY + radius * Math.sin(angle);
-                    devicePositions.set(clientId, { x, y });
+                    // Only set position if device doesn't already have one
+                    if (!devicePositions.has(clientId)) {
+                        const angle = (index / clients.length) * 2 * Math.PI;
+                        const x = centerX + radius * Math.cos(angle);
+                        const y = centerY + radius * Math.sin(angle);
+                        devicePositions.set(clientId, { x, y });
+                    }
                 });
+
+                // Remove positions for clients that are no longer connected
+                for (let clientId of devicePositions.keys()) {
+                    if (!clients.includes(clientId)) {
+                        devicePositions.delete(clientId);
+                    }
+                }
+                
+                redrawSpatialCanvas();
             };
 
             // Animation loop
@@ -4529,8 +4555,8 @@
                 const deltaTime = currentTime - lastFrameTime;
                 lastFrameTime = currentTime;
                 
-                // Clear canvas
-                spatialCtx.fillStyle = 'rgba(20, 20, 20, 0.1)'; // Slight trail effect
+                // Clear canvas with solid background
+                spatialCtx.fillStyle = '#1a1a1a'; // Dark background
                 spatialCtx.fillRect(0, 0, spatialCanvas.width, spatialCanvas.height);
                 
                 // Update and draw waves
@@ -4569,6 +4595,13 @@
                 devicePositions.forEach((pos, clientId) => {
                     const isOnline = clients.includes(clientId);
                     
+                    // Device outer ring (for better visibility)
+                    spatialCtx.strokeStyle = isOnline ? '#4CAF50' : '#999';
+                    spatialCtx.lineWidth = 3;
+                    spatialCtx.beginPath();
+                    spatialCtx.arc(pos.x, pos.y, 18, 0, 2 * Math.PI);
+                    spatialCtx.stroke();
+                    
                     // Device circle
                     spatialCtx.fillStyle = isOnline ? '#4CAF50' : '#666';
                     spatialCtx.beginPath();
@@ -4577,10 +4610,72 @@
                     
                     // Device label
                     spatialCtx.fillStyle = 'white';
-                    spatialCtx.font = '12px Arial';
+                    spatialCtx.font = 'bold 11px Arial';
                     spatialCtx.textAlign = 'center';
-                    spatialCtx.fillText(clientId.slice(-3), pos.x, pos.y + 4);
+                    spatialCtx.textBaseline = 'middle';
+                    spatialCtx.fillText(clientId.slice(-3), pos.x, pos.y);
                 });
+            };
+
+            // Auto-placement functions
+            const arrangeDevicesInCircle = () => {
+                const centerX = spatialCanvas.width / 2;
+                const centerY = spatialCanvas.height / 2;
+                const radius = Math.min(centerX, centerY) * 0.6;
+                
+                clients.forEach((clientId, index) => {
+                    const angle = (index / clients.length) * 2 * Math.PI;
+                    const x = centerX + radius * Math.cos(angle);
+                    const y = centerY + radius * Math.sin(angle);
+                    devicePositions.set(clientId, { x, y });
+                });
+            };
+
+            const arrangeDevicesInLine = () => {
+                const startX = spatialCanvas.width * 0.1;
+                const endX = spatialCanvas.width * 0.9;
+                const centerY = spatialCanvas.height / 2;
+                const spacing = clients.length > 1 ? (endX - startX) / (clients.length - 1) : 0;
+                
+                clients.forEach((clientId, index) => {
+                    const x = startX + (index * spacing);
+                    devicePositions.set(clientId, { x, y: centerY });
+                });
+            };
+
+            const arrangeDevicesInGrid = () => {
+                const cols = Math.ceil(Math.sqrt(clients.length));
+                const rows = Math.ceil(clients.length / cols);
+                const marginX = spatialCanvas.width * 0.1;
+                const marginY = spatialCanvas.height * 0.1;
+                const availableWidth = spatialCanvas.width - (marginX * 2);
+                const availableHeight = spatialCanvas.height - (marginY * 2);
+                const cellWidth = availableWidth / cols;
+                const cellHeight = availableHeight / rows;
+                
+                clients.forEach((clientId, index) => {
+                    const row = Math.floor(index / cols);
+                    const col = index % cols;
+                    const x = marginX + (col * cellWidth) + (cellWidth / 2);
+                    const y = marginY + (row * cellHeight) + (cellHeight / 2);
+                    devicePositions.set(clientId, { x, y });
+                });
+            };
+
+            const arrangeDevicesRandomly = () => {
+                const margin = 30;
+                clients.forEach((clientId) => {
+                    const x = margin + Math.random() * (spatialCanvas.width - margin * 2);
+                    const y = margin + Math.random() * (spatialCanvas.height - margin * 2);
+                    devicePositions.set(clientId, { x, y });
+                });
+            };
+
+            // Force a redraw of the spatial canvas
+            const redrawSpatialCanvas = () => {
+                spatialCtx.fillStyle = '#1a1a1a';
+                spatialCtx.fillRect(0, 0, spatialCanvas.width, spatialCanvas.height);
+                drawSpatialDevices();
             };
 
             // Event handlers
@@ -4685,6 +4780,27 @@
             document.getElementById('clearWavesButton').addEventListener('click', () => {
                 spatialWaves = [];
                 spatialHitEffects = [];
+            });
+
+            // Auto-placement button event listeners
+            document.getElementById('arrangeCircleButton').addEventListener('click', () => {
+                arrangeDevicesInCircle();
+                redrawSpatialCanvas();
+            });
+
+            document.getElementById('arrangeLineButton').addEventListener('click', () => {
+                arrangeDevicesInLine();
+                redrawSpatialCanvas();
+            });
+
+            document.getElementById('arrangeGridButton').addEventListener('click', () => {
+                arrangeDevicesInGrid();
+                redrawSpatialCanvas();
+            });
+
+            document.getElementById('arrangeRandomButton').addEventListener('click', () => {
+                arrangeDevicesRandomly();
+                redrawSpatialCanvas();
             });
 
             // Helper functions for chord integration
