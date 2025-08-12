@@ -1,0 +1,1199 @@
+<!-- public/client.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Client</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #121212;
+            color: white;
+            text-align: center;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+        }
+
+        .client-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 10px 0;
+            gap: 20px;
+        }
+
+        .client-id {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
+            font-family: 'Courier New', monospace;
+        }
+
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            font-size: 14px;
+        }
+
+        .test-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .sound-indicator {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            background-color: #333;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            flex-shrink: 0;
+        }
+
+        .sound-indicator.sine {
+            background-color: #2196F3;
+            box-shadow: 0 0 40px rgba(33, 150, 243, 0.5);
+        }
+
+        .sound-indicator.square {
+            background-color: #9C27B0;
+            box-shadow: 0 0 40px rgba(156, 39, 176, 0.5);
+        }
+
+        .sound-indicator.sawtooth {
+            background-color: #FF9800;
+            box-shadow: 0 0 40px rgba(255, 152, 0, 0.5);
+        }
+
+        .sound-indicator.triangle {
+            background-color: #F44336;
+            box-shadow: 0 0 40px rgba(244, 67, 54, 0.5);
+        }
+
+        .log {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            text-align: left;
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.5);
+            max-width: 300px;
+            max-height: 100px;
+            overflow-y: auto;
+            padding: 5px;
+        }
+
+        .log-message {
+            margin: 2px 0;
+        }
+
+        .piano-keyboard {
+            display: flex;
+            justify-content: center;
+            margin: 20px auto;
+            max-width: 100%;
+            overflow-x: auto;
+            padding: 10px;
+        }
+
+        .piano-key {
+            border: none;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            font-size: 12px;
+            font-weight: bold;
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        .piano-key.white {
+            background-color: #f0f0f0;
+            color: #333;
+            width: 40px;
+            height: 120px;
+            border: 1px solid #ccc;
+            margin: 0 1px;
+        }
+
+        .piano-key.black {
+            background-color: #333;
+            color: white;
+            width: 28px;
+            height: 80px;
+            margin: 0 -14px;
+            z-index: 2;
+            position: relative;
+        }
+
+        .piano-key:active,
+        .piano-key.pressed {
+            transform: scale(0.95);
+        }
+
+        .piano-key.white:active,
+        .piano-key.white.pressed {
+            background-color: #4CAF50;
+        }
+
+        .piano-key.black:active,
+        .piano-key.black.pressed {
+            background-color: #81C784;
+        }
+
+        .piano-key.playing {
+            background-color: #2196F3 !important;
+            box-shadow: 0 0 10px #2196F3;
+        }
+
+        .piano-key.disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .piano-key.disabled:active {
+            transform: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="log" id="log"></div>
+
+    <h1>Audio Client</h1>
+    <div class="client-header">
+        <div class="sound-indicator" id="soundIndicator">READY</div>
+        <div class="client-id" id="clientId">--</div>
+    </div>
+
+    <div class="piano-keyboard" id="pianoKeyboard">
+        <!-- Piano keys will be generated by JavaScript -->
+    </div>
+    <button class="test-button" id="resyncButton" style="background-color: #2196F3; margin-top: 10px;">Re-sync Timing</button>
+    <button class="test-button" id="stopMetronomeButton" style="background-color: #F44336; margin-top: 10px; display: none;">Stop Click Track</button>
+
+    <div class="status" id="status">Initializing...</div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('Client page loaded');
+
+            // Elements
+            const clientIdElement = document.getElementById('clientId');
+            const statusElement = document.getElementById('status');
+            const soundIndicator = document.getElementById('soundIndicator');
+            const pianoKeyboard = document.getElementById('pianoKeyboard');
+            const resyncButton = document.getElementById('resyncButton');
+            const stopMetronomeButton = document.getElementById('stopMetronomeButton');
+            const logElement = document.getElementById('log');
+
+            // Variables
+            let clientId = null;
+            let ws = null;
+            let audioContext = null;
+            let serverTimeOffset = 0;
+            let isSynced = false;
+            let metronomeState = {
+                isRunning: false,
+                bpm: 120,
+                volume: 0.3
+            };
+            let currentKey = 'C'; // Default key - C Major
+            let allowedNotes = ['C', 'D', 'E', 'F', 'G', 'A', 'B']; // C major scale (white keys only)
+            let playingNotes = new Set(); // Track currently playing notes
+            let masterVolume = 1.0; // Master volume control from server
+
+            // Add a log message (for debugging)
+            const logMessage = (message) => {
+                const entry = document.createElement('div');
+                entry.className = 'log-message';
+                entry.textContent = message;
+                logElement.appendChild(entry);
+                logElement.scrollTop = logElement.scrollHeight;
+                console.log(message);
+            };
+
+            // Piano keyboard functions
+            const noteFrequencies = {
+                'C': 261.63, 'C#': 277.18, 'D': 293.66, 'D#': 311.13,
+                'E': 329.63, 'F': 349.23, 'F#': 369.99, 'G': 392.00,
+                'G#': 415.30, 'A': 440.00, 'A#': 466.16, 'B': 493.88
+            };
+
+            const createPianoKeyboard = () => {
+                pianoKeyboard.innerHTML = '';
+                const keys = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+                
+                keys.forEach(note => {
+                    const key = document.createElement('button');
+                    key.className = `piano-key ${note.includes('#') ? 'black' : 'white'}`;
+                    key.textContent = note;
+                    key.dataset.note = note;
+                    
+                    // Check if note is allowed in current key (C Major: only white keys)
+                    const isAllowed = !note.includes('#'); // C Major has no sharps/flats
+                    if (!isAllowed) {
+                        key.classList.add('disabled');
+                    }
+                    
+                    // Add event listeners
+                    key.addEventListener('mousedown', () => playKeyNote(note, key));
+                    key.addEventListener('touchstart', (e) => {
+                        e.preventDefault();
+                        playKeyNote(note, key);
+                    });
+                    
+                    key.addEventListener('mouseup', () => stopKeyNote(note, key));
+                    key.addEventListener('mouseleave', () => stopKeyNote(note, key));
+                    key.addEventListener('touchend', (e) => {
+                        e.preventDefault();
+                        stopKeyNote(note, key);
+                    });
+                    
+                    pianoKeyboard.appendChild(key);
+                });
+            };
+
+            const playKeyNote = (note, keyElement) => {
+                if (keyElement.classList.contains('disabled')) return;
+                
+                keyElement.classList.add('pressed');
+                playingNotes.add(note);
+                
+                const frequency = noteFrequencies[note];
+                playSound('sine', frequency, 0, { attack: 0.01, decay: 0.1, sustain: 0.8, release: 0.3 });
+                
+                // Notify server of activity
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({
+                        type: 'clientPlayingNote',
+                        note: note,
+                        frequency: frequency
+                    }));
+                }
+                
+                logMessage(`Playing note: ${note} (${frequency}Hz)`);
+            };
+
+            const stopKeyNote = (note, keyElement) => {
+                keyElement.classList.remove('pressed');
+                playingNotes.delete(note);
+            };
+
+            const highlightPlayingNote = (note) => {
+                const keyElement = pianoKeyboard.querySelector(`[data-note="${note}"]`);
+                if (keyElement) {
+                    keyElement.classList.add('playing');
+                    setTimeout(() => {
+                        keyElement.classList.remove('playing');
+                    }, 500);
+                }
+            };
+
+            const updateKeyboardForScale = (key = 'C') => {
+                currentKey = key;
+                // For now, we're keeping it simple with C Major (white keys only)
+                allowedNotes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+                
+                // Update keyboard visual state - disable black keys for C Major
+                const keys = pianoKeyboard.querySelectorAll('.piano-key');
+                keys.forEach(keyEl => {
+                    const note = keyEl.dataset.note;
+                    if (note.includes('#')) {
+                        keyEl.classList.add('disabled');
+                    } else {
+                        keyEl.classList.remove('disabled');
+                    }
+                });
+                
+                logMessage(`Keyboard set to C Major (white keys only)`);
+            };
+
+            const findNoteFromFrequency = (frequency) => {
+                let closestNote = null;
+                let smallestDiff = Infinity;
+                
+                Object.entries(noteFrequencies).forEach(([note, freq]) => {
+                    const diff = Math.abs(frequency - freq);
+                    if (diff < smallestDiff) {
+                        smallestDiff = diff;
+                        closestNote = note;
+                    }
+                });
+                
+                // Only return if the frequency is close enough (within 10Hz)
+                return smallestDiff < 10 ? closestNote : null;
+            };
+
+            // Create reverb impulse response buffer
+            const createReverbBuffer = (audioContext, reverbTime, decay) => {
+                const sampleRate = audioContext.sampleRate;
+                const length = sampleRate * reverbTime;
+                const impulse = audioContext.createBuffer(2, length, sampleRate);
+                
+                for (let channel = 0; channel < 2; channel++) {
+                    const channelData = impulse.getChannelData(channel);
+                    for (let i = 0; i < length; i++) {
+                        const n = length - i;
+                        channelData[i] = (Math.random() * 2 - 1) * Math.pow(n / length, decay);
+                    }
+                }
+                
+                return impulse;
+            };
+
+            // Initialize audio context
+            const initAudio = () => {
+                try {
+                    // Create audio context
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    logMessage('Audio context initialized');
+                    return true;
+                } catch (error) {
+                    logMessage(`Audio error: ${error.message}`);
+                    statusElement.textContent = `Audio error: ${error.message}`;
+                    return false;
+                }
+            };
+
+            const playSound = async (type = 'sine', customFrequency = null, playTime = 0, adsr = { attack: 0.01, decay: 0.1, sustain: 0.5, release: 1.0 }, lfo = { type: 'sine', rate: 5, depth: 0, target: 'vibrato' }, pan = 0) => {
+                // --- AudioContext Initialization and Resuming ---
+                if (!audioContext) {
+                    try {
+                        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        logMessage('Audio context initialized.');
+                    } catch (e) {
+                        logMessage(`Error initializing AudioContext: ${e.message}`);
+                        statusElement.textContent = 'Error: Could not initialize audio.';
+                        return false;
+                    }
+                }
+
+                // Ensure audio context is resumed for mobile browsers
+                if (audioContext.state === 'suspended') {
+                    try {
+                        await audioContext.resume();
+                        logMessage('Audio context resumed.');
+                    } catch (e) {
+                        logMessage(`Error resuming audio context: ${e.message}`);
+                        return false;
+                    }
+                }
+                // --------------------------------------------------
+
+                // If playTime is 0, it means "play now"
+                const scheduledTime = playTime === 0 ? audioContext.currentTime : playTime;
+
+                try {
+                    let baseFrequency = 440; // A4
+                    if (customFrequency !== null) {
+                        baseFrequency = parseFloat(customFrequency);
+                    } else if (clientId) {
+                        // Calculate frequency from client UUID hash for consistent pitch assignment
+                        const pentatonicSteps = [0, 2, 4, 7, 9];
+                        const clientHash = clientId.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+                        const step = pentatonicSteps[clientHash % pentatonicSteps.length];
+                        baseFrequency = 220 * Math.pow(2, step / 12);
+                    }
+
+                    let oscillator;
+                    let isNoise = false;
+
+                    // Create different types of sound sources
+                    if (type === 'noise' || type === 'whitenoise') {
+                        // Create white noise
+                        const bufferSize = audioContext.sampleRate * 2;
+                        const noiseBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+                        const output = noiseBuffer.getChannelData(0);
+                        for (let i = 0; i < bufferSize; i++) {
+                            output[i] = Math.random() * 2 - 1;
+                        }
+                        
+                        oscillator = audioContext.createBufferSource();
+                        oscillator.buffer = noiseBuffer;
+                        oscillator.loop = true;
+                        isNoise = true;
+                        
+                        // Add filter for noise to simulate frequency
+                        const filter = audioContext.createBiquadFilter();
+                        filter.type = 'bandpass';
+                        filter.frequency.setValueAtTime(baseFrequency, scheduledTime);
+                        filter.Q.setValueAtTime(10, scheduledTime);
+                        oscillator.connect(filter);
+                        oscillator = filter; // Use filter as the main node
+                    } else if (type === 'pinknoise') {
+                        // Create pink noise (1/f noise)
+                        const bufferSize = audioContext.sampleRate * 2;
+                        const noiseBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+                        const output = noiseBuffer.getChannelData(0);
+                        
+                        // Pink noise generation using simple filtering
+                        let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+                        for (let i = 0; i < bufferSize; i++) {
+                            const white = Math.random() * 2 - 1;
+                            b0 = 0.99886 * b0 + white * 0.0555179;
+                            b1 = 0.99332 * b1 + white * 0.0750759;
+                            b2 = 0.96900 * b2 + white * 0.1538520;
+                            b3 = 0.86650 * b3 + white * 0.3104856;
+                            b4 = 0.55000 * b4 + white * 0.5329522;
+                            b5 = -0.7616 * b5 - white * 0.0168980;
+                            output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+                            output[i] *= 0.11;
+                            b6 = white * 0.115926;
+                        }
+                        
+                        oscillator = audioContext.createBufferSource();
+                        oscillator.buffer = noiseBuffer;
+                        oscillator.loop = true;
+                        isNoise = true;
+                    } else if (type === 'organ') {
+                        // Create organ-like sound with multiple harmonics
+                        const fundamental = audioContext.createOscillator();
+                        const harmonic2 = audioContext.createOscillator();
+                        const harmonic3 = audioContext.createOscillator();
+                        const harmonic4 = audioContext.createOscillator();
+                        
+                        fundamental.type = 'sine';
+                        harmonic2.type = 'sine';
+                        harmonic3.type = 'sine';
+                        harmonic4.type = 'sine';
+                        
+                        fundamental.frequency.setValueAtTime(baseFrequency, scheduledTime);
+                        harmonic2.frequency.setValueAtTime(baseFrequency * 2, scheduledTime);
+                        harmonic3.frequency.setValueAtTime(baseFrequency * 3, scheduledTime);
+                        harmonic4.frequency.setValueAtTime(baseFrequency * 4, scheduledTime);
+                        
+                        const organMixer = audioContext.createGain();
+                        const h1Gain = audioContext.createGain();
+                        const h2Gain = audioContext.createGain();
+                        const h3Gain = audioContext.createGain();
+                        const h4Gain = audioContext.createGain();
+                        
+                        h1Gain.gain.setValueAtTime(0.8, scheduledTime);
+                        h2Gain.gain.setValueAtTime(0.3, scheduledTime);
+                        h3Gain.gain.setValueAtTime(0.15, scheduledTime);
+                        h4Gain.gain.setValueAtTime(0.05, scheduledTime);
+                        
+                        fundamental.connect(h1Gain);
+                        harmonic2.connect(h2Gain);
+                        harmonic3.connect(h3Gain);
+                        harmonic4.connect(h4Gain);
+                        
+                        h1Gain.connect(organMixer);
+                        h2Gain.connect(organMixer);
+                        h3Gain.connect(organMixer);
+                        h4Gain.connect(organMixer);
+                        
+                        // Start all oscillators
+                        fundamental.start(scheduledTime);
+                        harmonic2.start(scheduledTime);
+                        harmonic3.start(scheduledTime);
+                        harmonic4.start(scheduledTime);
+                        
+                        // Store oscillators for later stopping
+                        oscillator._organOscillators = [fundamental, harmonic2, harmonic3, harmonic4];
+                        
+                        oscillator = organMixer;
+                    } else if (type === 'filteredsawtooth') {
+                        // Filtered sawtooth for smoother sound
+                        oscillator = audioContext.createOscillator();
+                        oscillator.type = 'sawtooth';
+                        oscillator.frequency.setValueAtTime(baseFrequency, scheduledTime);
+                        
+                        const filter = audioContext.createBiquadFilter();
+                        filter.type = 'lowpass';
+                        filter.frequency.setValueAtTime(baseFrequency * 2, scheduledTime);
+                        filter.Q.setValueAtTime(5, scheduledTime);
+                        
+                        oscillator.connect(filter);
+                        oscillator = filter;
+                    } else if (type === 'rain') {
+                        // Rain sound effect
+                        const bufferSize = audioContext.sampleRate * 4;
+                        const rainBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+                        const output = rainBuffer.getChannelData(0);
+                        
+                        for (let i = 0; i < bufferSize; i++) {
+                            // Create filtered noise for rain effect
+                            const white = Math.random() * 2 - 1;
+                            const filtered = white * Math.exp(-i / bufferSize * 3);
+                            output[i] = filtered * 0.3;
+                        }
+                        
+                        oscillator = audioContext.createBufferSource();
+                        oscillator.buffer = rainBuffer;
+                        oscillator.loop = true;
+                        isNoise = true;
+                    } else if (type === 'wind') {
+                        // Wind sound effect
+                        const bufferSize = audioContext.sampleRate * 6;
+                        const windBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+                        const output = windBuffer.getChannelData(0);
+                        
+                        for (let i = 0; i < bufferSize; i++) {
+                            const t = i / audioContext.sampleRate;
+                            const lowFreq = Math.sin(t * Math.PI * 0.5) * 0.3;
+                            const noise = (Math.random() * 2 - 1) * 0.2;
+                            output[i] = lowFreq + noise;
+                        }
+                        
+                        oscillator = audioContext.createBufferSource();
+                        oscillator.buffer = windBuffer;
+                        oscillator.loop = true;
+                        isNoise = true;
+                    } else if (type === 'kick') {
+                        // Synthesized kick drum
+                        const kickOsc = audioContext.createOscillator();
+                        kickOsc.type = 'sine';
+                        kickOsc.frequency.setValueAtTime(60, scheduledTime);
+                        kickOsc.frequency.exponentialRampToValueAtTime(0.01, scheduledTime + 0.5);
+                        
+                        const kickGain = audioContext.createGain();
+                        kickGain.gain.setValueAtTime(1, scheduledTime);
+                        kickGain.gain.exponentialRampToValueAtTime(0.01, scheduledTime + 0.5);
+                        
+                        kickOsc.connect(kickGain);
+                        kickOsc.start(scheduledTime);
+                        kickOsc.stop(scheduledTime + 0.5);
+                        
+                        oscillator = kickGain;
+                    } else if (type === 'snare') {
+                        // Synthesized snare drum
+                        const snareOsc = audioContext.createOscillator();
+                        snareOsc.type = 'square';
+                        snareOsc.frequency.setValueAtTime(200, scheduledTime);
+                        
+                        // Add noise for snare character
+                        const noiseBufferSize = audioContext.sampleRate * 0.2;
+                        const noiseBuffer = audioContext.createBuffer(1, noiseBufferSize, audioContext.sampleRate);
+                        const noiseOutput = noiseBuffer.getChannelData(0);
+                        
+                        for (let i = 0; i < noiseBufferSize; i++) {
+                            noiseOutput[i] = Math.random() * 2 - 1;
+                        }
+                        
+                        const noiseSource = audioContext.createBufferSource();
+                        noiseSource.buffer = noiseBuffer;
+                        
+                        const snareFilter = audioContext.createBiquadFilter();
+                        snareFilter.type = 'highpass';
+                        snareFilter.frequency.setValueAtTime(1000, scheduledTime);
+                        
+                        const snareMixer = audioContext.createGain();
+                        const toneGain = audioContext.createGain();
+                        const noiseGain = audioContext.createGain();
+                        
+                        toneGain.gain.setValueAtTime(0.5, scheduledTime);
+                        noiseGain.gain.setValueAtTime(0.8, scheduledTime);
+                        
+                        snareOsc.connect(toneGain);
+                        noiseSource.connect(snareFilter);
+                        snareFilter.connect(noiseGain);
+                        
+                        toneGain.connect(snareMixer);
+                        noiseGain.connect(snareMixer);
+                        
+                        snareOsc.start(scheduledTime);
+                        noiseSource.start(scheduledTime);
+                        snareOsc.stop(scheduledTime + 0.2);
+                        noiseSource.stop(scheduledTime + 0.2);
+                        
+                        oscillator = snareMixer;
+                    } else if (type === 'hihat') {
+                        // Synthesized hi-hat
+                        const hihatBufferSize = audioContext.sampleRate * 0.1;
+                        const hihatBuffer = audioContext.createBuffer(1, hihatBufferSize, audioContext.sampleRate);
+                        const hihatOutput = hihatBuffer.getChannelData(0);
+                        
+                        for (let i = 0; i < hihatBufferSize; i++) {
+                            hihatOutput[i] = (Math.random() * 2 - 1) * Math.exp(-i / hihatBufferSize * 5);
+                        }
+                        
+                        const hihatSource = audioContext.createBufferSource();
+                        hihatSource.buffer = hihatBuffer;
+                        
+                        const hihatFilter = audioContext.createBiquadFilter();
+                        hihatFilter.type = 'highpass';
+                        hihatFilter.frequency.setValueAtTime(7000, scheduledTime);
+                        
+                        hihatSource.connect(hihatFilter);
+                        hihatSource.start(scheduledTime);
+                        
+                        oscillator = hihatFilter;
+                    } else {
+                        // Standard oscillator types
+                        oscillator = audioContext.createOscillator();
+                        oscillator.type = type;
+                        oscillator.frequency.setValueAtTime(baseFrequency, scheduledTime);
+                    }
+
+                    // Create gain node for ADSR envelope
+                    const gainNode = audioContext.createGain();
+                    gainNode.gain.setValueAtTime(0, scheduledTime);
+                    gainNode.gain.linearRampToValueAtTime(1.0, scheduledTime + adsr.attack);
+                    gainNode.gain.linearRampToValueAtTime(adsr.sustain, scheduledTime + adsr.attack + adsr.decay);
+
+                    // Create compressor/limiter for safe volume levels
+                    const compressor = audioContext.createDynamicsCompressor();
+                    compressor.threshold.setValueAtTime(-24, scheduledTime); // Start compression at -24dB
+                    compressor.knee.setValueAtTime(30, scheduledTime); // Soft knee
+                    compressor.ratio.setValueAtTime(12, scheduledTime); // Strong compression
+                    compressor.attack.setValueAtTime(0.003, scheduledTime); // Fast attack
+                    compressor.release.setValueAtTime(0.25, scheduledTime); // Quarter second release
+
+                    // Master volume limiter to prevent dangerous levels and apply server volume
+                    const limiter = audioContext.createGain();
+                    const finalVolume = 0.7 * masterVolume; // Combine safety limit with server volume
+                    limiter.gain.setValueAtTime(finalVolume, scheduledTime);
+
+                    // LFO Implementation
+                    if (lfo && lfo.depth > 0) {
+                        const lfoNode = audioContext.createOscillator();
+                        lfoNode.type = lfo.type;
+                        lfoNode.frequency.setValueAtTime(lfo.rate, scheduledTime);
+
+                        const lfoGain = audioContext.createGain();
+                        lfoGain.gain.setValueAtTime(lfo.depth, scheduledTime);
+
+                        lfoNode.connect(lfoGain);
+
+                        if (lfo.target === 'vibrato') {
+                            lfoGain.connect(oscillator.frequency);
+                        } else { // tremolo
+                            lfoGain.connect(gainNode.gain);
+                        }
+                        lfoNode.start(scheduledTime);
+                        lfoNode.stop(scheduledTime + adsr.attack + adsr.decay + adsr.release);
+                    }
+
+                    // Panning Implementation
+                    const panner = audioContext.createStereoPanner();
+                    panner.pan.setValueAtTime(pan, scheduledTime);
+
+                    // Add effects chain (reverb, delay, etc.)
+                    let effectsChain = gainNode;
+                    
+                    // Add reverb if specified in LFO target (repurposing for effects)
+                    if (lfo && lfo.target === 'reverb' && lfo.depth > 0) {
+                        const convolver = audioContext.createConvolver();
+                        const reverbTime = lfo.depth / 100; // Use depth as reverb time
+                        const reverbBuffer = createReverbBuffer(audioContext, reverbTime, 0.3);
+                        convolver.buffer = reverbBuffer;
+                        
+                        const dryGain = audioContext.createGain();
+                        const wetGain = audioContext.createGain();
+                        const reverbMixer = audioContext.createGain();
+                        
+                        dryGain.gain.setValueAtTime(0.7, scheduledTime);
+                        wetGain.gain.setValueAtTime(0.3, scheduledTime);
+                        
+                        effectsChain.connect(dryGain);
+                        effectsChain.connect(convolver);
+                        convolver.connect(wetGain);
+                        
+                        dryGain.connect(reverbMixer);
+                        wetGain.connect(reverbMixer);
+                        
+                        effectsChain = reverbMixer;
+                    }
+                    
+                    // Add delay if specified
+                    if (lfo && lfo.target === 'delay' && lfo.depth > 0) {
+                        const delay = audioContext.createDelay(1.0);
+                        const delayTime = lfo.rate / 10; // Use rate as delay time
+                        const feedback = audioContext.createGain();
+                        const delayMixer = audioContext.createGain();
+                        
+                        delay.delayTime.setValueAtTime(delayTime, scheduledTime);
+                        feedback.gain.setValueAtTime(lfo.depth / 100, scheduledTime);
+                        
+                        effectsChain.connect(delayMixer);
+                        effectsChain.connect(delay);
+                        delay.connect(feedback);
+                        feedback.connect(delay);
+                        delay.connect(delayMixer);
+                        
+                        effectsChain = delayMixer;
+                    }
+
+                    // Connect main nodes with safety chain
+                    oscillator.connect(gainNode);
+                    effectsChain.connect(compressor);
+                    compressor.connect(panner);
+                    panner.connect(limiter);
+                    limiter.connect(audioContext.destination);
+
+                    // Start the main oscillator
+                    oscillator.start(scheduledTime);
+
+                    // Schedule the release phase
+                    const releaseStartTime = scheduledTime + adsr.attack + adsr.decay;
+                    gainNode.gain.setValueAtTime(adsr.sustain, releaseStartTime);
+                    gainNode.gain.linearRampToValueAtTime(0, releaseStartTime + adsr.release);
+
+                    // Stop the oscillator after the release phase
+                    if (oscillator._organOscillators) {
+                        // Stop all organ oscillators
+                        oscillator._organOscillators.forEach(osc => {
+                            osc.stop(releaseStartTime + adsr.release);
+                        });
+                    } else if (oscillator.stop) {
+                        oscillator.stop(releaseStartTime + adsr.release);
+                    }
+
+                    // Visual feedback
+                    showSoundPlaying(type, baseFrequency);
+
+                    return true;
+                } catch (error) {
+                    logMessage(`Error playing sound: ${error.message}`);
+                    return false;
+                }
+            };
+
+            // Play metronome click sound
+            const playMetronomeClick = (isDownbeat = false, playTime = 0) => {
+                if (!audioContext) return false;
+
+                try {
+                    const scheduledTime = playTime === 0 ? audioContext.currentTime : playTime;
+                    
+                    // Create a short, percussive click sound
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    // Higher pitch for downbeat, lower for other beats
+                    oscillator.frequency.setValueAtTime(isDownbeat ? 1000 : 800, scheduledTime);
+                    oscillator.type = 'square';
+                    
+                    // Sharp attack and quick decay for click sound
+                    gainNode.gain.setValueAtTime(0, scheduledTime);
+                    gainNode.gain.linearRampToValueAtTime(metronomeState.volume, scheduledTime + 0.001);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, scheduledTime + 0.1);
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.start(scheduledTime);
+                    oscillator.stop(scheduledTime + 0.1);
+                    
+                    // Visual feedback for metronome
+                    showMetronomeFlash(isDownbeat);
+                    
+                    return true;
+                } catch (error) {
+                    logMessage(`Error playing metronome: ${error.message}`);
+                    return false;
+                }
+            };
+
+            // Show visual feedback for metronome
+            const showMetronomeFlash = (isDownbeat) => {
+                const indicator = soundIndicator;
+                const originalClass = indicator.className;
+                const originalText = indicator.textContent;
+                
+                // Flash with different colors for downbeat vs regular beat
+                indicator.className = 'sound-indicator';
+                indicator.style.backgroundColor = isDownbeat ? '#FF4444' : '#4444FF';
+                indicator.textContent = isDownbeat ? 'DOWN' : 'BEAT';
+                
+                setTimeout(() => {
+                    indicator.className = originalClass;
+                    indicator.style.backgroundColor = '';
+                    indicator.textContent = originalText;
+                }, 100);
+            };
+
+            // Show visual feedback when sound is playing
+            const showSoundPlaying = (type, frequency = null) => {
+                // Remove all classes
+                soundIndicator.className = 'sound-indicator';
+                // Add the specific sound type class
+                soundIndicator.classList.add(type);
+                // Update text
+                if (frequency) {
+                    soundIndicator.textContent = `${type.toUpperCase()} ${Math.round(frequency)}Hz`;
+                } else {
+                    soundIndicator.textContent = type.toUpperCase();
+                }
+
+                // Reset after animation
+                setTimeout(() => {
+                    soundIndicator.className = 'sound-indicator';
+                    soundIndicator.textContent = 'READY';
+                }, 1000);
+            };
+
+            // // Show visual feedback when sound is playing
+            // const showSoundPlaying = (type) => {
+            //     // Remove all classes
+            //     soundIndicator.className = 'sound-indicator';
+            //     // Add the specific sound type class
+            //     soundIndicator.classList.add(type);
+            //     // Update text
+            //     soundIndicator.textContent = type.toUpperCase();
+
+            //     // Reset after animation
+            //     setTimeout(() => {
+            //         soundIndicator.className = 'sound-indicator';
+            //         soundIndicator.textContent = 'READY';
+            //     }, 1000);
+            // };
+
+            const syncClock = () => {
+                if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+                logMessage('Requesting clock sync...');
+                ws.send(JSON.stringify({
+                    type: 'sync',
+                    t0: performance.now()
+                }));
+            };
+
+            // Periodic re-sync to handle clock drift
+            const startPeriodicSync = () => {
+                setInterval(() => {
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        syncClock();
+                    }
+                }, 30000); // Re-sync every 30 seconds
+            };
+
+            // Connect to WebSocket
+            const connectWebSocket = () => {
+                // Get the current URL
+                const currentUrl = window.location.href;
+                const url = new URL(currentUrl);
+                const wsProtocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${wsProtocol}//${url.host}`;
+
+                statusElement.textContent = `Connecting to ${wsUrl}...`;
+                logMessage(`Connecting to WebSocket at ${wsUrl}`);
+
+                // Create WebSocket connection
+                ws = new WebSocket(wsUrl);
+
+                // Connection opened
+                ws.addEventListener('open', (event) => {
+                    logMessage('WebSocket connected, sending registration...');
+                    const storedId = localStorage.getItem('multichannelClientId');
+                    // Add retry mechanism for registration
+                    let registrationRetries = 0;
+                    const maxRetries = 3;
+                    
+                    const attemptRegistration = () => {
+                        if (registrationRetries < maxRetries && ws.readyState === WebSocket.OPEN) {
+                            logMessage(`Registration attempt ${registrationRetries + 1}/${maxRetries}`);
+                            ws.send(JSON.stringify({ type: 'register', id: storedId }));
+                            registrationRetries++;
+                            
+                            // Set timeout for retry if no response
+                            setTimeout(() => {
+                                if (!clientId && ws.readyState === WebSocket.OPEN) {
+                                    logMessage('No registration response, retrying...');
+                                    attemptRegistration();
+                                }
+                            }, 2000);
+                        } else if (registrationRetries >= maxRetries) {
+                            logMessage('Registration failed after maximum retries');
+                            statusElement.textContent = 'Registration failed. Reload page to retry.';
+                        }
+                    };
+                    
+                    attemptRegistration();
+                });
+
+                // Listen for messages
+                ws.addEventListener('message', async (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        await handleMessage(data);
+                    } catch (error) {
+                        logMessage(`Error parsing message: ${error.message}`);
+                    }
+                });
+
+                // Connection closed
+                ws.addEventListener('close', (event) => {
+                    statusElement.textContent = 'Disconnected. Reconnecting...';
+                    logMessage(`WebSocket disconnected: ${event.code} - ${event.reason}`);
+                    isSynced = false;
+                    
+                    // Clear client ID if the connection was closed unexpectedly
+                    if (event.code !== 1000) { // 1000 is normal closure
+                        logMessage('Unexpected disconnection, clearing stored ID');
+                        localStorage.removeItem('multichannelClientId');
+                        clientId = null;
+                        clientIdElement.textContent = '--';
+                    }
+                    
+                    // Try to reconnect after a delay
+                    setTimeout(connectWebSocket, 3000);
+                });
+
+                // Connection error
+                ws.addEventListener('error', (event) => {
+                    statusElement.textContent = 'Connection error';
+                    logMessage('WebSocket error');
+                });
+            };
+
+            // Handle incoming message
+            const handleMessage = async (data) => {
+                logMessage(`Received message: ${JSON.stringify(data)}`);
+
+                switch (data.type) {
+                    case 'id':
+                        if (data.id && data.id !== clientId) {
+                            clientId = data.id;
+                            localStorage.setItem('multichannelClientId', clientId);
+                            // Show only the first 8 characters for readability
+                            const shortId = clientId.substring(0, 8).toUpperCase();
+                            clientIdElement.textContent = shortId;
+                            statusElement.textContent = `Registered as Client ${shortId}`;
+                            logMessage(`Assigned client ID: ${clientId}`);
+                            
+                            // Force a small delay before syncing to ensure full registration
+                            setTimeout(() => {
+                                if (ws && ws.readyState === WebSocket.OPEN) {
+                                    syncClock();
+                                }
+                            }, 500);
+                        }
+                        break;
+
+                    case 'sync-reply':
+                        const t1 = performance.now();
+                        const rtt = t1 - data.t0;
+                        const estimatedServerTime = data.serverTime + rtt / 2;
+                        serverTimeOffset = estimatedServerTime - t1;
+                        if (!isSynced) {
+                            isSynced = true;
+                            // Start periodic re-sync after first successful sync
+                            startPeriodicSync();
+                        }
+                        logMessage(`Clock synced. RTT: ${rtt.toFixed(2)}ms, Offset: ${serverTimeOffset.toFixed(2)}ms`);
+                        const syncShortId = clientId.substring(0, 8).toUpperCase();
+                        statusElement.textContent = `Synced with server as Client ${syncShortId}`;
+                        break;
+
+                    case 'triggerSound':
+                        // Play sound immediately
+                        logMessage(`Triggering ${data.sound} sound immediately`);
+                        await playSound(data.sound, data.frequency || null, 0);
+                        break;
+
+                    case 'scheduleNote':
+                        if (!isSynced) {
+                            logMessage('Received note but not synced, ignoring.');
+                            return;
+                        }
+                        // Calculate the delay until the note should be played
+                        const localPerfNow = performance.now();
+                        const scheduledPerfTime = data.playTime - serverTimeOffset;
+                        const delayUntilPlayMs = scheduledPerfTime - localPerfNow;
+
+                        // Highlight keyboard note if frequency matches a note
+                        if (data.frequency) {
+                            const noteForFreq = findNoteFromFrequency(data.frequency);
+                            if (noteForFreq) {
+                                highlightPlayingNote(noteForFreq);
+                            }
+                        }
+
+                        if (delayUntilPlayMs < -10) { // Note is too old, play immediately or drop
+                            logMessage(`Stale note received. Scheduled for ${delayUntilPlayMs.toFixed(2)}ms in the past.`);
+                            // To avoid jarring sounds, we can just drop it. For testing, we'll play it now.
+                            await playSound(data.sound, data.frequency, 0, data.adsr, data.lfo, data.pan);
+                        } else {
+                            // Schedule the sound in the audio context's time base
+                            const scheduledAudioTime = audioContext.currentTime + Math.max(0, delayUntilPlayMs) / 1000;
+                            logMessage(`Scheduled note ${data.sound} at ${scheduledAudioTime.toFixed(2)} (in ${delayUntilPlayMs.toFixed(2)}ms)`);
+                            await playSound(data.sound, data.frequency, scheduledAudioTime, data.adsr, data.lfo, data.pan);
+                        }
+                        break;
+
+                    case 'metronomeClick':
+                        if (!isSynced) {
+                            logMessage('Received metronome click but not synced, ignoring.');
+                            return;
+                        }
+                        
+                        // Show stop button when metronome is running
+                        if (!metronomeState.isRunning) {
+                            metronomeState.isRunning = true;
+                            stopMetronomeButton.style.display = 'inline-block';
+                        }
+                        
+                        // Calculate when to play the click based on server time
+                        const localClickTime = performance.now();
+                        const scheduledClickTime = data.serverTime - serverTimeOffset;
+                        const delayUntilClickMs = scheduledClickTime - localClickTime;
+
+                        if (delayUntilClickMs < -50) {
+                            // Click is too old, play immediately
+                            playMetronomeClick(data.isDownbeat, 0);
+                        } else {
+                            // Schedule the click
+                            const scheduledAudioTime = audioContext.currentTime + Math.max(0, delayUntilClickMs) / 1000;
+                            playMetronomeClick(data.isDownbeat, scheduledAudioTime);
+                        }
+                        break;
+
+                    case 'metronomeStopped':
+                        metronomeState.isRunning = false;
+                        stopMetronomeButton.style.display = 'none';
+                        logMessage('Metronome stopped');
+                        break;
+
+                    case 'metronomeState':
+                        metronomeState.isRunning = data.isRunning;
+                        metronomeState.bpm = data.bpm;
+                        stopMetronomeButton.style.display = data.isRunning ? 'inline-block' : 'none';
+                        logMessage(`Metronome state: ${data.isRunning ? 'running' : 'stopped'} at ${data.bpm} BPM`);
+                        break;
+
+                    case 'setVolume':
+                        masterVolume = Math.max(0, Math.min(1, data.volume || 1.0));
+                        logMessage(`Volume set to ${Math.round(masterVolume * 100)}%`);
+                        break;
+
+                    default:
+                        logMessage(`Unknown message type: ${data.type}`);
+                }
+            };
+
+            // Keep screen awake (prevent sleep)
+            const keepAwake = async () => {
+                if ('wakeLock' in navigator) {
+                    try {
+                        const wakeLock = await navigator.wakeLock.request('screen');
+                        logMessage('Screen wake lock activated');
+
+                        wakeLock.addEventListener('release', () => {
+                            logMessage('Screen wake lock released');
+                        });
+
+                        // Reacquire wake lock when document becomes visible again
+                        document.addEventListener('visibilitychange', async () => {
+                            if (document.visibilityState === 'visible') {
+                                keepAwake();
+                            }
+                        });
+                    } catch (error) {
+                        logMessage(`Wake lock error: ${error.message}`);
+                    }
+                } else {
+                    logMessage('Wake lock API not supported');
+                }
+            };
+
+            // Initialize
+            const init = () => {
+                // Create piano keyboard
+                createPianoKeyboard();
+
+                // Set up re-sync button
+                resyncButton.addEventListener('click', () => {
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        logMessage('Manual re-sync requested by user');
+                        resyncButton.textContent = 'Syncing...';
+                        resyncButton.disabled = true;
+                        syncClock();
+                        // Re-enable button after a short delay
+                        setTimeout(() => {
+                            resyncButton.textContent = 'Re-sync Timing';
+                            resyncButton.disabled = false;
+                        }, 2000);
+                    } else {
+                        logMessage('Cannot re-sync: not connected to server');
+                        statusElement.textContent = 'Not connected - cannot re-sync';
+                    }
+                });
+
+                // Set up stop metronome button
+                stopMetronomeButton.addEventListener('click', () => {
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        logMessage('Requesting metronome stop from client');
+                        ws.send(JSON.stringify({ type: 'stopMetronome' }));
+                    } else {
+                        logMessage('Cannot stop metronome: not connected to server');
+                    }
+                });
+
+                // Connect to server
+                connectWebSocket();
+
+                statusElement.textContent = 'Ready. Click the test button to activate audio.';
+                
+                // Add user interaction trigger for mobile browsers
+                const enableAudioOnUserInteraction = async () => {
+                    if (!audioContext) {
+                        try {
+                            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                            logMessage('Audio context created on user interaction.');
+                        } catch (e) {
+                            logMessage(`Error creating audio context: ${e.message}`);
+                            return;
+                        }
+                    }
+                    
+                    if (audioContext.state === 'suspended') {
+                        try {
+                            await audioContext.resume();
+                            logMessage('Audio context resumed on user interaction.');
+                            const audioShortId = clientId ? clientId.substring(0, 8).toUpperCase() : 'loading...';
+                            statusElement.textContent = `Audio enabled. Client ${audioShortId}`;
+                        } catch (e) {
+                            logMessage(`Error resuming audio context: ${e.message}`);
+                        }
+                    }
+                    
+                    // Remove the event listeners after first interaction
+                    document.removeEventListener('touchstart', enableAudioOnUserInteraction);
+                    document.removeEventListener('click', enableAudioOnUserInteraction);
+                };
+                
+                // Listen for any user interaction to enable audio
+                document.addEventListener('touchstart', enableAudioOnUserInteraction, { once: true });
+                document.addEventListener('click', enableAudioOnUserInteraction, { once: true });
+            };
+
+            // Start initialization
+            init();
+        });
+    </script>
+</body>
+
+</html>

@@ -104,6 +104,11 @@ export class WebSocketBase {
     async handleMessage(data) {
         console.log('Received message:', data);
         
+        // Extra debugging for controller messages
+        if (data.type && !['sync', 'sync-reply'].includes(data.type)) {
+            console.log(`🔍 Non-sync message: ${data.type}`, data);
+        }
+        
         // Call registered handlers for this message type
         if (this.messageHandlers.has(data.type)) {
             const handlers = this.messageHandlers.get(data.type);

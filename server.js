@@ -54,6 +54,17 @@ app.get('/api/network-info', (req, res) => {
 const clients = new Map(); // Maps WebSocket to a client object { id, ws, isController, connectedAt, lastActivity, notesPlayed }
 const clientLatencies = new Map(); // Track client latencies for connection quality
 
+// Chord progression state
+let chordProgressionState = {
+  isRunning: false,
+  progression: null,
+  bpm: 120,
+  settings: {},
+  interval: null,
+  currentChordIndex: 0,
+  startTime: null
+};
+
 // Metronome state
 let metronomeState = {
   isRunning: false,
@@ -94,6 +105,387 @@ const getClientIds = () => {
   return Array.from(clients.values())
     .filter(c => !c.isController)
     .map(c => c.id);
+};
+
+// Musical theory constants and functions
+const MUSICAL_DATA = {
+  keys: {
+    'C': 0, 'C#': 1, 'Db': 1, 'D': 2, 'D#': 3, 'Eb': 3, 'E': 4, 'F': 5,
+    'F#': 6, 'Gb': 6, 'G': 7, 'G#': 8, 'Ab': 8, 'A': 9, 'A#': 10, 'Bb': 10, 'B': 11
+  },
+  
+  scales: {
+    major: [0, 2, 4, 5, 7, 9, 11],
+    minor: [0, 2, 3, 5, 7, 8, 10]
+  },
+  
+  chordTypes: {
+    major: [0, 4, 7],
+    minor: [0, 3, 7],
+    diminished: [0, 3, 6],
+    augmented: [0, 4, 8],
+    major7: [0, 4, 7, 11],
+    minor7: [0, 3, 7, 10],
+    dominant7: [0, 4, 7, 10]
+  },
+  
+  romanNumeralChords: {
+    'I': { root: 0, type: 'major' },
+    'ii': { root: 1, type: 'minor' },
+    'iii': { root: 2, type: 'minor' },
+    'IV': { root: 3, type: 'major' },
+    'V': { root: 4, type: 'major' },
+    'vi': { root: 5, type: 'minor' },
+    'vii°': { root: 6, type: 'diminished' },
+    // Minor key variants
+    'i': { root: 0, type: 'minor' },
+    'ii°': { root: 1, type: 'diminished' },
+    'III': { root: 2, type: 'major' },
+    'iv': { root: 3, type: 'minor' },
+    'v': { root: 4, type: 'minor' },
+    'VI': { root: 5, type: 'major' },
+    'VII': { root: 6, type: 'major' }
+  },
+  
+  chordProgressions: {
+    // Pop & Rock
+    'I-V-vi-IV': ['I', 'V', 'vi', 'IV'],
+    'vi-IV-I-V': ['vi', 'IV', 'I', 'V'],
+    'I-vi-IV-V': ['I', 'vi', 'IV', 'V'],
+    'vi-V-IV-V': ['vi', 'V', 'IV', 'V'],
+    // Jazz & Blues
+    'ii-V-I': ['ii', 'V', 'I'],
+    'I-vi-ii-V': ['I', 'vi', 'ii', 'V'],
+    'I-IV-V': ['I', 'IV', 'V'],
+    'I-IV-V-IV': ['I', 'IV', 'V', 'IV'],
+    // Minor & Modal
+    'i-VII-VI-VII': ['i', 'VII', 'VI', 'VII'],
+    'i-iv-V': ['i', 'iv', 'V'],
+    'i-VI-VII': ['i', 'VI', 'VII'],
+    'i-ii°-V': ['i', 'ii°', 'V'],
+    // Extended
+    'I-iii-vi-IV': ['I', 'iii', 'vi', 'IV'],
+    'I-V-vi-iii-IV-I-IV-V': ['I', 'V', 'vi', 'iii', 'IV', 'I', 'IV', 'V'],
+    'vi-ii-V-I': ['vi', 'ii', 'V', 'I']
+  }
+};
+
+// Convert note to frequency
+const noteToFrequency = (semitone, octave) => {
+  return 440 * Math.pow(2, (octave - 4) + (semitone - 9) / 12);
+};
+
+// Get chord notes for a roman numeral
+const getChordNotes = (romanNumeral, key = 'C', octave = 4) => {
+  const keyRoot = MUSICAL_DATA.keys[key];
+  const chordInfo = MUSICAL_DATA.romanNumeralChords[romanNumeral];
+  
+  if (!chordInfo) {
+    console.error(`Unknown chord: ${romanNumeral}`);
+    return [];
+  }
+  
+  const scaleNotes = MUSICAL_DATA.scales.major; // Use major scale for chord calculation
+  const chordRoot = (keyRoot + scaleNotes[chordInfo.root]) % 12;
+  const chordIntervals = MUSICAL_DATA.chordTypes[chordInfo.type];
+  
+  return chordIntervals.map(interval => {
+    const semitone = (chordRoot + interval) % 12;
+    const noteOctave = octave + Math.floor((chordRoot + interval) / 12);
+    return {
+      semitone: semitone,
+      octave: noteOctave,
+      frequency: noteToFrequency(semitone, noteOctave)
+    };
+  });
+};
+
+// Apply arpeggiator pattern to chord notes
+const applyArpeggioPattern = (chordNotes, pattern = 'chord') => {
+  switch (pattern) {
+    case 'up':
+      return chordNotes.slice().sort((a, b) => a.frequency - b.frequency);
+    case 'down':
+      return chordNotes.slice().sort((a, b) => b.frequency - a.frequency);
+    case 'up-down':
+      const upNotes = chordNotes.slice().sort((a, b) => a.frequency - b.frequency);
+      const downNotes = upNotes.slice().reverse();
+      return [...upNotes, ...downNotes.slice(1)]; // Remove duplicate top note
+    case 'down-up':
+      const downNotes2 = chordNotes.slice().sort((a, b) => b.frequency - a.frequency);
+      const upNotes2 = downNotes2.slice().reverse();
+      return [...downNotes2, ...upNotes2.slice(1)]; // Remove duplicate bottom note
+    case 'inside-out':
+      const sorted = chordNotes.slice().sort((a, b) => a.frequency - b.frequency);
+      const result = [];
+      let left = 0, right = sorted.length - 1;
+      let useLeft = false; // Start with highest note
+      while (left <= right) {
+        if (useLeft) {
+          result.push(sorted[left++]);
+        } else {
+          result.push(sorted[right--]);
+        }
+        useLeft = !useLeft;
+      }
+      return result;
+    case 'outside-in':
+      const sorted2 = chordNotes.slice().sort((a, b) => a.frequency - b.frequency);
+      const result2 = [];
+      let left2 = 0, right2 = sorted2.length - 1;
+      let useLeft2 = true; // Start with lowest note
+      while (left2 <= right2) {
+        if (useLeft2) {
+          result2.push(sorted2[left2++]);
+        } else {
+          result2.push(sorted2[right2--]);
+        }
+        useLeft2 = !useLeft2;
+      }
+      return result2;
+    case 'random':
+      return chordNotes.slice().sort(() => Math.random() - 0.5);
+    case 'chord':
+    default:
+      return chordNotes; // All notes together
+  }
+};
+
+// Start chord progression playback
+const startChordProgression = (progressionName, bpm = 120, settings = {}) => {
+  console.log(`Starting chord progression: ${progressionName} at ${bpm} BPM`);
+  
+  // Stop any existing progression
+  stopChordProgression();
+  
+  const progression = MUSICAL_DATA.chordProgressions[progressionName];
+  if (!progression) {
+    console.error(`Unknown chord progression: ${progressionName}`);
+    return false;
+  }
+  
+  // Set up state
+  chordProgressionState = {
+    isRunning: true,
+    progression: progression,
+    progressionName: progressionName,
+    bpm: bpm,
+    settings: {
+      key: settings.key || 'C',
+      octave: settings.octave || 4,
+      chordDuration: settings.chordDuration || 4000,
+      arpeggio: settings.arpeggio || 'chord',
+      subdivision: settings.subdivision || '8n',
+      swing: settings.swing || 0,
+      velocity: settings.velocity || 'even',
+      clientOffset: settings.clientOffset || 0,
+      noteDuration: settings.noteDuration || 'sustain',
+      humanization: settings.humanization || 0,
+      ...settings
+    },
+    currentChordIndex: 0,
+    startTime: performance.now(),
+    interval: null
+  };
+  
+  // Calculate chord duration from BPM (assuming 1 chord per beat)
+  const chordDurationMs = chordProgressionState.settings.chordDuration;
+  
+  // Play first chord immediately
+  playCurrentChord();
+  
+  // Set up interval for subsequent chords
+  chordProgressionState.interval = setInterval(() => {
+    chordProgressionState.currentChordIndex = 
+      (chordProgressionState.currentChordIndex + 1) % chordProgressionState.progression.length;
+    playCurrentChord();
+  }, chordDurationMs);
+  
+  return true;
+};
+
+// Apply swing timing to note timings
+const applySwingTiming = (baseTime, index, swingAmount, subdivision) => {
+  if (swingAmount === 0) return baseTime;
+  
+  // Swing affects every second note (the off-beats)
+  if (index % 2 === 1) {
+    const swingDelay = (swingAmount / 100) * (subdivision === '16n' ? 62.5 : 125); // Adjust for subdivision
+    return baseTime + swingDelay;
+  }
+  return baseTime;
+};
+
+// Apply velocity curve to note velocity
+const applyVelocityCurve = (index, totalNotes, curve) => {
+  const position = index / (totalNotes - 1); // 0 to 1
+  
+  switch (curve) {
+    case 'crescendo':
+      return 0.3 + (position * 0.7); // 0.3 to 1.0
+    case 'diminuendo':
+      return 1.0 - (position * 0.7); // 1.0 to 0.3
+    case 'accent-first':
+      return index === 0 ? 1.0 : 0.6;
+    case 'accent-last':
+      return index === totalNotes - 1 ? 1.0 : 0.6;
+    case 'accent-downbeat':
+      return index % 4 === 0 ? 1.0 : 0.6; // Accent every 4th note
+    case 'alternate':
+      return index % 2 === 0 ? 0.9 : 0.5; // Alternate between strong and weak
+    case 'random':
+      return 0.4 + (Math.random() * 0.6); // Random between 0.4 and 1.0
+    case 'wave':
+      return 0.5 + 0.4 * Math.sin(position * Math.PI * 2); // Sine wave pattern
+    case 'even':
+    default:
+      return 0.8; // Constant velocity
+  }
+};
+
+// Apply humanization (random timing and velocity variations)
+const applyHumanization = (baseTime, baseVelocity, humanizationAmount) => {
+  if (humanizationAmount === 0) return { time: baseTime, velocity: baseVelocity };
+  
+  const timingVariation = (Math.random() - 0.5) * 2 * (humanizationAmount / 100) * 50; // ±50ms max
+  const velocityVariation = (Math.random() - 0.5) * 2 * (humanizationAmount / 100) * 0.2; // ±0.2 max
+  
+  return {
+    time: baseTime + timingVariation,
+    velocity: Math.max(0.1, Math.min(1.0, baseVelocity + velocityVariation))
+  };
+};
+
+// Play the current chord in the progression
+const playCurrentChord = () => {
+  if (!chordProgressionState.isRunning) return;
+  
+  const currentChord = chordProgressionState.progression[chordProgressionState.currentChordIndex];
+  const settings = chordProgressionState.settings;
+  const { key, octave, arpeggio, swing, velocity, humanization, subdivision, adsr } = settings;
+  
+  // Get chord notes
+  const chordNotes = getChordNotes(currentChord, key, octave);
+  if (chordNotes.length === 0) return;
+  
+  // Apply arpeggiator pattern
+  const arpeggioNotes = applyArpeggioPattern(chordNotes, arpeggio);
+  
+  // Get connected clients (excluding controllers)
+  const clientIds = getClientIds();
+  if (clientIds.length === 0) {
+    console.log('No clients to play chord on');
+    return;
+  }
+  
+  console.log(`Playing chord ${currentChord} with ${arpeggioNotes.length} notes across ${clientIds.length} clients`);
+  
+  // Calculate base note interval from subdivision
+  const baseInterval = subdivision === '16n' ? 125 : subdivision === '8n' ? 250 : 500; // ms
+  
+  // Distribute notes across clients
+  if (arpeggio === 'chord') {
+    // Play all notes simultaneously, distributed across clients
+    arpeggioNotes.forEach((note, index) => {
+      const clientId = clientIds[index % clientIds.length];
+      const baseTime = performance.now() + 50; // Small delay for network
+      const baseVelocity = applyVelocityCurve(index, arpeggioNotes.length, velocity);
+      const { time, velocity: finalVelocity } = applyHumanization(baseTime, baseVelocity, humanization);
+      
+      sendToClient(clientId, {
+        type: 'scheduleNote',
+        sound: 'sine',
+        frequency: note.frequency,
+        playTime: time,
+        adsr: { 
+          attack: adsr?.attack || 0.01, 
+          decay: adsr?.decay || 0.1, 
+          sustain: (adsr?.sustain || 0.5) * finalVelocity, 
+          release: adsr?.release || 1.0 
+        },
+        lfo: { type: 'sine', rate: 5, depth: 0, target: 'vibrato' },
+        pan: 0,
+        velocity: finalVelocity
+      });
+    });
+  } else {
+    // Play arpeggio with advanced timing
+    arpeggioNotes.forEach((note, index) => {
+      const clientId = clientIds[index % clientIds.length];
+      const baseTime = performance.now() + 50 + (index * baseInterval);
+      const swingTime = applySwingTiming(baseTime, index, swing, subdivision);
+      const baseVelocity = applyVelocityCurve(index, arpeggioNotes.length, velocity);
+      const { time: finalTime, velocity: finalVelocity } = applyHumanization(swingTime, baseVelocity, humanization);
+      
+      sendToClient(clientId, {
+        type: 'scheduleNote',
+        sound: 'sine',
+        frequency: note.frequency,
+        playTime: finalTime,
+        adsr: { 
+          attack: adsr?.attack || 0.01, 
+          decay: adsr?.decay || 0.1, 
+          sustain: (adsr?.sustain || 0.3) * finalVelocity, 
+          release: adsr?.release || 0.5 
+        },
+        lfo: { type: 'sine', rate: 5, depth: 0, target: 'vibrato' },
+        pan: 0,
+        velocity: finalVelocity
+      });
+    });
+  }
+  
+  // Broadcast current chord to controllers for UI updates
+  broadcast({
+    type: 'chordProgressionUpdate',
+    currentChord: chordProgressionState.currentChordIndex,
+    chord: currentChord
+  });
+};
+
+// Stop chord progression playback
+const stopChordProgression = () => {
+  if (chordProgressionState.interval) {
+    clearInterval(chordProgressionState.interval);
+    chordProgressionState.interval = null;
+  }
+  
+  chordProgressionState.isRunning = false;
+  chordProgressionState.currentChordIndex = 0;
+  
+  console.log('Chord progression stopped');
+};
+
+// Pause chord progression playback
+const pauseChordProgression = () => {
+  if (chordProgressionState.interval) {
+    clearInterval(chordProgressionState.interval);
+    chordProgressionState.interval = null;
+  }
+  
+  chordProgressionState.isRunning = false;
+  console.log('Chord progression paused');
+};
+
+// Resume chord progression playback
+const resumeChordProgression = () => {
+  if (!chordProgressionState.progression) {
+    console.error('Cannot resume: no chord progression loaded');
+    return false;
+  }
+  
+  chordProgressionState.isRunning = true;
+  const chordDurationMs = chordProgressionState.settings.chordDuration;
+  
+  // Resume from current position
+  chordProgressionState.interval = setInterval(() => {
+    chordProgressionState.currentChordIndex = 
+      (chordProgressionState.currentChordIndex + 1) % chordProgressionState.progression.length;
+    playCurrentChord();
+  }, chordDurationMs);
+  
+  console.log('Chord progression resumed');
+  return true;
 };
 
 // Validate client ID format (basic UUID validation)
@@ -268,14 +660,54 @@ const createMessageHandler = (clientId) => (message) => {
         break;
 
       case 'triggerSound':
+        // Handle both old format (single clientId) and new format (clients array)
         if (data.clientId) {
-          sendToClient(data.clientId, data);
+          // Legacy format: {clientId: "...", sound: "..."}
+          sendToClient(data.clientId, {
+            type: 'triggerSound',
+            sound: data.sound,
+            frequency: data.frequency
+          });
+        } else if (data.clients && Array.isArray(data.clients)) {
+          // New format: {clients: ["...", "..."], sound: "..."}
+          console.log(`Triggering sound ${data.sound} on ${data.clients.length} specific clients`);
+          data.clients.forEach(clientId => {
+            sendToClient(clientId, {
+              type: 'triggerSound',
+              sound: data.sound,
+              frequency: data.frequency
+            });
+          });
         }
         break;
 
       case 'scheduleNote':
+        // Handle both old format (single clientId) and new format (clients array)
         if (data.clientId) {
-          sendToClient(data.clientId, data);
+          // Legacy format: {clientId: "...", ...}
+          sendToClient(data.clientId, {
+            type: 'scheduleNote',
+            sound: data.sound,
+            frequency: data.frequency,
+            playTime: data.playTime,
+            adsr: data.adsr,
+            lfo: data.lfo,
+            pan: data.pan
+          });
+        } else if (data.clients && Array.isArray(data.clients)) {
+          // New format: {clients: ["...", "..."], ...}
+          console.log(`Scheduling note ${data.sound} for ${data.clients.length} specific clients`);
+          data.clients.forEach(clientId => {
+            sendToClient(clientId, {
+              type: 'scheduleNote',
+              sound: data.sound,
+              frequency: data.frequency,
+              playTime: data.playTime,
+              adsr: data.adsr,
+              lfo: data.lfo,
+              pan: data.pan
+            });
+          });
         }
         break;
 
@@ -347,6 +779,136 @@ const createMessageHandler = (clientId) => (message) => {
         }
         break;
 
+      case 'triggerSoundAll':
+        // Trigger sound on all clients
+        const allClientIds = getClientIds();
+        console.log(`Triggering sound ${data.sound} on all ${allClientIds.length} clients`);
+        allClientIds.forEach(id => {
+          sendToClient(id, {
+            type: 'triggerSound',
+            sound: data.sound,
+            frequency: data.frequency
+          });
+        });
+        break;
+
+      case 'playSequence':
+        // Play sequence with delay across specified clients
+        if (data.clients && Array.isArray(data.clients)) {
+          const delay = data.delay || 500;
+          console.log(`Playing sequence with ${delay}ms delay across ${data.clients.length} clients`);
+          data.clients.forEach((clientId, index) => {
+            setTimeout(() => {
+              sendToClient(clientId, {
+                type: 'triggerSound',
+                sound: data.sound,
+                frequency: data.frequency
+              });
+            }, index * delay);
+          });
+        }
+        break;
+
+      case 'playReverseSequence':
+        // Play reverse sequence with delay across specified clients
+        if (data.clients && Array.isArray(data.clients)) {
+          const delay = data.delay || 500;
+          const reversedClients = [...data.clients].reverse();
+          console.log(`Playing reverse sequence with ${delay}ms delay across ${reversedClients.length} clients`);
+          reversedClients.forEach((clientId, index) => {
+            setTimeout(() => {
+              sendToClient(clientId, {
+                type: 'triggerSound',
+                sound: data.sound,
+                frequency: data.frequency
+              });
+            }, index * delay);
+          });
+        }
+        break;
+
+      case 'startChordProgression':
+        // Handle chord progression start with full server-side logic
+        const success = startChordProgression(data.progression, data.bpm, data.settings);
+        
+        if (success) {
+          // Broadcast to controllers for UI updates
+          broadcast({
+            type: 'chordProgressionStarted',
+            progression: data.progression,
+            bpm: data.bpm,
+            settings: data.settings
+          });
+        } else {
+          console.error(`Failed to start chord progression: ${data.progression}`);
+        }
+        break;
+
+      case 'stopChordProgression':
+        // Handle chord progression stop
+        stopChordProgression();
+        
+        // Broadcast to controllers for UI updates
+        broadcast({
+          type: 'chordProgressionStopped'
+        });
+        break;
+
+      case 'pauseChordProgression':
+        // Handle chord progression pause
+        pauseChordProgression();
+        
+        // Broadcast to controllers for UI updates
+        broadcast({
+          type: 'chordProgressionPaused'
+        });
+        break;
+
+      case 'resumeChordProgression':
+        // Handle chord progression resume
+        const resumeSuccess = resumeChordProgression();
+        
+        if (resumeSuccess) {
+          // Broadcast to controllers for UI updates
+          broadcast({
+            type: 'chordProgressionResumed'
+          });
+        }
+        break;
+
+      case 'setVolume':
+        // Set volume for specific clients
+        if (data.clients && Array.isArray(data.clients)) {
+          data.clients.forEach(clientId => {
+            sendToClient(clientId, {
+              type: 'setVolume',
+              volume: data.volume
+            });
+          });
+          console.log(`Volume set to ${Math.round(data.volume * 100)}% for ${data.clients.length} clients`);
+        }
+        break;
+
+      case 'setMasterVolume':
+        // Set master volume for all clients
+        const allClients = getClientIds();
+        allClients.forEach(id => {
+          sendToClient(id, {
+            type: 'setVolume',
+            volume: data.volume
+          });
+        });
+        console.log(`Master volume set to ${Math.round(data.volume * 100)}% for all clients`);
+        break;
+
+      case 'requestClients':
+        // Send the client list to the requester (alternative to getClients)
+        sendToClient(clientId, {
+          type: 'clientsUpdate',
+          clients: getClientIds().map(id => ({ id: id }))
+        });
+        break;
+
       case 'clientPlayingNote':
         // Track when clients are playing notes for activity monitoring
         const client = Array.from(clients.values()).find(c => c.id === clientId);
@@ -390,7 +952,6 @@ app.get('/api/trigger/:id/:sound', (req, res) => {
   
   const success = sendToClient(clientId, {
     type: 'triggerSound',
-    clientId: clientId,
     sound: sound
   });
   
@@ -406,8 +967,7 @@ app.get('/api/note/:id/:sound/:frequency', (req, res) => {
   console.log(`HTTP request to trigger ${sound} note at ${frequency}Hz on client ${clientId}`);
   
   const success = sendToClient(clientId, {
-    type: 'triggerNote',
-    clientId: clientId,
+    type: 'triggerSound',
     sound: sound,
     frequency: frequency
   });
@@ -429,7 +989,6 @@ app.get('/api/sequence/:sound/:delay', (req, res) => {
     setTimeout(() => {
       sendToClient(clientId, {
         type: 'triggerSound',
-        clientId: clientId,
         sound: sound
       });
     }, index * delay);

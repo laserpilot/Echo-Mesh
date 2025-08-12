@@ -60,7 +60,8 @@ export class UIController {
         });
         
         this.websocketController.onClientUpdate((clients) => {
-            this.updateClientsDisplay(clients);
+            // Just update navigation state - client manager handles the display
+            this.updateNavigationState();
         });
         
         // Button event handlers
@@ -232,28 +233,14 @@ export class UIController {
         this.updateNavigationState();
     }
     
-    // Update clients display
-    updateClientsDisplay(clients) {
-        if (!this.elements.clientsGrid) return;
-        
-        if (clients.length === 0) {
-            this.elements.clientsGrid.innerHTML = `
-                <div class="client-card">
-                    <div class="client-id">No clients yet</div>
-                    <p>Waiting for connections...</p>
-                </div>
-            `;
-            return;
+    // Update clients count display
+    updateClientCount(count) {
+        if (this.elements.clientCount) {
+            this.elements.clientCount.textContent = count.toString();
         }
-        
-        this.elements.clientsGrid.innerHTML = '';
-        
-        clients.forEach(client => {
-            const clientCard = this.createClientCard(client);
-            this.elements.clientsGrid.appendChild(clientCard);
-        });
-        
-        this.updateNavigationState();
+        if (this.elements.clientCountStatus) {
+            this.elements.clientCountStatus.textContent = count.toString();
+        }
     }
     
     // Create client card element
@@ -296,7 +283,11 @@ export class UIController {
     // Handle refresh clients button
     handleRefreshClients() {
         this.logMessage('Refreshing client list...');
-        // The WebSocket controller will automatically update clients
+        if (this.websocketController.isConnected) {
+            this.websocketController.requestClientList();
+        } else {
+            this.logMessage('Not connected to server');
+        }
     }
     
     // Handle play sequence button
@@ -381,46 +372,119 @@ export class UIController {
     }
     
     // Initialize connection info
-    initializeConnectionInfo() {
-        const protocol = window.location.protocol;
-        const host = window.location.host;
-        const clientUrl = `${protocol}//${host}/client.html`;
-        
-        if (this.elements.serverIp) {
-            this.elements.serverIp.textContent = host;
-        }
-        
-        if (this.elements.clientUrl) {
-            this.elements.clientUrl.textContent = clientUrl;
-        }
-        
-        if (this.elements.clientUrlDisplay) {
-            this.elements.clientUrlDisplay.textContent = clientUrl;
-        }
-        
-        // Generate QR code if canvas element exists
-        if (this.elements.qrCode && typeof QRCode !== 'undefined') {
-            try {
-                const qr = new QRCode(this.elements.qrCode, {
-                    text: clientUrl,
-                    width: 200,
-                    height: 200
-                });
-            } catch (error) {
-                console.warn('QR code generation failed:', error);
+    async initializeConnectionInfo() {
+        try {
+            // First, try to get network info from the server
+            const response = await fetch('/api/network-info');
+            const networkInfo = await response.json();
+            
+            let clientUrl, serverIp;
+            
+            if (networkInfo.addresses && networkInfo.addresses.length > 0) {
+                // Use the first available network address (usually the LAN IP)
+                const primaryAddress = networkInfo.addresses[0];
+                clientUrl = primaryAddress.clientUrl;
+                serverIp = primaryAddress.address + ':' + networkInfo.port;
+                
+                console.log('Using network IP:', primaryAddress.address);
+                this.logMessage(`Network IP detected: ${primaryAddress.address}`);
+            } else {
+                // Fallback to localhost if network info isn't available
+                const protocol = window.location.protocol;
+                const host = window.location.host;
+                clientUrl = `${protocol}//${host}/client.html`;
+                serverIp = host;
+                
+                console.log('Falling back to localhost');
+                this.logMessage('Using localhost (network IP detection failed)');
+            }
+            
+            if (this.elements.serverIp) {
+                this.elements.serverIp.textContent = serverIp;
+            }
+            
+            if (this.elements.clientUrl) {
+                this.elements.clientUrl.textContent = clientUrl;
+            }
+            
+            if (this.elements.clientUrlDisplay) {
+                this.elements.clientUrlDisplay.textContent = clientUrl;
+            }
+            
+            // Generate QR code if canvas element exists
+            if (this.elements.qrCode && typeof QRious !== 'undefined') {
+                try {
+                    const qr = new QRious({
+                        element: this.elements.qrCode,
+                        value: clientUrl,
+                        size: 200
+                    });
+                    console.log('QR code generated successfully for URL:', clientUrl);
+                    this.logMessage(`QR code generated for: ${clientUrl}`);
+                } catch (error) {
+                    console.warn('QR code generation failed:', error);
+                    // Fallback: display URL as text in canvas
+                    const ctx = this.elements.qrCode.getContext('2d');
+                    ctx.fillStyle = '#333';
+                    ctx.font = '12px Arial';
+                    ctx.fillText('QR Code failed to generate', 10, 30);
+                    ctx.fillText(clientUrl, 10, 50);
+                }
+            } else {
+                console.warn('QRious library not loaded or qrCode element not found');
+            }
+            
+        } catch (error) {
+            console.error('Failed to get network info:', error);
+            this.logMessage('Network detection failed, using localhost');
+            
+            // Fallback to localhost
+            const protocol = window.location.protocol;
+            const host = window.location.host;
+            const clientUrl = `${protocol}//${host}/client.html`;
+            
+            if (this.elements.serverIp) {
+                this.elements.serverIp.textContent = host;
+            }
+            
+            if (this.elements.clientUrl) {
+                this.elements.clientUrl.textContent = clientUrl;
+            }
+            
+            if (this.elements.clientUrlDisplay) {
+                this.elements.clientUrlDisplay.textContent = clientUrl;
+            }
+            
+            // Still try to generate QR code with localhost URL
+            if (this.elements.qrCode && typeof QRious !== 'undefined') {
+                try {
+                    const qr = new QRious({
+                        element: this.elements.qrCode,
+                        value: clientUrl,
+                        size: 200
+                    });
+                } catch (error) {
+                    console.warn('QR code generation failed:', error);
+                }
             }
         }
     }
     
     // Add log message
     logMessage(message) {
-        console.log(message);
+        console.log('LOG:', message);
         
-        if (!this.elements.log) return;
+        if (!this.elements.log) {
+            console.warn('Log element not found!');
+            return;
+        }
         
         const entry = document.createElement('div');
         entry.className = 'log-entry';
         entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+        entry.style.padding = '2px 0';
+        entry.style.fontSize = '12px';
+        entry.style.color = '#333';
         
         this.elements.log.appendChild(entry);
         this.elements.log.scrollTop = this.elements.log.scrollHeight;
@@ -437,8 +501,8 @@ export class UIController {
     }
     
     // Initialize the UI
-    initialize() {
-        this.initializeConnectionInfo();
+    async initialize() {
+        await this.initializeConnectionInfo();
         this.switchSection('setup');
         this.logMessage('Controller UI initialized');
     }

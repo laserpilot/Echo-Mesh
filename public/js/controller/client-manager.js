@@ -14,27 +14,58 @@ export class ClientManager {
         
         // DOM elements
         this.elements = {
-            clientCount: document.getElementById('clientCount'),
             clientsGrid: document.getElementById('clients-grid'),
-            clientCountStatus: document.getElementById('clientCountStatus')
+            groupNameInput: document.getElementById('groupNameInput'),
+            createGroupButton: document.getElementById('createGroupButton'),
+            groupsContainer: document.getElementById('groups-container')
         };
         
         this.setupMessageHandlers();
+        this.setupGroupEventHandlers();
     }
     
     // Set up WebSocket message handlers
     setupMessageHandlers() {
+        // Use the client update callback instead of individual message handlers
+        this.websocketController.onClientUpdate((clients) => {
+            this.handleClientsUpdate(clients);
+        });
+        
+        // Also listen for specific connection/disconnection events if needed
         this.websocketController.onMessage('clientConnected', (data) => {
-            this.handleClientConnected(data);
+            console.log('Client connected event:', data);
         });
         
         this.websocketController.onMessage('clientDisconnected', (data) => {
-            this.handleClientDisconnected(data);
+            console.log('Client disconnected event:', data);
         });
+    }
+    
+    // Set up group UI event handlers
+    setupGroupEventHandlers() {
+        if (this.elements.createGroupButton) {
+            this.elements.createGroupButton.addEventListener('click', () => {
+                this.handleCreateGroup();
+            });
+        }
         
-        this.websocketController.onMessage('clients', (data) => {
-            this.handleClientsUpdate(data);
-        });
+        if (this.elements.groupNameInput) {
+            this.elements.groupNameInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    this.handleCreateGroup();
+                }
+            });
+        }
+    }
+    
+    // Handle create group button click
+    handleCreateGroup() {
+        const groupName = this.elements.groupNameInput?.value.trim();
+        if (groupName) {
+            const groupId = this.createGroup(groupName);
+            this.elements.groupNameInput.value = '';
+            this.updateGroupsUI();
+        }
     }
     
     // Handle client connected
@@ -50,10 +81,9 @@ export class ClientManager {
     }
     
     // Handle clients list update
-    handleClientsUpdate(data) {
-        if (data.clients) {
-            this.updateClientList(data.clients);
-        }
+    handleClientsUpdate(clients) {
+        // Clients is already an array from the websocket controller
+        this.updateClientList(clients);
     }
     
     // Add a client
@@ -103,7 +133,19 @@ export class ClientManager {
     // Update client list
     updateClientList(newClients) {
         console.log('updateClientList called with:', newClients);
-        this.clients = newClients || [];
+        
+        // Convert client objects to IDs if needed
+        this.clients = (newClients || []).map(client => {
+            if (typeof client === 'string') {
+                return client;
+            } else if (client && client.id) {
+                return client.id;
+            } else {
+                console.warn('Invalid client object:', client);
+                return null;
+            }
+        }).filter(id => id !== null);
+        
         this.updateClientCount();
         
         // Clear existing client display
@@ -121,6 +163,9 @@ export class ClientManager {
         }
         
         this.uiController.logMessage(`Updated client list: ${this.clients.length} clients`);
+        
+        // Update groups UI as well
+        this.updateGroupsUI();
     }
     
     // Add "no clients" card
@@ -141,11 +186,30 @@ export class ClientManager {
         if (!this.elements.clientsGrid) return;
         
         const shortId = clientId.substring(0, 8).toUpperCase();
+        const clientPitch = this.getClientPitch(clientId);
+        const octaveOffset = clientPitch ? clientPitch.octaveOffset : 0;
+        const semitoneOffset = clientPitch ? clientPitch.semitoneOffset : 0;
+        
         const clientCard = document.createElement('div');
         clientCard.className = 'client-card';
         clientCard.innerHTML = `
             <div class="client-id">${shortId}</div>
             <p>Connected</p>
+            
+            <div class="pitch-controls" style="margin: 8px 0; padding: 8px; background-color: #f5f5f5; border-radius: 4px;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                    <label style="font-size: 12px; min-width: 50px;">Octave:</label>
+                    <input type="range" class="octave-offset" data-client="${clientId}" min="-2" max="2" value="${octaveOffset}" step="1" style="flex: 1;">
+                    <span class="octave-value" style="font-size: 12px; min-width: 20px;">${octaveOffset > 0 ? '+' : ''}${octaveOffset}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <label style="font-size: 12px; min-width: 50px;">Fine:</label>
+                    <input type="range" class="semitone-offset" data-client="${clientId}" min="-12" max="12" value="${semitoneOffset}" step="1" style="flex: 1;">
+                    <span class="semitone-value" style="font-size: 12px; min-width: 20px;">${semitoneOffset > 0 ? '+' : ''}${semitoneOffset}</span>
+                </div>
+                <button class="button reset-pitch" data-client="${clientId}" style="font-size: 10px; padding: 2px 6px; margin-top: 4px;">Reset</button>
+            </div>
+            
             <button class="button sound" data-client="${clientId}" data-sound="sine">Sine</button>
             <button class="button sound" data-client="${clientId}" data-sound="square">Square</button>
             <button class="button sound" data-client="${clientId}" data-sound="sawtooth">Sawtooth</button>
@@ -161,6 +225,33 @@ export class ClientManager {
             });
         });
         
+        // Add event listeners to pitch controls
+        const octaveSlider = clientCard.querySelector('.octave-offset');
+        const octaveValue = clientCard.querySelector('.octave-value');
+        const semitoneSlider = clientCard.querySelector('.semitone-offset');
+        const semitoneValue = clientCard.querySelector('.semitone-value');
+        const resetButton = clientCard.querySelector('.reset-pitch');
+        
+        octaveSlider.addEventListener('input', (e) => {
+            const value = parseInt(e.target.value);
+            octaveValue.textContent = (value > 0 ? '+' : '') + value;
+            this.setClientPitch(clientId, value, parseInt(semitoneSlider.value));
+        });
+        
+        semitoneSlider.addEventListener('input', (e) => {
+            const value = parseInt(e.target.value);
+            semitoneValue.textContent = (value > 0 ? '+' : '') + value;
+            this.setClientPitch(clientId, parseInt(octaveSlider.value), value);
+        });
+        
+        resetButton.addEventListener('click', () => {
+            octaveSlider.value = 0;
+            semitoneSlider.value = 0;
+            octaveValue.textContent = '0';
+            semitoneValue.textContent = '0';
+            this.setClientPitch(clientId, 0, 0);
+        });
+        
         this.elements.clientsGrid.appendChild(clientCard);
     }
     
@@ -168,13 +259,8 @@ export class ClientManager {
     updateClientCount() {
         const count = this.clients.length;
         
-        if (this.elements.clientCount) {
-            this.elements.clientCount.textContent = count.toString();
-        }
-        
-        if (this.elements.clientCountStatus) {
-            this.elements.clientCountStatus.textContent = count.toString();
-        }
+        // Update the UI controller's client count displays
+        this.uiController.updateClientCount(count);
     }
     
     // Trigger sound on specific client
@@ -331,10 +417,143 @@ export class ClientManager {
     }
     
     // Set client pitch
-    setClientPitch(clientId, frequency) {
+    setClientPitch(clientId, octaveOffset, semitoneOffset) {
         this.clientPitches.set(clientId, {
-            frequency: frequency,
-            note: this.frequencyToNote(frequency)
+            octaveOffset: octaveOffset,
+            semitoneOffset: semitoneOffset
+        });
+    }
+    
+    // Update groups UI
+    updateGroupsUI() {
+        if (!this.elements.groupsContainer) return;
+        
+        // Clear existing groups
+        this.elements.groupsContainer.innerHTML = '';
+        
+        if (this.clientGroups.size === 0) {
+            // Show placeholder
+            this.elements.groupsContainer.innerHTML = `
+                <div class="group-placeholder" style="text-align: center; color: #666; padding: 20px; border: 2px dashed #ccc; border-radius: 8px;">
+                    No groups created yet. Create a group to organize your clients.
+                </div>
+            `;
+            return;
+        }
+        
+        // Add each group
+        for (const group of this.clientGroups.values()) {
+            this.addGroupElement(group);
+        }
+    }
+    
+    // Add group element to UI
+    addGroupElement(group) {
+        if (!this.elements.groupsContainer) return;
+        
+        const clientCount = group.clients.size;
+        const unassignedClients = Array.from(this.unassignedClients);
+        
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'group-card';
+        groupDiv.style.cssText = `
+            border: 1px solid #ddd; 
+            border-radius: 8px; 
+            padding: 15px; 
+            margin-bottom: 15px; 
+            background: ${group.muted ? '#ffeaea' : group.solo ? '#eaf7ff' : '#f9f9f9'};
+        `;
+        
+        groupDiv.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h4 style="margin: 0; color: ${group.muted ? '#d32f2f' : group.solo ? '#1976d2' : '#333'};">
+                    ${group.name} (${clientCount} client${clientCount !== 1 ? 's' : ''})
+                </h4>
+                <div style="display: flex; gap: 8px;">
+                    <button class="button group-mute-btn ${group.muted ? 'active' : ''}" 
+                            data-group-id="${group.id}" style="padding: 4px 8px; font-size: 12px;">
+                        ${group.muted ? 'Unmute' : 'Mute'}
+                    </button>
+                    <button class="button group-solo-btn ${group.solo ? 'active' : ''}" 
+                            data-group-id="${group.id}" style="padding: 4px 8px; font-size: 12px;">
+                        ${group.solo ? 'Unsolo' : 'Solo'}
+                    </button>
+                    <button class="button delete-group-btn" 
+                            data-group-id="${group.id}" style="padding: 4px 8px; font-size: 12px; background-color: #f44336;">
+                        Delete
+                    </button>
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 10px;">
+                <strong>Clients:</strong>
+                <div class="group-clients" style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px;">
+                    ${Array.from(group.clients).map(clientId => 
+                        `<span class="client-tag" style="background: #e0e0e0; padding: 2px 6px; border-radius: 4px; font-size: 11px;">
+                            ${clientId.substring(0, 8).toUpperCase()}
+                        </span>`
+                    ).join('')}
+                    ${clientCount === 0 ? '<span style="color: #999; font-style: italic;">No clients assigned</span>' : ''}
+                </div>
+            </div>
+            
+            ${unassignedClients.length > 0 ? `
+                <div style="margin-top: 10px;">
+                    <label style="font-size: 12px; font-weight: bold;">Add client to group:</label>
+                    <div style="display: flex; gap: 8px; margin-top: 5px;">
+                        <select class="add-client-select" data-group-id="${group.id}" style="flex: 1; font-size: 12px;">
+                            <option value="">Select a client...</option>
+                            ${unassignedClients.map(clientId => 
+                                `<option value="${clientId}">${clientId.substring(0, 8).toUpperCase()}</option>`
+                            ).join('')}
+                        </select>
+                        <button class="button add-client-btn" data-group-id="${group.id}" style="padding: 4px 8px; font-size: 12px;">Add</button>
+                    </div>
+                </div>
+            ` : ''}
+        `;
+        
+        // Add event listeners
+        this.setupGroupCardEventListeners(groupDiv, group);
+        
+        this.elements.groupsContainer.appendChild(groupDiv);
+    }
+    
+    // Setup group card event listeners
+    setupGroupCardEventListeners(groupDiv, group) {
+        // Mute button
+        const muteBtn = groupDiv.querySelector('.group-mute-btn');
+        muteBtn?.addEventListener('click', () => {
+            this.toggleGroupMute(group.id);
+            this.updateGroupsUI();
+        });
+        
+        // Solo button
+        const soloBtn = groupDiv.querySelector('.group-solo-btn');
+        soloBtn?.addEventListener('click', () => {
+            this.toggleGroupSolo(group.id);
+            this.updateGroupsUI();
+        });
+        
+        // Delete button
+        const deleteBtn = groupDiv.querySelector('.delete-group-btn');
+        deleteBtn?.addEventListener('click', () => {
+            if (confirm(`Delete group "${group.name}"?`)) {
+                this.deleteGroup(group.id);
+                this.updateGroupsUI();
+            }
+        });
+        
+        // Add client functionality
+        const addBtn = groupDiv.querySelector('.add-client-btn');
+        const addSelect = groupDiv.querySelector('.add-client-select');
+        
+        addBtn?.addEventListener('click', () => {
+            const clientId = addSelect?.value;
+            if (clientId) {
+                this.addClientToGroup(clientId, group.id);
+                this.updateGroupsUI();
+            }
         });
     }
 }

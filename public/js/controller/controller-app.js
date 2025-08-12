@@ -6,6 +6,9 @@ import { ChordController } from './chord-controller.js';
 import { ClientManager } from './client-manager.js';
 import { PatternController } from './pattern-controller.js';
 import { AudioController } from './audio-controller.js';
+import { ADSRVisualizer } from './adsr-visualizer.js';
+import { BPMController } from './bpm-controller.js';
+import { EffectsController } from './effects-controller.js';
 import { CONSTANTS } from '../shared/constants.js';
 
 export class ControllerApp {
@@ -17,10 +20,20 @@ export class ControllerApp {
         this.clientManager = null;
         this.patternController = null;
         this.audioController = null;
+        this.adsrVisualizer = null;
+        this.bpmController = null;
+        this.effectsController = null;
         this.isInitialized = false;
         
         // Make testClientSound globally available for UI
         window.controllerApp = this;
+        
+        // Make simulateTestClients available for debugging
+        window.simulateTestClients = () => {
+            if (this.websocketController) {
+                this.websocketController.simulateTestClients();
+            }
+        };
     }
     
     // Initialize the controller application
@@ -43,11 +56,26 @@ export class ControllerApp {
             this.patternController = new PatternController(this.websocketController, this.uiController, this.clientManager);
             this.audioController = new AudioController(this.websocketController, this.uiController);
             
+            // Make chord controller globally available for HTML onclick handlers
+            window.chordController = this.chordController;
+            
+            // Initialize ADSR visualizer
+            this.adsrVisualizer = new ADSRVisualizer();
+            window.adsrVisualizer = this.adsrVisualizer;
+            
+            // Initialize BPM controller (after metronome and chord controllers)
+            this.bpmController = new BPMController(this.metronomeController, this.chordController);
+            window.bpmController = this.bpmController;
+            
+            // Initialize effects controller
+            this.effectsController = new EffectsController();
+            window.effectsController = this.effectsController;
+            
             // Connect to server
             await this.connectToServer();
             
             // Initialize UI
-            this.uiController.initialize();
+            await this.uiController.initialize();
             
             this.isInitialized = true;
             this.uiController.logMessage('Echo Mesh Controller initialized successfully');

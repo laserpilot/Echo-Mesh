@@ -139,6 +139,20 @@ h2 {
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     margin-bottom: 20px;
+    color: #333;
+}
+
+.container h3 {
+    color: #2c3e50;
+    margin-top: 0;
+}
+
+.container p {
+    color: #555;
+}
+
+.container label {
+    color: #444;
 }
 
 .status {
@@ -726,12 +740,13 @@ select {
 }
 
 .group-volume-slider {
+    -webkit-appearance: none;
+    appearance: none;
     flex: 1;
     height: 4px;
     border-radius: 2px;
     background: #ddd;
     outline: none;
-    -webkit-appearance: none;
 }
 
 .group-volume-slider::-webkit-slider-thumb {
@@ -767,3 +782,278 @@ select {
 .group-card.percussion { border-left-color: #f44336; }
 .group-card.vocals { border-left-color: #9C27B0; }
 .group-card.custom { border-left-color: #607D8B; }
+
+/* Advanced Chord Progression Styles */
+.progression-mode {
+    margin-bottom: 15px;
+}
+
+.mode-button {
+    padding: 8px 16px;
+    border: 1px solid #ddd;
+    background-color: #f5f5f5;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.mode-button.active {
+    background-color: #9C27B0;
+    color: white;
+    border-color: #9C27B0;
+}
+
+.mode-button:hover:not(.active) {
+    background-color: #e0e0e0;
+    color: #333;
+}
+
+/* Custom Chord Builder */
+.chord-placeholder {
+    color: #999;
+    font-style: italic;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 40px;
+}
+
+.chord-button,
+.chord-select {
+    padding: 8px 12px;
+    border: 2px solid;
+    background-color: white;
+    cursor: pointer;
+    border-radius: 4px;
+    font-weight: bold;
+    transition: all 0.2s;
+    min-width: 50px;
+    text-align: center;
+}
+
+.chord-button.major,
+.chord-select.major {
+    border-color: #4CAF50;
+    color: #4CAF50;
+    background-color: #f8fff8;
+}
+
+.chord-button.major:hover,
+.chord-select.major:hover,
+.chord-select.major.selected {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.chord-button.minor,
+.chord-select.minor {
+    border-color: #2196F3;
+    color: #2196F3;
+    background-color: #f8fbff;
+}
+
+.chord-button.minor:hover,
+.chord-select.minor:hover,
+.chord-select.minor.selected {
+    background-color: #2196F3;
+    color: white;
+}
+
+.chord-button.diminished,
+.chord-select.diminished {
+    border-color: #F44336;
+    color: #F44336;
+    background-color: #fff8f8;
+}
+
+.chord-button.diminished:hover,
+.chord-select.diminished:hover,
+.chord-select.diminished.selected {
+    background-color: #F44336;
+    color: white;
+}
+
+.chord-select.rest {
+    border-color: #666;
+    color: #666;
+}
+
+.chord-select.rest:hover,
+.chord-select.rest.selected {
+    background-color: #666;
+    color: white;
+}
+
+.custom-chord-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background-color: #e8f4f8;
+    border-radius: 4px;
+    border-left: 4px solid #2196F3;
+}
+
+.custom-chord-item .chord-name {
+    font-weight: bold;
+    color: #1976D2;
+}
+
+.custom-chord-item .remove-chord {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    line-height: 1;
+}
+
+.custom-chord-item .remove-chord:hover {
+    background-color: #d32f2f;
+}
+
+/* Step Sequencer */
+.sequencer-step {
+    width: 40px;
+    height: 40px;
+    border: 2px solid #ddd;
+    background-color: white;
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+.sequencer-step:hover {
+    border-color: #9C27B0;
+}
+
+.sequencer-step.active {
+    background-color: #9C27B0;
+    color: white;
+    border-color: #9C27B0;
+}
+
+.sequencer-step.current {
+    box-shadow: 0 0 10px #FF9800;
+    border-color: #FF9800;
+}
+
+/* Progression Visualization */
+.progression-chord-display {
+    padding: 10px 15px;
+    background-color: #e8f4f8;
+    border-radius: 6px;
+    border-left: 4px solid #2196F3;
+    font-weight: bold;
+    color: #1976D2;
+    transition: all 0.3s;
+}
+
+.progression-chord-display.current {
+    background-color: #9C27B0;
+    color: white;
+    border-left-color: #9C27B0;
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(156, 39, 176, 0.3);
+}
+
+/* Pattern Queue */
+.pattern-queue-item {
+    padding: 8px 12px;
+    background-color: #f8e8f8;
+    border-radius: 4px;
+    border-left: 4px solid #9C27B0;
+    color: #7B1FA2;
+    font-weight: bold;
+    position: relative;
+    cursor: pointer;
+}
+
+.pattern-queue-item:hover {
+    background-color: #f3e5f5;
+}
+
+.pattern-queue-item.current {
+    background-color: #9C27B0;
+    color: white;
+}
+
+.pattern-queue-item .remove-pattern {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: currentColor;
+    cursor: pointer;
+    font-size: 16px;
+    opacity: 0.7;
+}
+
+.pattern-queue-item .remove-pattern:hover {
+    opacity: 1;
+}
+
+/* Unified Range Input Styling */
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    background: #ddd;
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: #2196F3;
+    cursor: pointer;
+    border-radius: 50%;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: #2196F3;
+    cursor: pointer;
+    border-radius: 50%;
+    border: none;
+}
+
+/* Timing Controls Specific Styling */
+#timingControls input[type="range"]::-webkit-slider-thumb {
+    background: #1976D2;
+}
+
+#timingControls input[type="range"]::-moz-range-thumb {
+    background: #1976D2;
+}
+
+/* Pattern Chaining Specific Styling */
+#patternChaining input[type="range"]::-webkit-slider-thumb {
+    background: #7B1FA2;
+}
+
+#patternChaining input[type="range"]::-moz-range-thumb {
+    background: #7B1FA2;
+}

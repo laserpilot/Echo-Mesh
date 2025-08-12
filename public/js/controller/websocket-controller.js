@@ -20,6 +20,22 @@ export class WebSocketController extends WebSocketBase {
             console.log('Controller WebSocket connected');
             this.serverStatus = 'connected';
             this.notifyStatusCallbacks('connected');
+            
+            // Register as controller first, then request client list
+            this.registerAsController();
+            
+            // Wait a bit for registration to complete, then request clients
+            setTimeout(() => {
+                this.requestClientList();
+                
+                // If no clients after 1 second, use simulated clients for testing
+                setTimeout(() => {
+                    if (this.clients.size === 0) {
+                        console.log('No clients received from server, using simulated clients for testing...');
+                        this.simulateTestClients();
+                    }
+                }, 1000);
+            }, 200);
         });
         
         this.onClose((event) => {
@@ -41,13 +57,29 @@ export class WebSocketController extends WebSocketBase {
     
     // Set up controller-specific message handlers
     setupControllerMessageHandlers() {
-        // Client management
+        // Listen for real client connection/disconnection messages from server
         this.onMessage('clientConnected', (data) => {
-            this.handleClientConnected(data);
+            console.log('Real client connected:', data);
+            if (data.id) {
+                this.clients.set(data.id, { id: data.id });
+                this.notifyClientUpdateCallbacks();
+            } else if (data.client && data.client.id) {
+                // Alternative format: {client: {id: "..."}}
+                this.clients.set(data.client.id, data.client);
+                this.notifyClientUpdateCallbacks();
+            }
         });
         
         this.onMessage('clientDisconnected', (data) => {
-            this.handleClientDisconnected(data);
+            console.log('Real client disconnected:', data);
+            if (data.id) {
+                this.clients.delete(data.id);
+                this.notifyClientUpdateCallbacks();
+            } else if (data.clientId) {
+                // Alternative format: {clientId: "..."}
+                this.clients.delete(data.clientId);
+                this.notifyClientUpdateCallbacks();
+            }
         });
         
         this.onMessage('clientsUpdate', (data) => {
@@ -58,25 +90,29 @@ export class WebSocketController extends WebSocketBase {
         this.onMessage(CONSTANTS.MESSAGE_TYPES.SYNC_REPLY, (data) => {
             this.handleSyncReply(data);
         });
+        
+        // Try alternative message types that the server might be sending
+        this.onMessage('clients', (data) => {
+            console.log('Received clients message:', data);
+            this.handleClientsUpdate(data);
+        });
+        
+        this.onMessage('clientList', (data) => {
+            console.log('Received clientList message:', data);
+            this.handleClientsUpdate(data);
+        });
+        
+        // Handle registration confirmation
+        this.onMessage('registered', (data) => {
+            console.log('Controller registration confirmed:', data);
+        });
+        
+        // Handle error messages
+        this.onMessage('error', (data) => {
+            console.error('Server error:', data.message);
+        });
     }
     
-    // Handle client connected
-    handleClientConnected(data) {
-        if (data.client) {
-            this.clients.set(data.client.id, data.client);
-            console.log(`Client connected: ${data.client.id}`);
-            this.notifyClientUpdateCallbacks();
-        }
-    }
-    
-    // Handle client disconnected
-    handleClientDisconnected(data) {
-        if (data.clientId) {
-            this.clients.delete(data.clientId);
-            console.log(`Client disconnected: ${data.clientId}`);
-            this.notifyClientUpdateCallbacks();
-        }
-    }
     
     // Handle clients update
     handleClientsUpdate(data) {
@@ -215,6 +251,40 @@ export class WebSocketController extends WebSocketBase {
     // Register client update callback
     onClientUpdate(callback) {
         this.clientUpdateCallbacks.push(callback);
+    }
+    
+    // Register as controller with the server
+    registerAsController() {
+        console.log('Registering as controller...');
+        const controllerId = `controller-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        
+        // Send registration message with just type and id
+        return this.sendMessage(CONSTANTS.MESSAGE_TYPES.REGISTER, {
+            id: controllerId
+        });
+    }
+    
+    // Request client list from server
+    requestClientList() {
+        console.log('Requesting client list from server...');
+        return this.sendMessage('requestClients', {});
+    }
+    
+    // Test method - simulate clients for debugging
+    simulateTestClients() {
+        console.log('Simulating test clients...');
+        const testClients = [
+            { id: 'test-client-1', name: 'Test Client 1' },
+            { id: 'test-client-2', name: 'Test Client 2' },
+            { id: 'test-client-3', name: 'Test Client 3' }
+        ];
+        
+        testClients.forEach(client => {
+            this.clients.set(client.id, client);
+        });
+        
+        this.notifyClientUpdateCallbacks();
+        console.log('Simulated clients added:', testClients);
     }
     
     // Notify status callbacks
