@@ -227,7 +227,7 @@ export class ClientApp {
     // Handle trigger sound message
     async handleTriggerSound(data) {
         this.logMessage(`Triggering ${data.sound} sound immediately`);
-        await this.audioEngine.playSound(data.sound, data.frequency || null, 0);
+        await this.audioEngine.playSound(data.sound, data.frequency || null, 0, null, data.lfo, 0, data.effects);
     }
     
     // Handle scheduled note message
@@ -250,12 +250,12 @@ export class ClientApp {
         if (this.syncManager.isStaleTime(data.playTime, 10)) {
             this.logMessage(`Stale note received. Scheduled for ${delay.toFixed(2)}ms in the past.`);
             // Play immediately for very late notes
-            await this.audioEngine.playSound(data.sound, data.frequency, 0, data.adsr, data.lfo, data.pan);
+            await this.audioEngine.playSound(data.sound, data.frequency, 0, data.adsr, data.lfo, data.pan, data.effects);
         } else {
             // Schedule the sound
             const audioTime = this.syncManager.serverTimeToAudioTime(data.playTime, this.audioEngine.audioContext);
             this.logMessage(`Scheduled note ${data.sound} at ${audioTime.toFixed(2)} (in ${delay.toFixed(2)}ms)`);
-            await this.audioEngine.playSound(data.sound, data.frequency, audioTime, data.adsr, data.lfo, data.pan);
+            await this.audioEngine.playSound(data.sound, data.frequency, audioTime, data.adsr, data.lfo, data.pan, data.effects);
         }
     }
     

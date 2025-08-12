@@ -8,7 +8,8 @@ export class EffectsController {
         this.elements = {
             effectsChainDisplay: document.getElementById('effectsChainDisplay'),
             clearEffectsChain: document.getElementById('clearEffectsChain'),
-            bypassAllEffects: document.getElementById('bypassAllEffects')
+            bypassAllEffects: document.getElementById('bypassAllEffects'),
+            previewEffectsChain: document.getElementById('previewEffectsChain')
         };
         
         // Default effect parameters
@@ -47,6 +48,13 @@ export class EffectsController {
         if (this.elements.bypassAllEffects) {
             this.elements.bypassAllEffects.addEventListener('click', () => {
                 this.toggleBypassAll();
+            });
+        }
+        
+        // Preview effects chain button
+        if (this.elements.previewEffectsChain) {
+            this.elements.previewEffectsChain.addEventListener('click', () => {
+                this.previewEffectsChain();
             });
         }
     }
@@ -192,6 +200,224 @@ export class EffectsController {
             message.effects = activeEffects;
         }
         return message;
+    }
+    
+    // Preview effects chain with local audio
+    previewEffectsChain() {
+        // Create a temporary Web Audio context for preview
+        if (!window.AudioContext && !window.webkitAudioContext) {
+            console.warn('Web Audio API not supported');
+            return;
+        }
+        
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const duration = 2.0; // 2 second preview
+        
+        try {
+            // Create oscillator for preview tone
+            const oscillator = audioContext.createOscillator();
+            oscillator.type = 'sine';
+            oscillator.frequency.value = 440; // A4
+            
+            // Create gain node
+            const gainNode = audioContext.createGain();
+            gainNode.gain.value = 0.3;
+            
+            // Apply effects chain
+            let effectsChain = this.createEffectsChain(audioContext, gainNode);
+            
+            // Connect to output
+            oscillator.connect(gainNode);
+            effectsChain.connect(audioContext.destination);
+            
+            // Play preview
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
+            
+            // Clean up after preview
+            setTimeout(() => {
+                audioContext.close();
+            }, duration * 1000 + 100);
+            
+            console.log('Playing effects chain preview...');
+            
+        } catch (error) {
+            console.error('Failed to preview effects:', error);
+            audioContext.close();
+        }
+    }
+    
+    // Create effects chain for Web Audio context
+    createEffectsChain(audioContext, inputNode) {
+        let currentNode = inputNode;
+        
+        // Apply each effect in the chain
+        this.effectsChain.forEach(effect => {
+            if (!effect.enabled) return;
+            
+            try {
+                currentNode = this.createEffect(audioContext, effect, currentNode);
+            } catch (error) {
+                console.warn(`Failed to create effect ${effect.type}:`, error);
+            }
+        });
+        
+        return currentNode;
+    }
+    
+    // Create a specific effect node
+    createEffect(audioContext, effect, inputNode) {
+        const params = effect.parameters;
+        
+        switch (effect.type) {
+            case 'reverb':
+                return this.createReverbEffect(audioContext, inputNode, params);
+                
+            case 'delay':
+                return this.createDelayEffect(audioContext, inputNode, params);
+                
+            case 'filter':
+                return this.createFilterEffect(audioContext, inputNode, params);
+                
+            case 'distortion':
+                return this.createDistortionEffect(audioContext, inputNode, params);
+                
+            case 'compressor':
+                return this.createCompressorEffect(audioContext, inputNode, params);
+                
+            case 'eq':
+                return this.createEQEffect(audioContext, inputNode, params);
+                
+            default:
+                console.warn(`Effect ${effect.type} not implemented for preview`);
+                return inputNode;
+        }
+    }
+    
+    // Create reverb effect (simplified)
+    createReverbEffect(audioContext, inputNode, params) {
+        const convolver = audioContext.createConvolver();
+        const wetGain = audioContext.createGain();
+        const dryGain = audioContext.createGain();
+        const output = audioContext.createGain();
+        
+        // Create simple impulse response
+        const sampleRate = audioContext.sampleRate;
+        const length = sampleRate * (params.roomSize || 0.3);
+        const impulse = audioContext.createBuffer(2, length, sampleRate);
+        
+        for (let channel = 0; channel < 2; channel++) {
+            const channelData = impulse.getChannelData(channel);
+            for (let i = 0; i < length; i++) {
+                channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2);
+            }
+        }
+        
+        convolver.buffer = impulse;
+        
+        wetGain.gain.value = params.wetGain || 0.2;
+        dryGain.gain.value = 1 - (params.wetGain || 0.2);
+        
+        inputNode.connect(convolver);
+        inputNode.connect(dryGain);
+        convolver.connect(wetGain);
+        wetGain.connect(output);
+        dryGain.connect(output);
+        
+        return output;
+    }
+    
+    // Create delay effect
+    createDelayEffect(audioContext, inputNode, params) {
+        const delay = audioContext.createDelay();
+        const feedback = audioContext.createGain();
+        const wetGain = audioContext.createGain();
+        const dryGain = audioContext.createGain();
+        const output = audioContext.createGain();
+        
+        delay.delayTime.value = params.delayTime || 0.25;
+        feedback.gain.value = params.feedback || 0.3;
+        wetGain.gain.value = params.wetGain || 0.2;
+        dryGain.gain.value = 1 - (params.wetGain || 0.2);
+        
+        inputNode.connect(delay);
+        inputNode.connect(dryGain);
+        delay.connect(feedback);
+        delay.connect(wetGain);
+        feedback.connect(delay);
+        wetGain.connect(output);
+        dryGain.connect(output);
+        
+        return output;
+    }
+    
+    // Create filter effect
+    createFilterEffect(audioContext, inputNode, params) {
+        const filter = audioContext.createBiquadFilter();
+        filter.type = params.type || 'lowpass';
+        filter.frequency.value = params.frequency || 1000;
+        filter.Q.value = params.resonance || 1;
+        
+        inputNode.connect(filter);
+        return filter;
+    }
+    
+    // Create distortion effect (simplified)
+    createDistortionEffect(audioContext, inputNode, params) {
+        const waveshaper = audioContext.createWaveShaper();
+        const amount = params.amount || 0.3;
+        const samples = 44100;
+        const curve = new Float32Array(samples);
+        
+        for (let i = 0; i < samples; i++) {
+            const x = (i * 2) / samples - 1;
+            curve[i] = (3 + amount) * x * 20 * Math.PI / 180 / (Math.PI + amount * Math.abs(x));
+        }
+        
+        waveshaper.curve = curve;
+        waveshaper.oversample = '4x';
+        
+        inputNode.connect(waveshaper);
+        return waveshaper;
+    }
+    
+    // Create compressor effect
+    createCompressorEffect(audioContext, inputNode, params) {
+        const compressor = audioContext.createDynamicsCompressor();
+        compressor.threshold.value = params.threshold || -24;
+        compressor.knee.value = 30;
+        compressor.ratio.value = params.ratio || 3;
+        compressor.attack.value = params.attack || 0.01;
+        compressor.release.value = params.release || 0.1;
+        
+        inputNode.connect(compressor);
+        return compressor;
+    }
+    
+    // Create EQ effect (3-band)
+    createEQEffect(audioContext, inputNode, params) {
+        const lowShelf = audioContext.createBiquadFilter();
+        const midPeaking = audioContext.createBiquadFilter();
+        const highShelf = audioContext.createBiquadFilter();
+        
+        lowShelf.type = 'lowshelf';
+        lowShelf.frequency.value = params.lowFreq || 320;
+        lowShelf.gain.value = params.lowGain || 0;
+        
+        midPeaking.type = 'peaking';
+        midPeaking.frequency.value = 1000;
+        midPeaking.Q.value = 1;
+        midPeaking.gain.value = params.midGain || 0;
+        
+        highShelf.type = 'highshelf';
+        highShelf.frequency.value = params.highFreq || 3200;
+        highShelf.gain.value = params.highGain || 0;
+        
+        inputNode.connect(lowShelf);
+        lowShelf.connect(midPeaking);
+        midPeaking.connect(highShelf);
+        
+        return highShelf;
     }
 }
 

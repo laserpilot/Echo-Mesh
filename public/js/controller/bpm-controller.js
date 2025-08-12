@@ -87,12 +87,9 @@ export class BPMController {
             this.elements.sequencerBpm.value = this.masterBpm;
         }
         
-        // Update chord duration (convert BPM to milliseconds per chord)
-        // Assuming 1 chord per beat for now
-        const chordDurationMs = Math.round(60000 / this.masterBpm);
-        if (this.elements.chordDuration) {
-            this.elements.chordDuration.value = chordDurationMs;
-        }
+        // Note: Chord duration is now handled by musical note values
+        // The chord controller will calculate actual milliseconds based on BPM
+        // No need to update chordDuration element here as it's now musical notation
     }
     
     propagateBPMToControllers() {
@@ -108,6 +105,11 @@ export class BPMController {
         // Update chord controller BPM
         if (this.chordController) {
             this.chordController.state.bpm = this.masterBpm;
+            
+            // Update chord duration display with new BPM
+            if (typeof this.chordController.updateChordDurationDisplay === 'function') {
+                this.chordController.updateChordDurationDisplay();
+            }
             
             // If chord progression is running, restart with new tempo
             if (this.chordController.state.isRunning) {

@@ -121,7 +121,9 @@ export class AudioController {
             lfoEnabled: document.getElementById('lfoEnabled'),
             lfoType: document.getElementById('lfoType'),
             lfoRate: document.getElementById('lfoRate'),
+            lfoRateSlider: document.getElementById('lfoRateSlider'),
             lfoDepth: document.getElementById('lfoDepth'),
+            lfoDepthSlider: document.getElementById('lfoDepthSlider'),
             lfoTarget: document.getElementById('lfoTarget'),
             lfoVisualization: document.getElementById('lfoVisualization'),
             lfoIndicator: document.getElementById('lfoIndicator')
@@ -170,10 +172,22 @@ export class AudioController {
         });
         
         this.elements.lfoRate?.addEventListener('input', () => {
+            this.syncSliderToInput('lfoRate', 'lfoRateSlider');
+            this.updateLFOState();
+        });
+        
+        this.elements.lfoRateSlider?.addEventListener('input', () => {
+            this.syncInputToSlider('lfoRateSlider', 'lfoRate');
             this.updateLFOState();
         });
         
         this.elements.lfoDepth?.addEventListener('input', () => {
+            this.syncSliderToInput('lfoDepth', 'lfoDepthSlider');
+            this.updateLFOState();
+        });
+        
+        this.elements.lfoDepthSlider?.addEventListener('input', () => {
+            this.syncInputToSlider('lfoDepthSlider', 'lfoDepth');
             this.updateLFOState();
         });
         
@@ -187,6 +201,24 @@ export class AudioController {
         window.removeEffect = (effectId) => this.removeEffect(effectId);
         window.toggleEffectBypass = (effectId) => this.toggleEffectBypass(effectId);
         window.updateEffectParameter = (effectId, paramKey, value) => this.updateEffectParameter(effectId, paramKey, value);
+    }
+    
+    // Sync slider to input value
+    syncSliderToInput(inputId, sliderId) {
+        const input = this.elements[inputId];
+        const slider = this.elements[sliderId];
+        if (input && slider) {
+            slider.value = input.value;
+        }
+    }
+    
+    // Sync input to slider value
+    syncInputToSlider(sliderId, inputId) {
+        const slider = this.elements[sliderId];
+        const input = this.elements[inputId];
+        if (slider && input) {
+            input.value = slider.value;
+        }
     }
     
     // Add effect to chain

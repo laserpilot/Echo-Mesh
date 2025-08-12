@@ -137,25 +137,49 @@ export class WebSocketController extends WebSocketBase {
     }
     
     // Send command to trigger sound on specific clients
-    triggerSound(clientIds, soundType, frequency = null) {
-        return this.sendMessage('triggerSound', {
+    triggerSound(clientIds, soundType, frequency = null, lfoConfig = null, effectsConfig = null) {
+        const message = {
             clients: Array.isArray(clientIds) ? clientIds : [clientIds],
             sound: soundType,
             frequency: frequency
-        });
+        };
+        
+        // Add LFO configuration if provided
+        if (lfoConfig && lfoConfig.enabled) {
+            message.lfo = lfoConfig;
+        }
+        
+        // Add effects configuration if provided  
+        if (effectsConfig && effectsConfig.chain && effectsConfig.chain.length > 0) {
+            message.effects = effectsConfig;
+        }
+        
+        return this.sendMessage('triggerSound', message);
     }
     
     // Send command to trigger sound on all clients
-    triggerSoundAll(soundType, frequency = null) {
-        return this.sendMessage('triggerSoundAll', {
+    triggerSoundAll(soundType, frequency = null, lfoConfig = null, effectsConfig = null) {
+        const message = {
             sound: soundType,
             frequency: frequency
-        });
+        };
+        
+        // Add LFO configuration if provided
+        if (lfoConfig && lfoConfig.enabled) {
+            message.lfo = lfoConfig;
+        }
+        
+        // Add effects configuration if provided  
+        if (effectsConfig && effectsConfig.chain && effectsConfig.chain.length > 0) {
+            message.effects = effectsConfig;
+        }
+        
+        return this.sendMessage('triggerSoundAll', message);
     }
     
     // Schedule a note to be played
-    scheduleNote(clientIds, soundType, frequency, playTime, adsr = null, lfo = null, pan = 0) {
-        return this.sendMessage('scheduleNote', {
+    scheduleNote(clientIds, soundType, frequency, playTime, adsr = null, lfo = null, pan = 0, effectsConfig = null) {
+        const message = {
             clients: Array.isArray(clientIds) ? clientIds : [clientIds],
             sound: soundType,
             frequency: frequency,
@@ -163,7 +187,14 @@ export class WebSocketController extends WebSocketBase {
             adsr: adsr || CONSTANTS.AUDIO.DEFAULT_ADSR,
             lfo: lfo || CONSTANTS.AUDIO.DEFAULT_LFO,
             pan: pan
-        });
+        };
+        
+        // Add effects configuration if provided  
+        if (effectsConfig && effectsConfig.chain && effectsConfig.chain.length > 0) {
+            message.effects = effectsConfig;
+        }
+        
+        return this.sendMessage('scheduleNote', message);
     }
     
     // Start metronome

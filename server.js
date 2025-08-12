@@ -252,7 +252,7 @@ const applyArpeggioPattern = (chordNotes, pattern = 'chord') => {
 };
 
 // Start chord progression playback
-const startChordProgression = (progressionName, bpm = 120, settings = {}) => {
+const startChordProgression = (progressionName, bpm = 120, settings = {}, lfo = null, effects = null) => {
   console.log(`Starting chord progression: ${progressionName} at ${bpm} BPM`);
   
   // Stop any existing progression
@@ -273,7 +273,8 @@ const startChordProgression = (progressionName, bpm = 120, settings = {}) => {
     settings: {
       key: settings.key || 'C',
       octave: settings.octave || 4,
-      chordDuration: settings.chordDuration || 4000,
+      chordDuration: settings.chordDuration || 'whole',
+      chordDurationMs: settings.chordDurationMs || 4000,
       arpeggio: settings.arpeggio || 'chord',
       subdivision: settings.subdivision || '8n',
       swing: settings.swing || 0,
@@ -283,13 +284,15 @@ const startChordProgression = (progressionName, bpm = 120, settings = {}) => {
       humanization: settings.humanization || 0,
       ...settings
     },
+    lfo: lfo,
+    effects: effects,
     currentChordIndex: 0,
     startTime: performance.now(),
     interval: null
   };
   
-  // Calculate chord duration from BPM (assuming 1 chord per beat)
-  const chordDurationMs = chordProgressionState.settings.chordDuration;
+  // Use the calculated chord duration in milliseconds
+  const chordDurationMs = chordProgressionState.settings.chordDurationMs;
   
   // Play first chord immediately
   playCurrentChord();
@@ -392,7 +395,7 @@ const playCurrentChord = () => {
       const baseVelocity = applyVelocityCurve(index, arpeggioNotes.length, velocity);
       const { time, velocity: finalVelocity } = applyHumanization(baseTime, baseVelocity, humanization);
       
-      sendToClient(clientId, {
+      const message = {
         type: 'scheduleNote',
         sound: 'sine',
         frequency: note.frequency,
@@ -403,10 +406,17 @@ const playCurrentChord = () => {
           sustain: (adsr?.sustain || 0.5) * finalVelocity, 
           release: adsr?.release || 1.0 
         },
-        lfo: { type: 'sine', rate: 5, depth: 0, target: 'vibrato' },
+        lfo: chordProgressionState.lfo || { type: 'sine', rate: 5, depth: 0, target: 'vibrato' },
         pan: 0,
         velocity: finalVelocity
-      });
+      };
+      
+      // Add effects if provided
+      if (chordProgressionState.effects) {
+        message.effects = chordProgressionState.effects;
+      }
+      
+      sendToClient(clientId, message);
     });
   } else {
     // Play arpeggio with advanced timing
@@ -417,7 +427,7 @@ const playCurrentChord = () => {
       const baseVelocity = applyVelocityCurve(index, arpeggioNotes.length, velocity);
       const { time: finalTime, velocity: finalVelocity } = applyHumanization(swingTime, baseVelocity, humanization);
       
-      sendToClient(clientId, {
+      const message = {
         type: 'scheduleNote',
         sound: 'sine',
         frequency: note.frequency,
@@ -428,10 +438,17 @@ const playCurrentChord = () => {
           sustain: (adsr?.sustain || 0.3) * finalVelocity, 
           release: adsr?.release || 0.5 
         },
-        lfo: { type: 'sine', rate: 5, depth: 0, target: 'vibrato' },
+        lfo: chordProgressionState.lfo || { type: 'sine', rate: 5, depth: 0, target: 'vibrato' },
         pan: 0,
         velocity: finalVelocity
-      });
+      };
+      
+      // Add effects if provided
+      if (chordProgressionState.effects) {
+        message.effects = chordProgressionState.effects;
+      }
+      
+      sendToClient(clientId, message);
     });
   }
   
@@ -475,7 +492,7 @@ const resumeChordProgression = () => {
   }
   
   chordProgressionState.isRunning = true;
-  const chordDurationMs = chordProgressionState.settings.chordDuration;
+  const chordDurationMs = chordProgressionState.settings.chordDurationMs;
   
   // Resume from current position
   chordProgressionState.interval = setInterval(() => {
@@ -663,20 +680,32 @@ const createMessageHandler = (clientId) => (message) => {
         // Handle both old format (single clientId) and new format (clients array)
         if (data.clientId) {
           // Legacy format: {clientId: "...", sound: "..."}
-          sendToClient(data.clientId, {
+          const message = {
             type: 'triggerSound',
             sound: data.sound,
             frequency: data.frequency
-          });
+          };
+          
+          // Add LFO and effects if provided
+          if (data.lfo) message.lfo = data.lfo;
+          if (data.effects) message.effects = data.effects;
+          
+          sendToClient(data.clientId, message);
         } else if (data.clients && Array.isArray(data.clients)) {
           // New format: {clients: ["...", "..."], sound: "..."}
           console.log(`Triggering sound ${data.sound} on ${data.clients.length} specific clients`);
           data.clients.forEach(clientId => {
-            sendToClient(clientId, {
+            const message = {
               type: 'triggerSound',
               sound: data.sound,
               frequency: data.frequency
-            });
+            };
+            
+            // Add LFO and effects if provided
+            if (data.lfo) message.lfo = data.lfo;
+            if (data.effects) message.effects = data.effects;
+            
+            sendToClient(clientId, message);
           });
         }
         break;
@@ -685,7 +714,7 @@ const createMessageHandler = (clientId) => (message) => {
         // Handle both old format (single clientId) and new format (clients array)
         if (data.clientId) {
           // Legacy format: {clientId: "...", ...}
-          sendToClient(data.clientId, {
+          const message = {
             type: 'scheduleNote',
             sound: data.sound,
             frequency: data.frequency,
@@ -693,12 +722,17 @@ const createMessageHandler = (clientId) => (message) => {
             adsr: data.adsr,
             lfo: data.lfo,
             pan: data.pan
-          });
+          };
+          
+          // Add effects if provided
+          if (data.effects) message.effects = data.effects;
+          
+          sendToClient(data.clientId, message);
         } else if (data.clients && Array.isArray(data.clients)) {
           // New format: {clients: ["...", "..."], ...}
           console.log(`Scheduling note ${data.sound} for ${data.clients.length} specific clients`);
           data.clients.forEach(clientId => {
-            sendToClient(clientId, {
+            const message = {
               type: 'scheduleNote',
               sound: data.sound,
               frequency: data.frequency,
@@ -706,7 +740,12 @@ const createMessageHandler = (clientId) => (message) => {
               adsr: data.adsr,
               lfo: data.lfo,
               pan: data.pan
-            });
+            };
+            
+            // Add effects if provided
+            if (data.effects) message.effects = data.effects;
+            
+            sendToClient(clientId, message);
           });
         }
         break;
@@ -784,11 +823,17 @@ const createMessageHandler = (clientId) => (message) => {
         const allClientIds = getClientIds();
         console.log(`Triggering sound ${data.sound} on all ${allClientIds.length} clients`);
         allClientIds.forEach(id => {
-          sendToClient(id, {
+          const message = {
             type: 'triggerSound',
             sound: data.sound,
             frequency: data.frequency
-          });
+          };
+          
+          // Add LFO and effects if provided
+          if (data.lfo) message.lfo = data.lfo;
+          if (data.effects) message.effects = data.effects;
+          
+          sendToClient(id, message);
         });
         break;
 
@@ -829,7 +874,7 @@ const createMessageHandler = (clientId) => (message) => {
 
       case 'startChordProgression':
         // Handle chord progression start with full server-side logic
-        const success = startChordProgression(data.progression, data.bpm, data.settings);
+        const success = startChordProgression(data.progression, data.bpm, data.settings, data.lfo, data.effects);
         
         if (success) {
           // Broadcast to controllers for UI updates

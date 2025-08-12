@@ -257,12 +257,20 @@
                         <div>
                             <label for="chordDuration">Chord Duration:</label>
                             <select id="chordDuration" style="width: 100%;">
-                                <option value="1000">1 second</option>
-                                <option value="2000">2 seconds</option>
-                                <option value="4000" selected>4 seconds</option>
-                                <option value="6000">6 seconds</option>
-                                <option value="8000">8 seconds</option>
+                                <option value="sixteenth">Sixteenth Note (1/16)</option>
+                                <option value="eighth">Eighth Note (1/8)</option>
+                                <option value="quarter">Quarter Note (1/4)</option>
+                                <option value="half">Half Note (1/2)</option>
+                                <option value="whole" selected>Whole Note (1/1)</option>
+                                <option value="double">Double Whole Note (2/1)</option>
+                                <option value="dotted-quarter">Dotted Quarter (3/8)</option>
+                                <option value="dotted-half">Dotted Half (3/4)</option>
+                                <option value="triplet-quarter">Quarter Triplet (1/6)</option>
+                                <option value="triplet-eighth">Eighth Triplet (1/12)</option>
                             </select>
+                            <small id="chordDurationDisplay" style="color: #666; display: block; margin-top: 4px;">
+                                Duration: Calculating...
+                            </small>
                         </div>
                         
                         <div>
@@ -665,6 +673,7 @@
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                         <label><strong>Active Effects Chain:</strong></label>
                         <div style="display: flex; gap: 10px;">
+                            <button id="previewEffectsChain" class="button" style="background-color: #4CAF50; padding: 6px 12px; font-size: 14px;">🔊 Preview Sound</button>
                             <button id="clearEffectsChain" class="button" style="background-color: #ff9800; padding: 6px 12px; font-size: 14px;">Clear All</button>
                             <button id="bypassAllEffects" class="button" style="background-color: #9E9E9E; padding: 6px 12px; font-size: 14px;">Bypass All</button>
                         </div>
@@ -729,6 +738,77 @@
                 </div>
                 <div id="sequencer-grid" style="margin-top: 10px; overflow-x: auto;"></div>
             </div>
+
+            <div class="container">
+                <h3>🎹 MIDI File Playback</h3>
+                
+                <!-- File Input Section -->
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+                        <label class="file-input-label" for="midiFileInput" style="cursor: pointer; padding: 8px 16px; background-color: #2196F3; color: white; border-radius: 4px; font-size: 14px;">
+                            📁 Choose MIDI File
+                        </label>
+                        <input type="file" id="midiFileInput" accept=".mid,.midi" style="display: none;">
+                        <div id="midiFileInfo" style="flex: 1; font-size: 14px; color: #666;">
+                            No file selected
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Playback Controls -->
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+                        <button id="playMidiButton" class="button" disabled style="background-color: #4CAF50;">▶️ Play</button>
+                        <button id="pauseMidiButton" class="button" disabled style="background-color: #FF9800;">⏸️ Pause</button>
+                        <button id="stopMidiButton" class="button" disabled style="background-color: #f44336;">⏹️ Stop</button>
+                        
+                        <div style="flex: 1; margin: 0 15px;">
+                            <div style="height: 6px; background-color: #ddd; border-radius: 3px; position: relative; overflow: hidden;">
+                                <div id="midiPlaybackProgress" style="height: 100%; background-color: #4CAF50; width: 0%; transition: width 0.1s;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MIDI Settings -->
+                <div style="margin-bottom: 20px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div>
+                            <label for="midiDistributionStrategy"><strong>Distribution Strategy:</strong></label>
+                            <select id="midiDistributionStrategy" style="width: 100%;">
+                                <option value="round-robin">Round Robin - Even distribution</option>
+                                <option value="track-based">Track Based - Each track to different clients</option>
+                                <option value="frequency-based">Frequency Based - High/low split</option>
+                                <option value="random">Random - Random assignment</option>
+                                <option value="mono">Mono - All to one client</option>
+                            </select>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div>
+                                <label for="midiTempoSlider">Tempo:</label>
+                                <input type="range" id="midiTempoSlider" min="25" max="200" value="100" style="width: 100%;">
+                                <span id="midiTempoValue" style="font-size: 12px; color: #666;">100%</span>
+                            </div>
+                            <div>
+                                <label for="midiVolumeSlider">Volume:</label>
+                                <input type="range" id="midiVolumeSlider" min="0" max="100" value="80" style="width: 100%;">
+                                <span id="midiVolumeValue" style="font-size: 12px; color: #666;">80%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Track List -->
+                <div style="margin-bottom: 20px;">
+                    <label><strong>MIDI Tracks:</strong></label>
+                    <div id="midiTrackList" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 10px; background-color: #fafafa;">
+                        <div style="color: #999; text-align: center; padding: 20px;">
+                            Load a MIDI file to see tracks
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Spatial Waves Section -->
@@ -739,11 +819,82 @@
             </div>
 
             <div class="container">
+                <h3>Client Arrangement</h3>
+                <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 20px;">
+                    <button id="arrangeCircleButton" class="button" style="background-color: #9C27B0;">Arrange in Circle</button>
+                    <button id="arrangeLineButton" class="button" style="background-color: #9C27B0;">Arrange in Line</button>
+                    <button id="clearFixedOriginButton" class="button" style="background-color: #FF9800;">Clear Fixed Origin</button>
+                </div>
+            </div>
+
+            <div class="container">
+                <h3>Musical Settings</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <div>
+                        <label for="spatialKey">Key:</label>
+                        <select id="spatialKey" style="width: 100%;">
+                            <option value="C" selected>C</option>
+                            <option value="C#">C#</option>
+                            <option value="D">D</option>
+                            <option value="Eb">Eb</option>
+                            <option value="E">E</option>
+                            <option value="F">F</option>
+                            <option value="F#">F#</option>
+                            <option value="G">G</option>
+                            <option value="Ab">Ab</option>
+                            <option value="A">A</option>
+                            <option value="Bb">Bb</option>
+                            <option value="B">B</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label for="spatialScale">Scale:</label>
+                        <select id="spatialScale" style="width: 100%;">
+                            <option value="major" selected>Major</option>
+                            <option value="minor">Minor</option>
+                            <option value="dorian">Dorian</option>
+                            <option value="mixolydian">Mixolydian</option>
+                            <option value="pentatonic">Pentatonic</option>
+                            <option value="blues">Blues</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label for="waveSpeed">Wave Speed:</label>
+                        <input type="range" id="waveSpeed" min="0.5" max="5" step="0.1" value="2" style="width: 100%;">
+                        <span id="waveSpeedValue">2.0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="container">
+                <h3>Chord Assignment (Keys 1-7)</h3>
+                <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
+                    Map keyboard keys 1-7 to specific chord degrees. Clients will play different chord tones (root, 3rd, 5th, etc.) automatically.
+                </p>
+                <div id="chordAssignmentGrid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; margin-bottom: 15px;">
+                    <!-- Chord assignment controls will be generated by JavaScript -->
+                </div>
+                <button id="resetChordAssignments" class="button" style="background-color: #FF9800;">Reset to Scale Degrees</button>
+            </div>
+
+            <div class="container">
                 <h3>Spatial Canvas</h3>
                 <div style="position: relative; border: 2px solid #333; border-radius: 10px; margin: 20px 0; background: linear-gradient(45deg, #1a1a1a 25%, transparent 25%), linear-gradient(-45deg, #1a1a1a 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #1a1a1a 75%), linear-gradient(-45deg, transparent 75%, #1a1a1a 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px;">
                     <canvas id="spatialCanvas" width="800" height="600" style="display: block; border-radius: 8px; cursor: crosshair;">
                         Your browser doesn't support canvas
                     </canvas>
+                </div>
+                
+                <div style="background-color: #f0f0f0; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                    <h4 style="margin-top: 0;">Controls:</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 14px;">
+                        <div><strong>Click:</strong> Trigger wave</div>
+                        <div><strong>Drag:</strong> Move clients</div>
+                        <div><strong>Keys 1-7:</strong> Trigger chord degrees</div>
+                        <div><strong>F key:</strong> Set/clear fixed origin</div>
+                    </div>
                 </div>
             </div>
         </div>

@@ -265,7 +265,11 @@ export class ClientManager {
     
     // Trigger sound on specific client
     triggerClientSound(clientId, sound) {
-        this.websocketController.triggerSound([clientId], sound);
+        // Get current LFO and effects settings
+        const lfoConfig = window.controllerApp?.getAudioController()?.getLFOConfig() || {};
+        const effectsConfig = window.controllerApp?.getAudioController()?.getEffectsConfig() || {};
+        
+        this.websocketController.triggerSound([clientId], sound, null, lfoConfig, effectsConfig);
         const shortId = clientId.substring(0, 8).toUpperCase();
         this.uiController.logMessage(`Playing ${sound} on client ${shortId}`);
     }

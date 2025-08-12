@@ -4,6 +4,20 @@ export class ChordController {
         this.websocketController = websocketController;
         this.uiController = uiController;
         
+        // Musical note duration mappings (in beats relative to a whole note)
+        this.noteDurations = {
+            'sixteenth': 1/16,     // Sixteenth note
+            'eighth': 1/8,         // Eighth note
+            'quarter': 1/4,        // Quarter note
+            'half': 1/2,           // Half note
+            'whole': 1,            // Whole note (4 beats in 4/4 time)
+            'double': 2,           // Double whole note
+            'dotted-quarter': 3/8, // Dotted quarter (1.5x quarter)
+            'dotted-half': 3/4,    // Dotted half (1.5x half)
+            'triplet-quarter': 1/6, // Quarter triplet
+            'triplet-eighth': 1/12  // Eighth triplet
+        };
+        
         // Chord progression state
         this.state = {
             isRunning: false,
@@ -23,7 +37,7 @@ export class ChordController {
             settings: {
                 key: 'C',
                 octave: 4,
-                chordDuration: 4000,
+                chordDuration: 'whole', // Changed to musical note duration
                 volume: 80,
                 arpeggio: 'chord',
                 subdivision: '8n',
@@ -54,7 +68,11 @@ export class ChordController {
         
         this.scales = {
             major: [0, 2, 4, 5, 7, 9, 11],
-            minor: [0, 2, 3, 5, 7, 8, 10]
+            minor: [0, 2, 3, 5, 7, 8, 10],
+            dorian: [0, 2, 3, 5, 7, 9, 10],
+            mixolydian: [0, 2, 4, 5, 7, 9, 10],
+            pentatonic: [0, 2, 4, 7, 9],
+            blues: [0, 3, 5, 6, 7, 10]
         };
         
         this.chordTypes = {
@@ -110,6 +128,59 @@ export class ChordController {
         this.setupElements();
         this.setupEventHandlers();
         this.setupGlobalFunctions();
+        
+        // Initialize displays
+        this.updateChordDurationDisplay();
+    }
+    
+    // Convert musical note duration to milliseconds based on BPM
+    // Assumes 4/4 time signature where whole note = 4 beats
+    noteDurationToMs(noteDuration, bpm) {
+        const beats = this.noteDurations[noteDuration] || 1; // Default to whole note
+        const beatsPerMinute = bpm * 4; // 4 beats per measure in 4/4 time
+        const msPerBeat = 60000 / beatsPerMinute; // 60000 ms per minute
+        return Math.round(beats * msPerBeat * 4); // Multiply by 4 because whole note = 4 beats
+    }
+    
+    // Get current chord duration in milliseconds
+    getChordDurationMs() {
+        const noteDuration = this.elements.chordDuration?.value || 'whole';
+        const bpm = this.state.bpm || 120;
+        return this.noteDurationToMs(noteDuration, bpm);
+    }
+    
+    // Convert milliseconds back to closest note duration (for compatibility)
+    msToNoteDuration(ms, bpm) {
+        const beatsPerMinute = bpm * 4;
+        const msPerBeat = 60000 / beatsPerMinute;
+        const beats = (ms / msPerBeat) / 4;
+        
+        // Find closest note duration
+        let closestDuration = 'whole';
+        let closestDiff = Math.abs(beats - 1);
+        
+        for (const [duration, value] of Object.entries(this.noteDurations)) {
+            const diff = Math.abs(beats - value);
+            if (diff < closestDiff) {
+                closestDiff = diff;
+                closestDuration = duration;
+            }
+        }
+        
+        return closestDuration;
+    }
+    
+    // Update chord duration display with calculated milliseconds
+    updateChordDurationDisplay() {
+        if (!this.elements.chordDurationDisplay) return;
+        
+        const noteDuration = this.elements.chordDuration?.value || 'whole';
+        const bpm = this.state.bpm || 120;
+        const durationMs = this.noteDurationToMs(noteDuration, bpm);
+        const durationSeconds = (durationMs / 1000).toFixed(2);
+        
+        this.elements.chordDurationDisplay.textContent = 
+            `Duration: ${durationSeconds}s (${durationMs}ms) at ${bpm} BPM`;
     }
     
     // Set up DOM elements
@@ -125,6 +196,7 @@ export class ChordController {
             scaleSelect: document.getElementById('musicalScale'),
             octaveSelect: document.getElementById('octave'),
             chordDuration: document.getElementById('chordDuration'),
+            chordDurationDisplay: document.getElementById('chordDurationDisplay'),
             progressionVolume: document.getElementById('progressionVolume'),
             progressionVolumeValue: document.getElementById('progressionVolumeValue'),
             
@@ -223,6 +295,11 @@ export class ChordController {
             }
         });
         
+        // Chord duration display update
+        this.elements.chordDuration?.addEventListener('change', () => {
+            this.updateChordDurationDisplay();
+        });
+        
         // Custom chord builder
         this.elements.clearCustomProgression?.addEventListener('click', () => {
             this.clearCustomProgression();
@@ -306,9 +383,9 @@ export class ChordController {
             return;
         }
         
-        // Calculate BPM from chord duration (4 seconds = 15 BPM, 2 seconds = 30 BPM, etc.)
-        const chordDurationMs = parseInt(this.elements.chordDuration?.value || '4000');
-        const bpm = Math.round(60000 / chordDurationMs);
+        // Get chord duration in milliseconds from musical notation and current BPM
+        const chordDurationMs = this.getChordDurationMs();
+        const bpm = this.state.bpm;
         
         // Send message to server
         this.websocketController.sendMessage('startChordProgression', {
@@ -657,7 +734,8 @@ export class ChordController {
             key: this.elements.keySelect?.value || 'C',
             scale: this.elements.scaleSelect?.value || 'major',
             octave: parseInt(this.elements.octaveSelect?.value || '4'),
-            chordDuration: parseInt(this.elements.chordDuration?.value || '4000'),
+            chordDuration: this.elements.chordDuration?.value || 'whole',
+            chordDurationMs: this.getChordDurationMs(),
             volume: parseInt(this.elements.progressionVolume?.value || '80') / 100,
             arpeggio: this.elements.arpeggioPattern?.value || 'chord',
             subdivision: this.elements.subdivision?.value || '8n',
@@ -691,16 +769,22 @@ export class ChordController {
             return;
         }
         
-        // Calculate BPM from chord duration (4 seconds = 15 BPM, 2 seconds = 30 BPM, etc.)
-        const chordDurationMs = parseInt(this.elements.chordDuration?.value || '4000');
-        const bpm = Math.round(60000 / chordDurationMs);
+        // Get chord duration in milliseconds from musical notation and current BPM
+        const chordDurationMs = this.getChordDurationMs();
+        const bpm = this.state.bpm;
         const settings = this.getCurrentSettings();
+        
+        // Get current LFO and effects settings
+        const lfoConfig = window.controllerApp?.getAudioController()?.getLFOConfig() || {};
+        const effectsConfig = window.controllerApp?.getAudioController()?.getEffectsConfig() || {};
         
         // Send message to server with enhanced settings
         this.websocketController.sendMessage('startChordProgression', {
             progression: progressionName,
             bpm: bpm,
-            settings: settings
+            settings: settings,
+            lfo: lfoConfig.enabled ? lfoConfig : null,
+            effects: (effectsConfig.chain && effectsConfig.chain.length > 0) ? effectsConfig : null
         });
         
         // Update local state
@@ -835,9 +919,9 @@ export class ChordController {
         
         // Set up auto-advance if enabled
         if (this.state.autoAdvance) {
-            const chordDuration = parseInt(this.elements.chordDuration?.value || '4000');
+            const chordDurationMs = this.getChordDurationMs();
             const patternLength = this.chordProgressions[patternName].length;
-            const totalDuration = chordDuration * patternLength;
+            const totalDuration = chordDurationMs * patternLength;
             
             setTimeout(() => {
                 if (this.state.queueIsRunning) {
@@ -949,11 +1033,8 @@ export class ChordController {
             }
         }
         
-        // Update chord duration based on new tempo
-        const newDuration = Math.round(60000 / newTempo);
-        if (this.elements.chordDuration) {
-            this.elements.chordDuration.value = newDuration;
-        }
+        // Note: Chord duration is now musical notation, tempo changes affect timing calculation
+        // The actual duration in milliseconds will be recalculated in getChordDurationMs()
         
         this.state.bpm = newTempo;
         
@@ -982,11 +1063,6 @@ export class ChordController {
         this.stopTempoAutomation();
         
         const originalTempo = this.tempoAutomation.originalTempo || 120;
-        const originalDuration = Math.round(60000 / originalTempo);
-        
-        if (this.elements.chordDuration) {
-            this.elements.chordDuration.value = originalDuration;
-        }
         
         this.state.bpm = originalTempo;
         this.uiController.logMessage(`Reset tempo to ${originalTempo} BPM`);
@@ -998,6 +1074,114 @@ export class ChordController {
                 this.start();
             }, 100);
         }
+    }
+    
+    // Get note information for a specific chord degree in a key/scale
+    getNoteForChordDegree(key, scale, degree) {
+        // Validate inputs
+        if (!this.keys.hasOwnProperty(key)) {
+            console.warn(`Unknown key: ${key}`);
+            return null;
+        }
+        
+        if (!this.scales.hasOwnProperty(scale)) {
+            console.warn(`Unknown scale: ${scale}`);
+            return null;
+        }
+        
+        // Get the scale degrees
+        const scaleNotes = this.scales[scale];
+        const maxDegree = scaleNotes.length;
+        
+        if (degree < 1 || degree > maxDegree) {
+            console.warn(`Invalid degree: ${degree} (must be 1-${maxDegree} for ${scale} scale)`);
+            return null;
+        }
+        
+        // Get the root note of the key
+        const keyRoot = this.keys[key];
+        
+        // Get the note for this degree (degree is 1-indexed, array is 0-indexed)
+        const degreeIndex = degree - 1;
+        const scaleNote = scaleNotes[degreeIndex];
+        
+        // Calculate the actual MIDI note number (C4 = 60)
+        const octave = this.state.settings.octave || 4;
+        const midiNote = keyRoot + scaleNote + (octave * 12);
+        
+        // Convert to frequency (A4 = 440Hz = MIDI note 69)
+        const frequency = 440 * Math.pow(2, (midiNote - 69) / 12);
+        
+        // Note names
+        const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const noteName = noteNames[(keyRoot + scaleNote) % 12] + octave;
+        
+        return {
+            name: noteName,
+            frequency: Math.round(frequency * 100) / 100, // Round to 2 decimal places
+            midiNote: midiNote,
+            degree: degree,
+            key: key,
+            scale: scale,
+            duration: 1000 // Default 1 second duration
+        };
+    }
+    
+    // Get all chord tones for a specific degree
+    getChordForDegree(key, scale, degree) {
+        const baseNote = this.getNoteForChordDegree(key, scale, degree);
+        if (!baseNote) return null;
+        
+        // Determine chord type based on scale degree and scale type
+        let chordType = 'major'; // default
+        
+        if (scale === 'major') {
+            const majorChordTypes = {
+                1: 'major',    // I
+                2: 'minor',    // ii
+                3: 'minor',    // iii
+                4: 'major',    // IV
+                5: 'major',    // V
+                6: 'minor',    // vi
+                7: 'diminished' // vii°
+            };
+            chordType = majorChordTypes[degree] || 'major';
+        } else if (scale === 'minor') {
+            const minorChordTypes = {
+                1: 'minor',    // i
+                2: 'diminished', // ii°
+                3: 'major',    // III
+                4: 'minor',    // iv
+                5: 'minor',    // v (or major for V)
+                6: 'major',    // VI
+                7: 'major'     // VII
+            };
+            chordType = minorChordTypes[degree] || 'minor';
+        }
+        
+        // Get chord intervals
+        const intervals = this.chordTypes[chordType] || this.chordTypes.major;
+        
+        // Build chord tones
+        const chordTones = intervals.map(interval => {
+            const frequency = baseNote.frequency * Math.pow(2, interval / 12);
+            const midiNote = baseNote.midiNote + interval;
+            const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+            const noteName = noteNames[midiNote % 12] + Math.floor(midiNote / 12);
+            
+            return {
+                name: noteName,
+                frequency: Math.round(frequency * 100) / 100,
+                midiNote: midiNote,
+                interval: interval
+            };
+        });
+        
+        return {
+            root: baseNote,
+            chordType: chordType,
+            tones: chordTones
+        };
     }
 }
 

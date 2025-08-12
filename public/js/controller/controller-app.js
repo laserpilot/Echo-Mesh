@@ -9,6 +9,8 @@ import { AudioController } from './audio-controller.js';
 import { ADSRVisualizer } from './adsr-visualizer.js';
 import { BPMController } from './bpm-controller.js';
 import { EffectsController } from './effects-controller.js';
+import { MidiController } from './midi-controller.js';
+import { SpatialController } from './spatial-controller.js';
 import { CONSTANTS } from '../shared/constants.js';
 
 export class ControllerApp {
@@ -23,6 +25,8 @@ export class ControllerApp {
         this.adsrVisualizer = null;
         this.bpmController = null;
         this.effectsController = null;
+        this.midiController = null;
+        this.spatialController = null;
         this.isInitialized = false;
         
         // Make testClientSound globally available for UI
@@ -70,6 +74,14 @@ export class ControllerApp {
             // Initialize effects controller
             this.effectsController = new EffectsController();
             window.effectsController = this.effectsController;
+            
+            // Initialize MIDI controller
+            this.midiController = new MidiController(this.websocketController, this.uiController, this.audioController);
+            window.midiController = this.midiController;
+            
+            // Initialize spatial controller
+            this.spatialController = new SpatialController(this.websocketController, this.uiController, this.clientManager, this.chordController);
+            window.spatialController = this.spatialController;
             
             // Connect to server
             await this.connectToServer();
@@ -140,10 +152,19 @@ export class ControllerApp {
         return this.audioController;
     }
     
+    // Get MIDI controller
+    getMidiController() {
+        return this.midiController;
+    }
+    
     // Clean up resources
     destroy() {
         if (this.websocketController) {
             this.websocketController.destroy();
+        }
+        
+        if (this.midiController) {
+            this.midiController.destroy();
         }
         
         this.isInitialized = false;

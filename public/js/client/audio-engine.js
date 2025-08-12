@@ -26,7 +26,7 @@ export class ClientAudioEngine {
     }
     
     // Main sound synthesis function
-    async playSound(type = 'sine', customFrequency = null, playTime = 0, adsr = null, lfo = null, pan = 0) {
+    async playSound(type = 'sine', customFrequency = null, playTime = 0, adsr = null, lfo = null, pan = 0, effects = null) {
         if (!this.audioContext) {
             await this.initAudio();
         }
@@ -71,7 +71,7 @@ export class ClientAudioEngine {
             
             // Effects chain
             let effectsChain = gainNode;
-            effectsChain = this.addEffects(effectsChain, lfo, scheduledTime);
+            effectsChain = this.addEffects(effectsChain, lfo, scheduledTime, effects);
             
             // Connect audio graph
             oscillator.connect(gainNode);
@@ -261,50 +261,283 @@ export class ClientAudioEngine {
     }
     
     // Add effects to the audio chain
-    addEffects(inputNode, lfo, scheduledTime) {
+    addEffects(inputNode, lfo, scheduledTime, effects = null) {
+        let effectsChain = inputNode;
+        
+        // Process full effects chain if provided
+        if (effects && effects.chain && Array.isArray(effects.chain)) {
+            effects.chain.forEach(effect => {
+                if (!effect.bypassed) {
+                    effectsChain = this.applyEffect(effectsChain, effect, scheduledTime);
+                }
+            });
+            
+            // Apply global effects settings
+            if (effects.wetDry !== undefined || effects.gain !== undefined) {
+                const outputGain = this.audioContext.createGain();
+                outputGain.gain.setValueAtTime(effects.gain || 1, scheduledTime);
+                effectsChain.connect(outputGain);
+                effectsChain = outputGain;
+            }
+        } else {
+            // Fallback to old LFO-based effects for compatibility
+            effectsChain = this.addLegacyEffects(effectsChain, lfo, scheduledTime);
+        }
+        
+        return effectsChain;
+    }
+    
+    // Apply individual effect to the chain
+    applyEffect(inputNode, effect, scheduledTime) {
+        const { type, parameters } = effect;
+        
+        switch (type) {
+            case 'reverb':
+                return this.createReverbEffect(inputNode, parameters, scheduledTime);
+            case 'delay':
+                return this.createDelayEffect(inputNode, parameters, scheduledTime);
+            case 'distortion':
+                return this.createDistortionEffect(inputNode, parameters);
+            case 'chorus':
+                return this.createChorusEffect(inputNode, parameters, scheduledTime);
+            case 'filter':
+                return this.createFilterEffect(inputNode, parameters, scheduledTime);
+            case 'compressor':
+                return this.createCompressorEffect(inputNode, parameters, scheduledTime);
+            case 'eq':
+                return this.createEQEffect(inputNode, parameters, scheduledTime);
+            case 'phaser':
+                return this.createPhaserEffect(inputNode, parameters, scheduledTime);
+            default:
+                console.warn(`Unknown effect type: ${type}`);
+                return inputNode;
+        }
+    }
+    
+    // Create reverb effect
+    createReverbEffect(inputNode, params, scheduledTime) {
+        const convolver = this.audioContext.createConvolver();
+        const roomSize = params.roomSize || 0.5;
+        const decay = params.decay || 2;
+        const wetness = params.wetness || 0.3;
+        
+        const reverbBuffer = AudioUtils.createReverbBuffer(this.audioContext, decay, roomSize);
+        convolver.buffer = reverbBuffer;
+        
+        const dryGain = this.audioContext.createGain();
+        const wetGain = this.audioContext.createGain();
+        const mixer = this.audioContext.createGain();
+        
+        dryGain.gain.setValueAtTime(1 - wetness, scheduledTime);
+        wetGain.gain.setValueAtTime(wetness, scheduledTime);
+        
+        inputNode.connect(dryGain);
+        inputNode.connect(convolver);
+        convolver.connect(wetGain);
+        
+        dryGain.connect(mixer);
+        wetGain.connect(mixer);
+        
+        return mixer;
+    }
+    
+    // Create delay effect
+    createDelayEffect(inputNode, params, scheduledTime) {
+        const delay = this.audioContext.createDelay(1.0);
+        const delayTime = params.time || 0.25;
+        const feedback = this.audioContext.createGain();
+        const wetGain = this.audioContext.createGain();
+        const dryGain = this.audioContext.createGain();
+        const mixer = this.audioContext.createGain();
+        
+        delay.delayTime.setValueAtTime(delayTime, scheduledTime);
+        feedback.gain.setValueAtTime(params.feedback || 0.3, scheduledTime);
+        wetGain.gain.setValueAtTime(params.wetness || 0.3, scheduledTime);
+        dryGain.gain.setValueAtTime(1 - (params.wetness || 0.3), scheduledTime);
+        
+        inputNode.connect(dryGain);
+        inputNode.connect(delay);
+        delay.connect(feedback);
+        delay.connect(wetGain);
+        feedback.connect(delay);
+        
+        dryGain.connect(mixer);
+        wetGain.connect(mixer);
+        
+        return mixer;
+    }
+    
+    // Create distortion effect
+    createDistortionEffect(inputNode, params) {
+        const waveshaper = this.audioContext.createWaveShaper();
+        const amount = params.amount || 5;
+        
+        // Create distortion curve
+        const samples = 44100;
+        const wsCurve = new Float32Array(samples);
+        const deg = Math.PI / 180;
+        
+        for (let i = 0; i < samples; i++) {
+            const x = (i * 2) / samples - 1;
+            wsCurve[i] = (3 + amount) * x * 20 * deg / (Math.PI + amount * Math.abs(x));
+        }
+        
+        waveshaper.curve = wsCurve;
+        waveshaper.oversample = params.oversample || '2x';
+        
+        inputNode.connect(waveshaper);
+        return waveshaper;
+    }
+    
+    // Create filter effect
+    createFilterEffect(inputNode, params, scheduledTime) {
+        const filter = this.audioContext.createBiquadFilter();
+        filter.type = params.type || 'lowpass';
+        filter.frequency.setValueAtTime(params.frequency || 2000, scheduledTime);
+        filter.Q.setValueAtTime(params.resonance || 1, scheduledTime);
+        
+        inputNode.connect(filter);
+        return filter;
+    }
+    
+    // Create compressor effect
+    createCompressorEffect(inputNode, params, scheduledTime) {
+        const compressor = this.audioContext.createDynamicsCompressor();
+        compressor.threshold.setValueAtTime(params.threshold || -24, scheduledTime);
+        compressor.ratio.setValueAtTime(params.ratio || 3, scheduledTime);
+        compressor.attack.setValueAtTime(params.attack || 0.003, scheduledTime);
+        compressor.release.setValueAtTime(params.release || 0.25, scheduledTime);
+        
+        inputNode.connect(compressor);
+        return compressor;
+    }
+    
+    // Create EQ effect (simplified 3-band)
+    createEQEffect(inputNode, params, scheduledTime) {
+        const lowShelf = this.audioContext.createBiquadFilter();
+        const midPeak = this.audioContext.createBiquadFilter();
+        const highShelf = this.audioContext.createBiquadFilter();
+        
+        lowShelf.type = 'lowshelf';
+        lowShelf.frequency.setValueAtTime(params.lowFreq || 320, scheduledTime);
+        lowShelf.gain.setValueAtTime(params.lowGain || 0, scheduledTime);
+        
+        midPeak.type = 'peaking';
+        midPeak.frequency.setValueAtTime(params.midFreq || 1000, scheduledTime);
+        midPeak.gain.setValueAtTime(params.midGain || 0, scheduledTime);
+        midPeak.Q.setValueAtTime(0.7, scheduledTime);
+        
+        highShelf.type = 'highshelf';
+        highShelf.frequency.setValueAtTime(params.highFreq || 3200, scheduledTime);
+        highShelf.gain.setValueAtTime(params.highGain || 0, scheduledTime);
+        
+        inputNode.connect(lowShelf);
+        lowShelf.connect(midPeak);
+        midPeak.connect(highShelf);
+        
+        return highShelf;
+    }
+    
+    // Create chorus effect (simplified)
+    createChorusEffect(inputNode, params, scheduledTime) {
+        const delay = this.audioContext.createDelay(0.1);
+        const lfoOsc = this.audioContext.createOscillator();
+        const lfoGain = this.audioContext.createGain();
+        const wetGain = this.audioContext.createGain();
+        const dryGain = this.audioContext.createGain();
+        const mixer = this.audioContext.createGain();
+        
+        const rate = params.rate || 1.5;
+        const depth = params.depth || 0.35;
+        const wetness = params.wetness || 0.5;
+        
+        lfoOsc.frequency.setValueAtTime(rate, scheduledTime);
+        lfoGain.gain.setValueAtTime(depth * 0.01, scheduledTime);
+        delay.delayTime.setValueAtTime(0.025, scheduledTime);
+        
+        wetGain.gain.setValueAtTime(wetness, scheduledTime);
+        dryGain.gain.setValueAtTime(1 - wetness, scheduledTime);
+        
+        lfoOsc.connect(lfoGain);
+        lfoGain.connect(delay.delayTime);
+        
+        inputNode.connect(dryGain);
+        inputNode.connect(delay);
+        delay.connect(wetGain);
+        
+        dryGain.connect(mixer);
+        wetGain.connect(mixer);
+        
+        lfoOsc.start(scheduledTime);
+        
+        return mixer;
+    }
+    
+    // Create phaser effect (simplified)
+    createPhaserEffect(inputNode, params, scheduledTime) {
+        const allpassFilters = [];
+        const stages = Math.min(params.stages || 4, 8);
+        const rate = params.rate || 0.5;
+        const depth = params.depth || 0.5;
+        
+        const lfoOsc = this.audioContext.createOscillator();
+        const lfoGain = this.audioContext.createGain();
+        const wetGain = this.audioContext.createGain();
+        const dryGain = this.audioContext.createGain();
+        const mixer = this.audioContext.createGain();
+        
+        lfoOsc.frequency.setValueAtTime(rate, scheduledTime);
+        lfoGain.gain.setValueAtTime(depth * 500, scheduledTime);
+        
+        wetGain.gain.setValueAtTime(0.5, scheduledTime);
+        dryGain.gain.setValueAtTime(0.5, scheduledTime);
+        
+        // Create allpass filter chain
+        let currentNode = inputNode;
+        for (let i = 0; i < stages; i++) {
+            const allpass = this.audioContext.createBiquadFilter();
+            allpass.type = 'allpass';
+            allpass.frequency.setValueAtTime(1000, scheduledTime);
+            
+            lfoOsc.connect(lfoGain);
+            lfoGain.connect(allpass.frequency);
+            
+            currentNode.connect(allpass);
+            currentNode = allpass;
+            allpassFilters.push(allpass);
+        }
+        
+        inputNode.connect(dryGain);
+        currentNode.connect(wetGain);
+        
+        dryGain.connect(mixer);
+        wetGain.connect(mixer);
+        
+        lfoOsc.start(scheduledTime);
+        
+        return mixer;
+    }
+    
+    // Legacy effects for backward compatibility
+    addLegacyEffects(inputNode, lfo, scheduledTime) {
         let effectsChain = inputNode;
         
         // Add reverb
         if (lfo && lfo.target === 'reverb' && lfo.depth > 0) {
-            const convolver = this.audioContext.createConvolver();
-            const reverbTime = lfo.depth / 100;
-            const reverbBuffer = AudioUtils.createReverbBuffer(this.audioContext, reverbTime, 0.3);
-            convolver.buffer = reverbBuffer;
-            
-            const dryGain = this.audioContext.createGain();
-            const wetGain = this.audioContext.createGain();
-            const mixer = this.audioContext.createGain();
-            
-            dryGain.gain.setValueAtTime(0.7, scheduledTime);
-            wetGain.gain.setValueAtTime(0.3, scheduledTime);
-            
-            effectsChain.connect(dryGain);
-            effectsChain.connect(convolver);
-            convolver.connect(wetGain);
-            
-            dryGain.connect(mixer);
-            wetGain.connect(mixer);
-            
-            effectsChain = mixer;
+            effectsChain = this.createReverbEffect(effectsChain, {
+                roomSize: lfo.depth / 100,
+                decay: 2,
+                wetness: 0.3
+            }, scheduledTime);
         }
         
         // Add delay
         if (lfo && lfo.target === 'delay' && lfo.depth > 0) {
-            const delay = this.audioContext.createDelay(1.0);
-            const delayTime = lfo.rate / 10;
-            const feedback = this.audioContext.createGain();
-            const mixer = this.audioContext.createGain();
-            
-            delay.delayTime.setValueAtTime(delayTime, scheduledTime);
-            feedback.gain.setValueAtTime(lfo.depth / 100, scheduledTime);
-            
-            effectsChain.connect(mixer);
-            effectsChain.connect(delay);
-            delay.connect(feedback);
-            feedback.connect(delay);
-            delay.connect(mixer);
-            
-            effectsChain = mixer;
+            effectsChain = this.createDelayEffect(effectsChain, {
+                time: lfo.rate / 10,
+                feedback: lfo.depth / 100,
+                wetness: 0.3
+            }, scheduledTime);
         }
         
         return effectsChain;

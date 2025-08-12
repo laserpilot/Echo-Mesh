@@ -142,6 +142,13 @@ export class UIController {
         
         this.currentSection = sectionName;
         
+        // Initialize spatial controller when entering spatial section
+        if (sectionName === 'spatial' && window.spatialController) {
+            setTimeout(() => {
+                window.spatialController.initialize();
+            }, 100); // Small delay to ensure DOM is ready
+        }
+        
         // Enable navigation items based on connection status
         this.updateNavigationState();
     }
