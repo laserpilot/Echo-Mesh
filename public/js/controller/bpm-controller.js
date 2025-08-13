@@ -8,13 +8,12 @@ export class BPMController {
         this.tapTimes = [];
         this.maxTapTimes = 8;
         
-        // DOM elements
+        // DOM elements (now using global controls)
         this.elements = {
-            masterBpm: document.getElementById('masterBpm'),
-            masterBpmSlider: document.getElementById('masterBpmSlider'),
-            masterBpmValue: document.getElementById('masterBpmValue'),
+            masterBpm: document.getElementById('globalBpm'),
+            masterBpmSlider: document.getElementById('globalBpmSlider'),
+            masterBpmValue: document.getElementById('globalBpmValue'),
             tapBpmButton: document.getElementById('tapBpmButton'),
-            metronomeBpm: document.getElementById('metronomeBpm'),
             sequencerBpm: document.getElementById('sequencerBpm'),
             chordDuration: document.getElementById('chordDuration')
         };
@@ -46,11 +45,6 @@ export class BPMController {
         }
         
         // Sync other BPM controls to master when they change
-        if (this.elements.metronomeBpm) {
-            this.elements.metronomeBpm.addEventListener('input', (e) => {
-                this.setBPM(parseInt(e.target.value));
-            });
-        }
         
         if (this.elements.sequencerBpm) {
             this.elements.sequencerBpm.addEventListener('input', (e) => {
@@ -80,9 +74,6 @@ export class BPMController {
         }
         
         // Update other BPM controls
-        if (this.elements.metronomeBpm) {
-            this.elements.metronomeBpm.value = this.masterBpm;
-        }
         if (this.elements.sequencerBpm) {
             this.elements.sequencerBpm.value = this.masterBpm;
         }

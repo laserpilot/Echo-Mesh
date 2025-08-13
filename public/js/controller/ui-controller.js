@@ -153,38 +153,11 @@ export class UIController {
         this.updateNavigationState();
     }
     
-    // Update navigation state based on connection
+    // Update navigation state - all tabs are now always enabled
     updateNavigationState() {
-        const isConnected = this.websocketController.isConnected;
-        const hasClients = this.websocketController.getClientCount() > 0;
-        
+        // Remove disabled class from all navigation items to allow free navigation
         this.elements.navItems.forEach(item => {
-            const section = item.dataset.section;
-            
-            switch (section) {
-                case 'setup':
-                    // Always enabled
-                    item.classList.remove('disabled');
-                    break;
-                    
-                case 'test':
-                    if (isConnected) {
-                        item.classList.remove('disabled');
-                    } else {
-                        item.classList.add('disabled');
-                    }
-                    break;
-                    
-                case 'compose':
-                case 'spatial':
-                case 'perform':
-                    if (isConnected && hasClients) {
-                        item.classList.remove('disabled');
-                    } else {
-                        item.classList.add('disabled');
-                    }
-                    break;
-            }
+            item.classList.remove('disabled');
         });
     }
     

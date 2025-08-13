@@ -1,5 +1,141 @@
 /* Controller Styles for Echo Mesh */
 
+/* Global Top Bar Styles */
+.global-topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    z-index: 1000;
+    color: white;
+}
+
+.topbar-section {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.app-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 0;
+    color: white;
+}
+
+.global-controls {
+    display: flex;
+    gap: 30px;
+}
+
+.global-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.global-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: white;
+    white-space: nowrap;
+}
+
+.global-input {
+    width: 60px;
+    padding: 4px 6px;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 4px;
+    background: rgba(255,255,255,0.1);
+    color: white;
+    font-size: 13px;
+    text-align: center;
+}
+
+.global-input::placeholder {
+    color: rgba(255,255,255,0.7);
+}
+
+.global-slider {
+    width: 120px;
+    height: 6px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 3px;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.global-slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: white;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.global-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: white;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.global-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: white;
+    min-width: 60px;
+    text-align: center;
+}
+
+.global-select {
+    padding: 4px 8px;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 4px;
+    background: rgba(255,255,255,0.1);
+    color: white;
+    font-size: 13px;
+    min-width: 80px;
+}
+
+.global-select option {
+    background: #1976D2;
+    color: white;
+}
+
+.global-button {
+    padding: 4px 12px;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 4px;
+    background: rgba(255,255,255,0.1);
+    color: white;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.global-button:hover {
+    background: rgba(255,255,255,0.2);
+}
+
+/* Adjust body and layout for top bar */
+body {
+    padding-top: 60px;
+}
+
 /* MIDI Track Styles */
 .midi-track-item {
     display: flex;

@@ -192,8 +192,8 @@ export class ChordController {
             stopButton: document.getElementById('stopChordProgressionButton'),
             pauseButton: document.getElementById('pauseChordProgressionButton'),
             bpmInput: null, // No BPM input for basic mode, use chord duration
-            keySelect: document.getElementById('musicalKey'),
-            scaleSelect: document.getElementById('musicalScale'),
+            keySelect: document.getElementById('globalKey'),
+            scaleSelect: document.getElementById('globalScale'),
             octaveSelect: document.getElementById('octave'),
             chordDuration: document.getElementById('chordDuration'),
             chordDurationDisplay: document.getElementById('chordDurationDisplay'),

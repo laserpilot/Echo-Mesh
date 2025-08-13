@@ -11,6 +11,55 @@
 </head>
 
 <body>
+    <!-- Global Top Bar -->
+    <div class="global-topbar">
+        <div class="topbar-section">
+            <h1 class="app-title">Echo Mesh Controller</h1>
+        </div>
+        
+        <div class="topbar-section global-controls">
+            <div class="global-control">
+                <label for="globalBpm" class="global-label">Master BPM:</label>
+                <input type="number" id="globalBpm" value="120" min="60" max="200" step="1" class="global-input">
+                <input type="range" id="globalBpmSlider" min="60" max="200" value="120" step="1" class="global-slider">
+                <span id="globalBpmValue" class="global-value">120 BPM</span>
+                <button id="tapBpmButton" class="global-button">Tap</button>
+            </div>
+            
+            <div class="global-control">
+                <label for="globalKey" class="global-label">Key:</label>
+                <select id="globalKey" class="global-select">
+                    <option value="C" selected>C</option>
+                    <option value="C#">C#</option>
+                    <option value="Db">Db</option>
+                    <option value="D">D</option>
+                    <option value="D#">D#</option>
+                    <option value="Eb">Eb</option>
+                    <option value="E">E</option>
+                    <option value="F">F</option>
+                    <option value="F#">F#</option>
+                    <option value="Gb">Gb</option>
+                    <option value="G">G</option>
+                    <option value="G#">G#</option>
+                    <option value="Ab">Ab</option>
+                    <option value="A">A</option>
+                    <option value="A#">A#</option>
+                    <option value="Bb">Bb</option>
+                    <option value="B">B</option>
+                </select>
+                
+                <select id="globalScale" class="global-select">
+                    <option value="major" selected>Major</option>
+                    <option value="minor">Minor</option>
+                    <option value="dorian">Dorian</option>
+                    <option value="mixolydian">Mixolydian</option>
+                    <option value="pentatonic">Pentatonic</option>
+                    <option value="blues">Blues</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
     <!-- Sidebar Navigation -->
     <div class="sidebar">
         <div class="sidebar-header">
@@ -22,19 +71,19 @@
                 <span class="nav-icon">🔗</span>
                 Setup
             </button>
-            <button class="nav-item disabled" data-section="test">
-                <span class="nav-icon">✓</span>
-                Test
+            <button class="nav-item" data-section="test">
+                <span class="nav-icon">🎛️</span>
+                Sound Shaping
             </button>
-            <button class="nav-item disabled" data-section="compose">
+            <button class="nav-item" data-section="compose">
                 <span class="nav-icon">🎵</span>
                 Compose
             </button>
-            <button class="nav-item disabled" data-section="spatial">
+            <button class="nav-item" data-section="spatial">
                 <span class="nav-icon">🌊</span>
                 Spatial Waves
             </button>
-            <button class="nav-item disabled" data-section="perform">
+            <button class="nav-item" data-section="perform">
                 <span class="nav-icon">🎭</span>
                 Perform
             </button>
@@ -106,11 +155,11 @@
             </div>
         </div>
 
-        <!-- Test Section -->
+        <!-- Sound Shaping Section -->
         <div class="content-section" id="test-section">
             <div class="section-header">
-                <h2>✓ Test & Verify</h2>
-                <p class="section-description">Test individual clients and verify system functionality</p>
+                <h2>🎛️ Sound Shaping & Design</h2>
+                <p class="section-description">Customize sound effects, timbres, and per-client audio processing</p>
             </div>
 
             <div class="container">
@@ -144,16 +193,9 @@
             </div>
 
             <div class="container">
-                <h3>System Test Controls</h3>
-                <div class="controls-grid">
-                    <button id="testSoundButton" class="button sound">Test Local Sound</button>
-                    <button id="refreshButton" class="button">Refresh Clients</button>
-                </div>
-            </div>
-
-            <div class="container">
-                <h3>Basic Sequence Test</h3>
+                <h3>🎨 Timbre & Sound Selection</h3>
                 <div class="sequence-controls">
+                    <label for="soundType">Base Waveform:</label>
                     <select id="soundType">
                         <option value="sine">Sine Wave</option>
                         <option value="square">Square Wave</option>
@@ -170,7 +212,16 @@
                         <option value="wind">Wind</option>
                     </select>
 
-                    <label for="delayTime">Delay (ms):</label>
+                    <button id="testSoundButton" class="button sound">Test Sound</button>
+                </div>
+            </div>
+
+            <div class="container">
+                <h3>🔧 Testing & Utilities</h3>
+                <div class="controls-grid">
+                    <button id="refreshButton" class="button">Refresh Clients</button>
+                    
+                    <label for="delayTime">Test Delay (ms):</label>
                     <input type="number" id="delayTime" value="500" min="100" max="2000">
 
                     <button id="playSequenceButton" class="button">Play Test Sequence</button>
@@ -190,13 +241,11 @@
             <div class="container">
                 <h3>Metronome & Click Track</h3>
                 <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 15px;">
-                    <label for="metronomeBpm">BPM:</label>
-                    <input type="number" id="metronomeBpm" value="120" min="40" max="240" step="1" style="width: 80px;">
-                    
                     <button id="startMetronomeButton" class="button" style="background-color: #4CAF50;">Start Click Track</button>
                     <button id="stopMetronomeButton" class="button" style="background-color: #F44336; display: none;">Stop Click Track</button>
                     
                     <span id="metronomeStatus" style="margin-left: 10px; font-weight: bold;">Stopped</span>
+                    <span style="color: #666; margin-left: 10px;">Uses global BPM</span>
                 </div>
                 <p style="color: #666; font-size: 14px; margin: 0;">
                     The metronome provides a synchronized click track that all clients can hear to stay in time.
@@ -205,15 +254,6 @@
 
             <div class="container">
                 <h3>Advanced Chord Progressions</h3>
-                
-                <!-- Master BPM Control -->
-                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; padding: 12px; background-color: #f0f8ff; border-radius: 8px; border-left: 4px solid #2196F3;">
-                    <label for="masterBpm" style="font-weight: bold; color: #1976D2;">Master BPM:</label>
-                    <input type="number" id="masterBpm" value="120" min="60" max="200" step="1" style="width: 70px; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
-                    <input type="range" id="masterBpmSlider" min="60" max="200" value="120" step="1" style="flex: 1; max-width: 200px;">
-                    <span id="masterBpmValue" style="font-weight: bold; color: #1976D2;">120 BPM</span>
-                    <button id="tapBpmButton" class="button" style="padding: 6px 12px; font-size: 12px; background-color: #FF9800;">Tap BPM</button>
-                </div>
                 
                 <!-- Progression Mode Selector -->
                 <div style="display: flex; gap: 10px; margin-bottom: 20px;">
@@ -273,39 +313,8 @@
                             </small>
                         </div>
                         
-                        <div>
-                            <label for="musicalKey">Key:</label>
-                            <select id="musicalKey" style="width: 100%;">
-                                <option value="C" selected>C</option>
-                                <option value="C#">C#</option>
-                                <option value="Db">Db</option>
-                                <option value="D">D</option>
-                                <option value="D#">D#</option>
-                                <option value="Eb">Eb</option>
-                                <option value="E">E</option>
-                                <option value="F">F</option>
-                                <option value="F#">F#</option>
-                                <option value="Gb">Gb</option>
-                                <option value="G">G</option>
-                                <option value="G#">G#</option>
-                                <option value="Ab">Ab</option>
-                                <option value="A">A</option>
-                                <option value="A#">A#</option>
-                                <option value="Bb">Bb</option>
-                                <option value="B">B</option>
-                            </select>
-                        </div>
-                        
-                        <div>
-                            <label for="musicalScale">Scale:</label>
-                            <select id="musicalScale" style="width: 100%;">
-                                <option value="major" selected>Major</option>
-                                <option value="minor">Minor</option>
-                                <option value="dorian">Dorian</option>
-                                <option value="mixolydian">Mixolydian</option>
-                                <option value="pentatonic">Pentatonic</option>
-                                <option value="blues">Blues</option>
-                            </select>
+                        <div style="grid-column: span 2;">
+                            <small style="color: #666;">Musical key and scale are controlled globally from the top bar</small>
                         </div>
                         
                         <div>
