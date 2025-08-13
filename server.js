@@ -583,8 +583,8 @@ wss.on('connection', (ws, req) => {
           clientId = 'controller-' + randomUUID();
           isController = true;
           isNew = true;
-        } else if (!clientId || !isValidClientId(clientId) || ![...clients.values()].some(c => c.id === clientId)) {
-          // If the client has no ID, invalid ID, or its ID is not in our list, it's a new client.
+        } else if (!clientId || clientId === 'CONTROLL' || !isValidClientId(clientId) || ![...clients.values()].some(c => c.id === clientId)) {
+          // If the client has no ID, invalid ID (including 'CONTROLL'), or its ID is not in our list, it's a new client.
           clientId = randomUUID();
           isNew = true;
           console.log('Generated new client ID due to invalid or missing stored ID');
@@ -600,7 +600,7 @@ wss.on('connection', (ws, req) => {
         };
         clients.set(ws, client);
 
-        console.log(`${isController ? 'Controller' : 'Client'} registered with ID ${clientId} (${clients.size} total connected). New: ${isNew}`);
+        console.log(`${isController ? 'Controller' : 'Client'} registered with ID ${clientId} (${clients.size} total connected, ${getClientIds().length} clients). New: ${isNew}`);
 
         // Send the client its definitive ID
         ws.send(JSON.stringify({

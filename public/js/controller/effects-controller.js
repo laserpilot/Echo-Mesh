@@ -125,30 +125,44 @@ export class EffectsController {
         this.elements.effectsChainDisplay.innerHTML = this.effectsChain.map((effect, index) => {
             const icon = this.getEffectIcon(effect.type);
             const enabledClass = effect.enabled ? 'enabled' : 'disabled';
+            const parameterControls = this.generateParameterControls(effect);
             
             return `
                 <div class="effect-item ${enabledClass}" data-effect-id="${effect.id}" 
-                     style="display: flex; flex-direction: column; align-items: center; gap: 4px; 
-                            padding: 8px 12px; background: ${effect.enabled ? '#e3f2fd' : '#f5f5f5'}; 
-                            border-radius: 6px; border: 1px solid ${effect.enabled ? '#2196f3' : '#ddd'};">
-                    <div style="display: flex; align-items: center; gap: 6px;">
-                        <span style="font-size: 16px;">${icon}</span>
-                        <span style="font-size: 12px; font-weight: bold; color: ${effect.enabled ? '#1976d2' : '#999'};">
-                            ${effect.type.toUpperCase()}
-                        </span>
+                     style="display: flex; flex-direction: column; gap: 8px; 
+                            padding: 12px; background: ${effect.enabled ? '#e3f2fd' : '#f5f5f5'}; 
+                            border-radius: 8px; border: 1px solid ${effect.enabled ? '#2196f3' : '#ddd'};
+                            margin-bottom: 12px; min-width: 250px;">
+                    
+                    <!-- Effect Header -->
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 18px;">${icon}</span>
+                            <span style="font-size: 14px; font-weight: bold; color: ${effect.enabled ? '#1976d2' : '#999'};">
+                                ${effect.type.toUpperCase()}
+                            </span>
+                        </div>
+                        <div style="display: flex; gap: 6px;">
+                            <button class="effect-toggle" data-effect-id="${effect.id}" 
+                                    style="padding: 4px 8px; font-size: 11px; border: none; border-radius: 4px;
+                                           background: ${effect.enabled ? '#ff9800' : '#4caf50'}; color: white;">
+                                ${effect.enabled ? 'Bypass' : 'Enable'}
+                            </button>
+                            <button class="effect-remove" data-effect-id="${effect.id}"
+                                    style="padding: 4px 8px; font-size: 11px; border: none; border-radius: 4px;
+                                           background: #f44336; color: white;">
+                                Remove
+                            </button>
+                        </div>
                     </div>
-                    <div style="display: flex; gap: 4px;">
-                        <button class="effect-toggle" data-effect-id="${effect.id}" 
-                                style="padding: 2px 6px; font-size: 10px; border: none; border-radius: 3px;
-                                       background: ${effect.enabled ? '#ff9800' : '#4caf50'}; color: white;">
-                            ${effect.enabled ? 'Bypass' : 'Enable'}
-                        </button>
-                        <button class="effect-remove" data-effect-id="${effect.id}"
-                                style="padding: 2px 6px; font-size: 10px; border: none; border-radius: 3px;
-                                       background: #f44336; color: white;">
-                            Remove
-                        </button>
-                    </div>
+                    
+                    <!-- Effect Parameters -->
+                    ${effect.enabled ? `
+                        <div class="effect-parameters" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; 
+                                                             background: rgba(255,255,255,0.3); padding: 8px; border-radius: 4px;">
+                            ${parameterControls}
+                        </div>
+                    ` : ''}
                 </div>
             `;
         }).join('');
@@ -167,6 +181,132 @@ export class EffectsController {
                 this.removeEffect(effectId);
             });
         });
+        
+        // Add event listeners to parameter controls
+        this.elements.effectsChainDisplay.querySelectorAll('.param-control').forEach(control => {
+            control.addEventListener('input', (e) => {
+                const effectId = e.target.getAttribute('data-effect-id');
+                const paramName = e.target.getAttribute('data-param');
+                const value = parseFloat(e.target.value);
+                this.updateEffectParameter(effectId, paramName, value);
+                
+                // Update value display
+                const valueDisplay = e.target.parentElement.querySelector('.param-value');
+                if (valueDisplay) {
+                    valueDisplay.textContent = this.formatParameterValue(paramName, value);
+                }
+            });
+        });
+    }
+    
+    // Generate parameter controls for an effect
+    generateParameterControls(effect) {
+        const params = effect.parameters;
+        const effectId = effect.id;
+        
+        const parameterDefinitions = this.getParameterDefinitions(effect.type);
+        
+        return Object.entries(parameterDefinitions).map(([paramName, def]) => {
+            const value = params[paramName] !== undefined ? params[paramName] : def.default;
+            const displayValue = this.formatParameterValue(paramName, value);
+            
+            return `
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <label style="font-size: 11px; font-weight: bold; color: #333;">${def.label}</label>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <input type="range" 
+                               class="param-control" 
+                               data-effect-id="${effectId}" 
+                               data-param="${paramName}"
+                               min="${def.min}" 
+                               max="${def.max}" 
+                               step="${def.step}" 
+                               value="${value}"
+                               style="flex: 1; height: 4px;">
+                        <span class="param-value" style="font-size: 10px; min-width: 35px; text-align: right;">${displayValue}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    // Get parameter definitions for each effect type
+    getParameterDefinitions(effectType) {
+        const definitions = {
+            reverb: {
+                roomSize: { label: 'Room', min: 0.1, max: 1.0, step: 0.01, default: 0.3 },
+                damping: { label: 'Damp', min: 0.0, max: 1.0, step: 0.01, default: 0.5 },
+                wetGain: { label: 'Wet', min: 0.0, max: 1.0, step: 0.01, default: 0.2 }
+            },
+            delay: {
+                delayTime: { label: 'Time', min: 0.01, max: 1.0, step: 0.01, default: 0.25 },
+                feedback: { label: 'Feedback', min: 0.0, max: 0.9, step: 0.01, default: 0.3 },
+                wetGain: { label: 'Wet', min: 0.0, max: 1.0, step: 0.01, default: 0.2 }
+            },
+            distortion: {
+                amount: { label: 'Amount', min: 0.0, max: 1.0, step: 0.01, default: 0.3 },
+                tone: { label: 'Tone', min: 0.0, max: 1.0, step: 0.01, default: 0.5 }
+            },
+            chorus: {
+                rate: { label: 'Rate', min: 0.1, max: 10.0, step: 0.1, default: 1.5 },
+                depth: { label: 'Depth', min: 0.0, max: 1.0, step: 0.01, default: 0.3 },
+                wetGain: { label: 'Wet', min: 0.0, max: 1.0, step: 0.01, default: 0.3 }
+            },
+            filter: {
+                frequency: { label: 'Freq', min: 80, max: 8000, step: 10, default: 1000 },
+                resonance: { label: 'Q', min: 0.1, max: 20, step: 0.1, default: 1 },
+                type: { label: 'Type', min: 0, max: 3, step: 1, default: 0 } // 0=lowpass, 1=highpass, 2=bandpass, 3=notch
+            },
+            compressor: {
+                threshold: { label: 'Thresh', min: -60, max: 0, step: 1, default: -24 },
+                ratio: { label: 'Ratio', min: 1, max: 20, step: 0.1, default: 3 },
+                attack: { label: 'Attack', min: 0.001, max: 0.1, step: 0.001, default: 0.01 },
+                release: { label: 'Release', min: 0.01, max: 1.0, step: 0.01, default: 0.1 }
+            },
+            eq: {
+                lowGain: { label: 'Low', min: -12, max: 12, step: 0.1, default: 0 },
+                midGain: { label: 'Mid', min: -12, max: 12, step: 0.1, default: 0 },
+                highGain: { label: 'High', min: -12, max: 12, step: 0.1, default: 0 }
+            },
+            phaser: {
+                rate: { label: 'Rate', min: 0.1, max: 10.0, step: 0.1, default: 0.5 },
+                depth: { label: 'Depth', min: 0.0, max: 1.0, step: 0.01, default: 1.0 },
+                feedback: { label: 'Feedback', min: 0.0, max: 0.9, step: 0.01, default: 0.7 }
+            }
+        };
+        
+        return definitions[effectType] || {};
+    }
+    
+    // Format parameter values for display
+    formatParameterValue(paramName, value) {
+        if (paramName === 'frequency') {
+            return value >= 1000 ? `${(value/1000).toFixed(1)}k` : `${Math.round(value)}`;
+        } else if (paramName === 'delayTime') {
+            return `${(value * 1000).toFixed(0)}ms`;
+        } else if (paramName === 'threshold') {
+            return `${value.toFixed(0)}dB`;
+        } else if (paramName === 'ratio') {
+            return `${value.toFixed(1)}:1`;
+        } else if (paramName.includes('Gain') || paramName.includes('gain')) {
+            return value >= 0 ? `+${value.toFixed(1)}dB` : `${value.toFixed(1)}dB`;
+        } else if (paramName === 'type') {
+            const types = ['LP', 'HP', 'BP', 'Notch'];
+            return types[Math.round(value)] || 'LP';
+        } else if (paramName.includes('wet') || paramName.includes('Wet')) {
+            return `${Math.round(value * 100)}%`;
+        } else {
+            return value.toFixed(2);
+        }
+    }
+    
+    // Update effect parameter
+    updateEffectParameter(effectId, paramName, value) {
+        const effect = this.effectSettings.get(effectId);
+        if (effect) {
+            effect.parameters[paramName] = value;
+            console.log(`Updated ${effect.type} ${paramName}: ${value}`);
+        }
     }
     
     getEffectIcon(effectType) {
@@ -219,16 +359,18 @@ export class EffectsController {
             oscillator.type = 'sine';
             oscillator.frequency.value = 440; // A4
             
-            // Create gain node
-            const gainNode = audioContext.createGain();
-            gainNode.gain.value = 0.3;
+            // Create gain node for input
+            const inputGain = audioContext.createGain();
+            inputGain.gain.value = 0.3;
             
-            // Apply effects chain
-            let effectsChain = this.createEffectsChain(audioContext, gainNode);
+            // Connect oscillator to input gain
+            oscillator.connect(inputGain);
             
-            // Connect to output
-            oscillator.connect(gainNode);
-            effectsChain.connect(audioContext.destination);
+            // Apply effects chain - this will return the final output node of the chain
+            let outputNode = this.createEffectsChain(audioContext, inputGain);
+            
+            // Connect final output to destination
+            outputNode.connect(audioContext.destination);
             
             // Play preview
             oscillator.start(audioContext.currentTime);
@@ -239,7 +381,7 @@ export class EffectsController {
                 audioContext.close();
             }, duration * 1000 + 100);
             
-            console.log('Playing effects chain preview...');
+            console.log('Playing effects chain preview...', `${this.effectsChain.length} effects active`);
             
         } catch (error) {
             console.error('Failed to preview effects:', error);
@@ -250,18 +392,25 @@ export class EffectsController {
     // Create effects chain for Web Audio context
     createEffectsChain(audioContext, inputNode) {
         let currentNode = inputNode;
+        let effectsApplied = 0;
         
         // Apply each effect in the chain
         this.effectsChain.forEach(effect => {
             if (!effect.enabled) return;
             
             try {
-                currentNode = this.createEffect(audioContext, effect, currentNode);
+                const newNode = this.createEffect(audioContext, effect, currentNode);
+                if (newNode && newNode !== currentNode) {
+                    currentNode = newNode;
+                    effectsApplied++;
+                    console.log(`Applied effect: ${effect.type}`);
+                }
             } catch (error) {
                 console.warn(`Failed to create effect ${effect.type}:`, error);
             }
         });
         
+        console.log(`Effects chain created: ${effectsApplied} effects applied`);
         return currentNode;
     }
     

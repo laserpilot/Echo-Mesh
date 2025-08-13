@@ -100,13 +100,21 @@ export class AudioUtils {
         let closestNote = null;
         let smallestDiff = Infinity;
         
-        Object.entries(CONSTANTS.AUDIO.NOTE_FREQUENCIES).forEach(([note, freq]) => {
-            const diff = Math.abs(frequency - freq);
-            if (diff < smallestDiff) {
-                smallestDiff = diff;
-                closestNote = note;
-            }
-        });
+        // Check across multiple octaves (octaves 1-8 should cover most musical ranges)
+        const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        
+        for (let octave = 1; octave <= 8; octave++) {
+            noteNames.forEach((noteName, semitone) => {
+                // Calculate frequency for this note and octave using the same formula as server
+                const noteFreq = 440 * Math.pow(2, (octave - 4) + (semitone - 9) / 12);
+                const diff = Math.abs(frequency - noteFreq);
+                
+                if (diff < smallestDiff) {
+                    smallestDiff = diff;
+                    closestNote = noteName; // Return just the note name without octave
+                }
+            });
+        }
         
         return smallestDiff < tolerance ? closestNote : null;
     }
