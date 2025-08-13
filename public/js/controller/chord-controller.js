@@ -76,13 +76,55 @@ export class ChordController {
         };
         
         this.chordTypes = {
+            // Basic triads
             major: [0, 4, 7],
             minor: [0, 3, 7],
             diminished: [0, 3, 6],
             augmented: [0, 4, 8],
+            
+            // 7th chords
             major7: [0, 4, 7, 11],
             minor7: [0, 3, 7, 10],
-            dominant7: [0, 4, 7, 10]
+            dominant7: [0, 4, 7, 10],
+            halfDiminished7: [0, 3, 6, 10],
+            diminished7: [0, 3, 6, 9],
+            minorMajor7: [0, 3, 7, 11],
+            augmented7: [0, 4, 8, 10],
+            augmentedMajor7: [0, 4, 8, 11],
+            
+            // 9th chords
+            major9: [0, 4, 7, 11, 14],
+            minor9: [0, 3, 7, 10, 14],
+            dominant9: [0, 4, 7, 10, 14],
+            add9: [0, 4, 7, 14],
+            minorAdd9: [0, 3, 7, 14],
+            
+            // 11th chords
+            major11: [0, 4, 7, 11, 14, 17],
+            minor11: [0, 3, 7, 10, 14, 17],
+            dominant11: [0, 4, 7, 10, 14, 17],
+            
+            // 13th chords
+            major13: [0, 4, 7, 11, 14, 17, 21],
+            minor13: [0, 3, 7, 10, 14, 17, 21],
+            dominant13: [0, 4, 7, 10, 14, 17, 21],
+            
+            // Sus chords
+            sus2: [0, 2, 7],
+            sus4: [0, 5, 7],
+            sus2sus4: [0, 2, 5, 7],
+            
+            // 6th chords
+            major6: [0, 4, 7, 9],
+            minor6: [0, 3, 7, 9],
+            
+            // Altered dominants
+            dominantSharp5: [0, 4, 8, 10],
+            dominantFlat5: [0, 4, 6, 10],
+            dominantSharp9: [0, 4, 7, 10, 15],
+            dominantFlat9: [0, 4, 7, 10, 13],
+            dominantSharp11: [0, 4, 7, 10, 14, 18],
+            dominantFlat13: [0, 4, 7, 10, 14, 17, 20]
         };
         
         this.romanNumeralChords = {

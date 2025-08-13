@@ -287,11 +287,10 @@ export class WebSocketController extends WebSocketBase {
     // Register as controller with the server
     registerAsController() {
         console.log('Registering as controller...');
-        const controllerId = `controller-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         
-        // Send registration message with just type and id
+        // Send null ID to indicate this is a controller
         return this.sendMessage(CONSTANTS.MESSAGE_TYPES.REGISTER, {
-            id: controllerId
+            id: null
         });
     }
     

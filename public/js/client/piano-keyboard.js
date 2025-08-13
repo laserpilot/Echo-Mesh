@@ -165,13 +165,25 @@ export class PianoKeyboard {
     
     // Highlight a note being played (from server)
     highlightPlayingNote(note, duration = 500) {
-        const keyElement = this.container.querySelector(`[data-note="${note}"]`);
+        // Strip octave information to get just the note name (e.g., "C5" -> "C", "Db3" -> "Db")
+        const baseNote = this.extractBaseNoteName(note);
+        const keyElement = this.container.querySelector(`[data-note="${baseNote}"]`);
         if (keyElement) {
             keyElement.classList.add('playing');
             setTimeout(() => {
                 keyElement.classList.remove('playing');
             }, duration);
         }
+    }
+    
+    // Extract base note name from note with potential octave (e.g., "C5" -> "C", "F#4" -> "F#")
+    extractBaseNoteName(noteWithOctave) {
+        if (!noteWithOctave || typeof noteWithOctave !== 'string') {
+            return noteWithOctave;
+        }
+        
+        // Remove any trailing numbers (octave) from the note name
+        return noteWithOctave.replace(/\d+$/, '');
     }
     
     // Update keyboard for different musical scales

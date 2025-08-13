@@ -34,9 +34,15 @@ export class SpatialController {
         this.currentScale = 'major';
         this.currentChord = 1; // 1-7 for scale degrees
         
-        // Chord assignments for keys 1-7 (maps key number to chord degree)
+        // Chord assignments for keys 1-7 (maps key number to {degree, chordType})
         this.chordAssignments = {
-            1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7
+            1: { degree: 1, chordType: 'major' },
+            2: { degree: 2, chordType: 'minor' },
+            3: { degree: 3, chordType: 'minor' },
+            4: { degree: 4, chordType: 'major' },
+            5: { degree: 5, chordType: 'major' },
+            6: { degree: 6, chordType: 'minor' },
+            7: { degree: 7, chordType: 'diminished' }
         };
         
         console.log('SpatialController initialized');
@@ -186,30 +192,53 @@ export class SpatialController {
             keyLabel.textContent = `Key ${keyNum}`;
             keyLabel.style.cssText = 'font-weight: bold; margin-bottom: 5px; color: #333;';
             
-            const chordSelect = document.createElement('select');
-            chordSelect.id = `chordAssign${keyNum}`;
-            chordSelect.style.cssText = 'width: 100%; padding: 4px; font-size: 12px;';
+            // Scale degree selector
+            const degreeSelect = document.createElement('select');
+            degreeSelect.id = `degreeAssign${keyNum}`;
+            degreeSelect.style.cssText = 'width: 100%; padding: 4px; font-size: 12px; margin-bottom: 4px;';
             
-            // Populate with chord degree options
             const maxDegrees = this.getMaxDegrees();
             for (let degree = 1; degree <= maxDegrees; degree++) {
                 const option = document.createElement('option');
                 option.value = degree;
-                option.textContent = this.getChordName(degree);
-                if (degree === this.chordAssignments[keyNum]) {
+                option.textContent = `${degree}`;
+                if (degree === this.chordAssignments[keyNum].degree) {
                     option.selected = true;
                 }
-                chordSelect.appendChild(option);
+                degreeSelect.appendChild(option);
             }
             
-            // Add event listener
-            chordSelect.addEventListener('change', (e) => {
-                this.chordAssignments[keyNum] = parseInt(e.target.value);
-                console.log(`Key ${keyNum} assigned to chord degree ${e.target.value}`);
+            // Chord type selector
+            const chordTypeSelect = document.createElement('select');
+            chordTypeSelect.id = `chordTypeAssign${keyNum}`;
+            chordTypeSelect.style.cssText = 'width: 100%; padding: 4px; font-size: 11px;';
+            
+            // Populate with all available chord types
+            const chordTypes = this.getAvailableChordTypes();
+            chordTypes.forEach(chordType => {
+                const option = document.createElement('option');
+                option.value = chordType.key;
+                option.textContent = chordType.name;
+                if (chordType.key === this.chordAssignments[keyNum].chordType) {
+                    option.selected = true;
+                }
+                chordTypeSelect.appendChild(option);
+            });
+            
+            // Add event listeners
+            degreeSelect.addEventListener('change', (e) => {
+                this.chordAssignments[keyNum].degree = parseInt(e.target.value);
+                console.log(`Key ${keyNum} assigned to degree ${e.target.value}`);
+            });
+            
+            chordTypeSelect.addEventListener('change', (e) => {
+                this.chordAssignments[keyNum].chordType = e.target.value;
+                console.log(`Key ${keyNum} assigned to chord type ${e.target.value}`);
             });
             
             keyContainer.appendChild(keyLabel);
-            keyContainer.appendChild(chordSelect);
+            keyContainer.appendChild(degreeSelect);
+            keyContainer.appendChild(chordTypeSelect);
             container.appendChild(keyContainer);
         }
     }
@@ -220,6 +249,66 @@ export class SpatialController {
             return 7;
         }
         return this.chordController.scales[this.currentScale].length;
+    }
+    
+    // Get available chord types with display names
+    getAvailableChordTypes() {
+        const chordTypeMap = {
+            // Basic triads
+            'major': 'Major',
+            'minor': 'Minor', 
+            'diminished': 'Diminished',
+            'augmented': 'Augmented',
+            
+            // 7th chords
+            'major7': 'Maj7',
+            'minor7': 'Min7',
+            'dominant7': 'Dom7',
+            'halfDiminished7': 'Ø7',
+            'diminished7': 'Dim7',
+            'minorMajor7': 'MinMaj7',
+            'augmented7': 'Aug7',
+            'augmentedMajor7': 'AugMaj7',
+            
+            // 9th chords
+            'major9': 'Maj9',
+            'minor9': 'Min9',
+            'dominant9': 'Dom9',
+            'add9': 'Add9',
+            'minorAdd9': 'MinAdd9',
+            
+            // 11th chords
+            'major11': 'Maj11',
+            'minor11': 'Min11',
+            'dominant11': 'Dom11',
+            
+            // 13th chords
+            'major13': 'Maj13',
+            'minor13': 'Min13',
+            'dominant13': 'Dom13',
+            
+            // Sus chords
+            'sus2': 'Sus2',
+            'sus4': 'Sus4',
+            'sus2sus4': 'Sus2Sus4',
+            
+            // 6th chords
+            'major6': 'Maj6',
+            'minor6': 'Min6',
+            
+            // Altered dominants
+            'dominantSharp5': 'Dom7#5',
+            'dominantFlat5': 'Dom7b5',
+            'dominantSharp9': 'Dom7#9',
+            'dominantFlat9': 'Dom7b9',
+            'dominantSharp11': 'Dom7#11',
+            'dominantFlat13': 'Dom7b13'
+        };
+        
+        return Object.keys(chordTypeMap).map(key => ({
+            key: key,
+            name: chordTypeMap[key]
+        }));
     }
     
     // Get chord name for a degree
@@ -246,12 +335,26 @@ export class SpatialController {
     
     // Reset chord assignments to default scale degrees
     resetChordAssignments() {
+        // Set default major scale chord types
+        const defaultChordTypes = {
+            1: 'major',     // I
+            2: 'minor',     // ii
+            3: 'minor',     // iii
+            4: 'major',     // IV
+            5: 'major',     // V
+            6: 'minor',     // vi
+            7: 'diminished' // vii°
+        };
+        
         const maxDegrees = this.getMaxDegrees();
         for (let i = 1; i <= 7; i++) {
-            this.chordAssignments[i] = i <= maxDegrees ? i : 1;
+            this.chordAssignments[i] = {
+                degree: i <= maxDegrees ? i : 1,
+                chordType: defaultChordTypes[i] || 'major'
+            };
         }
         this.setupChordAssignmentUI();
-        this.uiController.logMessage('Chord assignments reset to scale degrees');
+        this.uiController.logMessage('Chord assignments reset to default scale chords');
     }
     
     // Update chord controller settings when spatial settings change
@@ -335,8 +438,8 @@ export class SpatialController {
         const key = e.key;
         if (key >= '1' && key <= '7') {
             const keyNumber = parseInt(key);
-            const chordDegree = this.chordAssignments[keyNumber] || keyNumber;
-            this.currentChord = chordDegree;
+            const chordAssignment = this.chordAssignments[keyNumber] || { degree: keyNumber, chordType: 'major' };
+            this.currentChord = chordAssignment.degree;
             
             // Trigger wave from fixed origin or canvas center
             const origin = this.fixedOrigin || {
@@ -344,7 +447,7 @@ export class SpatialController {
                 y: this.canvas.height / 2
             };
             
-            this.triggerWave(origin.x, origin.y, chordDegree);
+            this.triggerWave(origin.x, origin.y, chordAssignment);
             e.preventDefault();
         }
         
@@ -413,7 +516,9 @@ export class SpatialController {
     }
     
     // Trigger a wave from specified position
-    triggerWave(x, y, chordDegree = null) {
+    triggerWave(x, y, chordAssignment = null) {
+        const assignment = chordAssignment || { degree: this.currentChord, chordType: 'major' };
+        
         const wave = {
             id: Date.now() + Math.random(),
             x: x,
@@ -421,14 +526,14 @@ export class SpatialController {
             radius: this.waveRadius,
             maxRadius: Math.max(this.canvas.width, this.canvas.height) * 1.5,
             speed: this.waveSpeed,
-            chordDegree: chordDegree || this.currentChord,
+            chordAssignment: assignment,
             triggeredClients: new Set(),
             alpha: 1.0
         };
         
         this.waves.push(wave);
         
-        const chordText = chordDegree ? ` (chord ${chordDegree})` : '';
+        const chordText = chordAssignment ? ` (${assignment.degree}${assignment.chordType})` : '';
         console.log(`Wave triggered at (${Math.round(x)}, ${Math.round(y)})${chordText}`);
     }
     
@@ -491,25 +596,23 @@ export class SpatialController {
             // Check if wave edge is hitting client
             if (Math.abs(distance - wave.radius) < this.clientRadius) {
                 wave.triggeredClients.add(client.id);
-                this.triggerClientNote(client.id, wave.chordDegree);
+                this.triggerClientNote(client.id, wave.chordAssignment);
             }
         });
     }
     
     // Trigger note on specific client - distributes chord tones among clients
-    triggerClientNote(clientId, chordDegree) {
+    triggerClientNote(clientId, chordAssignment) {
         if (!this.chordController) {
             // Fallback to simple sine wave
             this.websocketController.triggerSound([clientId], 'sine');
             return;
         }
         
-        // Get the full chord for this degree
-        const chord = this.chordController.getChordForDegree(
-            this.currentKey,
-            this.currentScale,
-            chordDegree
-        );
+        const { degree, chordType } = chordAssignment;
+        
+        // Build chord using specified degree and chord type
+        const chord = this.buildCustomChord(degree, chordType);
         
         if (chord && chord.tones) {
             // Get all connected clients to determine chord tone distribution
@@ -530,13 +633,13 @@ export class SpatialController {
             const shortId = clientId.substring(0, 8).toUpperCase();
             const intervalNames = ['Root', '3rd', '5th', '7th', '9th', '11th', '13th'];
             const intervalName = intervalNames[chordToneIndex] || `+${chordTone.interval}`;
-            console.log(`Triggered ${chordTone.name} (${intervalName}, ${chordTone.frequency}Hz) on client ${shortId}`);
+            console.log(`Triggered ${chordTone.name} (${intervalName}, ${chordTone.frequency}Hz) on client ${shortId} - ${degree}${chordType}`);
         } else {
             // Fallback to root note
             const note = this.chordController.getNoteForChordDegree(
                 this.currentKey,
                 this.currentScale,
-                chordDegree
+                degree
             );
             
             if (note) {
@@ -547,6 +650,46 @@ export class SpatialController {
                 this.websocketController.triggerSound([clientId], 'sine');
             }
         }
+    }
+    
+    // Build a custom chord using specified degree and chord type
+    buildCustomChord(degree, chordType) {
+        if (!this.chordController || !this.chordController.chordTypes[chordType]) {
+            return null;
+        }
+        
+        // Get the root note for this degree
+        const rootNote = this.chordController.getNoteForChordDegree(
+            this.currentKey,
+            this.currentScale,
+            degree
+        );
+        
+        if (!rootNote) return null;
+        
+        // Get chord intervals for the specified type
+        const intervals = this.chordController.chordTypes[chordType];
+        
+        // Build chord tones
+        const tones = intervals.map(interval => {
+            const frequency = rootNote.frequency * Math.pow(2, interval / 12);
+            const midiNote = rootNote.midiNote + interval;
+            const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+            const noteName = noteNames[midiNote % 12] + Math.floor(midiNote / 12);
+            
+            return {
+                name: noteName,
+                frequency: Math.round(frequency * 100) / 100,
+                midiNote: midiNote,
+                interval: interval
+            };
+        });
+        
+        return {
+            root: rootNote,
+            chordType: chordType,
+            tones: tones
+        };
     }
     
     // Draw everything on canvas
@@ -692,9 +835,9 @@ export class SpatialController {
             'Instructions:',
             '• Click to trigger waves',
             '• Drag clients to reposition',
-            '• Keys 1-7: Trigger chord degrees',
+            '• Keys 1-7: Trigger assigned chords',
             '• F: Toggle fixed origin',
-            `Current chord: ${this.currentChord} in ${this.currentKey} ${this.currentScale}`,
+            `Key/Scale: ${this.currentKey} ${this.currentScale}`,
             `Fixed origin: ${this.fixedOrigin ? 'ON' : 'OFF'}`
         ];
         
