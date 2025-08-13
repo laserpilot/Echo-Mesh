@@ -217,6 +217,251 @@
             </div>
 
             <div class="container">
+                <h3>📈 ADSR Envelope</h3>
+                <p class="section-description">Control how sounds attack, sustain, and release over time</p>
+                
+                <!-- ADSR Visualizer -->
+                <div style="margin-bottom: 20px; padding: 15px; background-color: #f9f9f9; border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <label style="font-weight: bold;">Envelope Shape:</label>
+                        <button id="previewADSR" class="button" style="padding: 6px 12px; font-size: 12px; background-color: #4CAF50;">Preview Sound</button>
+                    </div>
+                    <canvas id="adsrCanvas" width="400" height="150" style="width: 100%; max-width: 400px; height: 150px; border: 1px solid #ddd; background-color: white; border-radius: 4px;"></canvas>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <label for="attackTime">Attack (s)</label>
+                        <input type="range" id="attackSlider" min="0.01" max="2" step="0.01" value="0.01" style="width: 100%;">
+                        <input type="number" id="attackTime" value="0.01" min="0.01" max="2" step="0.01" style="width: 80px;">
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <label for="decayTime">Decay (s)</label>
+                        <input type="range" id="decaySlider" min="0.01" max="2" step="0.01" value="0.1" style="width: 100%;">
+                        <input type="number" id="decayTime" value="0.1" min="0.01" max="2" step="0.01" style="width: 80px;">
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <label for="sustainLevel">Sustain</label>
+                        <input type="range" id="sustainSlider" min="0" max="1" step="0.01" value="0.5" style="width: 100%;">
+                        <input type="number" id="sustainLevel" value="0.5" min="0" max="1" step="0.01" style="width: 80px;">
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <label for="releaseTime">Release (s)</label>
+                        <input type="range" id="releaseSlider" min="0.01" max="5" step="0.01" value="1.0" style="width: 100%;">
+                        <input type="number" id="releaseTime" value="1.0" min="0.01" max="5" step="0.01" style="width: 80px;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="container">
+                <h3>🌊 LFO (Low-Frequency Oscillator)</h3>
+                <p class="section-description">Add dynamic modulation to parameters like pitch, volume, and filters</p>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <label for="lfoType">Waveform</label>
+                        <select id="lfoType" style="width: 100%;">
+                            <option value="sine">Sine (Smooth)</option>
+                            <option value="square">Square (Hard Steps)</option>
+                            <option value="sawtooth">Sawtooth (Ramp)</option>
+                            <option value="triangle">Triangle (Linear)</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <label for="lfoRate">Rate (Hz)</label>
+                        <input type="range" id="lfoRateSlider" min="0.1" max="20" step="0.1" value="5" style="width: 100%;">
+                        <input type="number" id="lfoRate" value="5" min="0.1" max="20" step="0.1" style="width: 80px;">
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <label for="lfoDepth">Depth</label>
+                        <input type="range" id="lfoDepthSlider" min="0" max="100" step="1" value="0" style="width: 100%;">
+                        <input type="number" id="lfoDepth" value="0" min="0" max="100" step="1" style="width: 80px;">
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <label for="lfoTarget">Target Parameter</label>
+                        <select id="lfoTarget" style="width: 100%;">
+                            <option value="vibrato">Pitch (Vibrato)</option>
+                            <option value="tremolo">Volume (Tremolo)</option>
+                            <option value="filter">Filter Cutoff</option>
+                            <option value="pan">Stereo Pan</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="margin-top: 15px; padding: 10px; background-color: #f0f0f0; border-radius: 5px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <label><input type="checkbox" id="lfoEnabled"> Enable LFO</label>
+                        <div id="lfoVisualization" style="flex: 1; height: 40px; background: linear-gradient(90deg, #ddd 0%, #4CAF50 50%, #ddd 100%); border-radius: 3px; position: relative;">
+                            <div id="lfoIndicator" style="position: absolute; top: 0; bottom: 0; width: 3px; background: #f44336; transition: left 0.1s;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="container">
+                <h3>🌐 Global Sound Controls</h3>
+                <p class="section-description">These settings apply to ALL connected clients by default</p>
+                
+                <div style="padding: 15px; background-color: #e3f2fd; border-radius: 8px; border-left: 4px solid #2196F3; margin-bottom: 20px;">
+                    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <label for="globalVolume">Master Volume:</label>
+                            <input type="range" id="globalVolume" min="0" max="100" value="80" style="width: 120px;">
+                            <span id="globalVolumeValue" style="min-width: 40px;">80%</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <label for="globalPan">Stereo Spread:</label>
+                            <input type="range" id="globalPan" min="0" max="100" value="50" style="width: 120px;">
+                            <span id="globalPanValue" style="min-width: 40px;">50%</span>
+                        </div>
+                        <button id="applyToAllClients" class="button" style="background-color: #4CAF50;">Apply to All Clients</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="container">
+                <h3>🎛️ Effects Chain</h3>
+                <p class="section-description">Build custom effects chains for rich, dynamic soundscapes</p>
+                
+                <!-- Effects Chain Display -->
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <label><strong>Active Effects Chain:</strong></label>
+                        <div style="display: flex; gap: 10px;">
+                            <button id="previewEffectsChain" class="button" style="background-color: #4CAF50; padding: 6px 12px; font-size: 14px;">🔊 Preview Sound</button>
+                            <button id="clearEffectsChain" class="button" style="background-color: #ff9800; padding: 6px 12px; font-size: 14px;">Clear All</button>
+                            <button id="bypassAllEffects" class="button" style="background-color: #9E9E9E; padding: 6px 12px; font-size: 14px;">Bypass All</button>
+                        </div>
+                    </div>
+                    <div id="effectsChainDisplay" style="min-height: 60px; background-color: #f9f9f9; border: 2px dashed #ccc; border-radius: 8px; padding: 15px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <div class="effects-placeholder">No effects active - Add effects below</div>
+                    </div>
+                </div>
+
+                <!-- Add Effects Section -->
+                <div style="margin-bottom: 20px;">
+                    <label><strong>Add Effects:</strong></label>
+                    <div id="effectsLibrary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px;">
+                        <button class="effect-add-button" data-effect="reverb">🏛️ Reverb</button>
+                        <button class="effect-add-button" data-effect="delay">⏰ Delay</button>
+                        <button class="effect-add-button" data-effect="distortion">🔥 Distortion</button>
+                        <button class="effect-add-button" data-effect="chorus">🌊 Chorus</button>
+                        <button class="effect-add-button" data-effect="filter">🎚️ Filter</button>
+                        <button class="effect-add-button" data-effect="compressor">📦 Compressor</button>
+                        <button class="effect-add-button" data-effect="eq">📊 EQ</button>
+                        <button class="effect-add-button" data-effect="phaser">🌀 Phaser</button>
+                    </div>
+                </div>
+
+                <!-- Effect Parameters Panel -->
+                <div id="effectParametersPanel" style="display: none; background-color: #f0f0f0; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h4 id="currentEffectTitle" style="margin: 0;">Effect Parameters</h4>
+                        <button id="closeEffectPanel" class="button" style="background-color: #f44336; padding: 4px 8px; font-size: 12px;">×</button>
+                    </div>
+                    <div id="effectParametersContent">
+                        <!-- Dynamic content based on selected effect -->
+                    </div>
+                </div>
+
+                <!-- Global Effects Controls -->
+                <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <label for="effectsWetDry">Wet/Dry Mix:</label>
+                        <input type="range" id="effectsWetDry" min="0" max="100" value="50" style="width: 100px;">
+                        <span id="effectsWetDryValue">50%</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <label for="effectsGain">Effects Gain:</label>
+                        <input type="range" id="effectsGain" min="0" max="200" value="100" style="width: 100px;">
+                        <span id="effectsGainValue">100%</span>
+                    </div>
+                </div>
+
+                <p style="color: #666; font-size: 14px; margin-top: 15px; margin-bottom: 0;">
+                    Build custom effects chains by adding effects above. Drag to reorder, click to edit parameters. Effects are applied in order from left to right.
+                </p>
+            </div>
+
+            <div class="container">
+                <h3>💾 Sound Presets</h3>
+                <p class="section-description">Save and manage complete sound configurations</p>
+                
+                <!-- Save Current Settings -->
+                <div style="margin-bottom: 20px; padding: 15px; background-color: #f9f9f9; border-radius: 8px;">
+                    <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+                        <input type="text" id="presetName" placeholder="Enter preset name..." style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <button id="savePreset" class="button" style="background-color: #2196F3;">💾 Save Current Sound</button>
+                    </div>
+                    <div style="font-size: 12px; color: #666;">
+                        This will save: waveform, ADSR, LFO settings, effects chain, and volume levels
+                    </div>
+                </div>
+
+                <!-- Preset Library -->
+                <div style="margin-bottom: 20px;">
+                    <label style="font-weight: bold; margin-bottom: 10px; display: block;">Saved Presets:</label>
+                    <div id="presetLibrary" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px;">
+                        <!-- Default presets -->
+                        <div class="preset-card" data-preset="clean">
+                            <div class="preset-name">✨ Clean Sine</div>
+                            <div class="preset-description">Pure sine wave, no effects</div>
+                            <div class="preset-actions">
+                                <button class="preset-apply button" data-preset="clean">Apply to All</button>
+                                <button class="preset-apply-selected button" data-preset="clean">Apply to Selected</button>
+                            </div>
+                        </div>
+                        <div class="preset-card" data-preset="warm-pad">
+                            <div class="preset-name">🌅 Warm Pad</div>
+                            <div class="preset-description">Sawtooth + reverb + filter</div>
+                            <div class="preset-actions">
+                                <button class="preset-apply button" data-preset="warm-pad">Apply to All</button>
+                                <button class="preset-apply-selected button" data-preset="warm-pad">Apply to Selected</button>
+                            </div>
+                        </div>
+                        <div class="preset-card" data-preset="plucky">
+                            <div class="preset-name">🎸 Plucky</div>
+                            <div class="preset-description">Fast attack, quick decay</div>
+                            <div class="preset-actions">
+                                <button class="preset-apply button" data-preset="plucky">Apply to All</button>
+                                <button class="preset-apply-selected button" data-preset="plucky">Apply to Selected</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="container">
+                <h3>👤 Per-Client Sound Shaping</h3>
+                <p class="section-description">Customize sound settings for individual clients or groups</p>
+                
+                <!-- Client Selection Mode -->
+                <div style="margin-bottom: 20px; padding: 15px; background-color: #fff3e0; border-radius: 8px; border-left: 4px solid #ff9800;">
+                    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                        <label style="font-weight: bold;">Target Mode:</label>
+                        <label><input type="radio" name="targetMode" value="all" checked> All Clients</label>
+                        <label><input type="radio" name="targetMode" value="selected"> Selected Clients Only</label>
+                        <label><input type="radio" name="targetMode" value="groups"> Selected Groups Only</label>
+                        <button id="clearSelection" class="button" style="background-color: #ff9800;">Clear Selection</button>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 12px; color: #666;">
+                        Click on clients or groups in the grid above to select them for individual sound shaping
+                    </div>
+                </div>
+
+                <!-- Selected Clients Display -->
+                <div id="selectedClientsDisplay" style="margin-bottom: 20px; padding: 10px; background-color: #f5f5f5; border-radius: 4px; min-height: 40px;">
+                    <strong>Selected:</strong> <span id="selectedClientsList">All clients (global mode)</span>
+                </div>
+
+                <!-- Per-Client Controls -->
+                <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 15px;">
+                    <button id="copyFromGlobal" class="button" style="background-color: #4CAF50;">Copy Global Settings</button>
+                    <button id="applyToSelected" class="button" style="background-color: #2196F3;">Apply to Selected</button>
+                    <button id="resetSelected" class="button" style="background-color: #f44336;">Reset Selected to Default</button>
+                </div>
+            </div>
+
+            <div class="container">
                 <h3>🔧 Testing & Utilities</h3>
                 <div class="controls-grid">
                     <button id="refreshButton" class="button">Refresh Clients</button>
@@ -596,146 +841,6 @@
                 </p>
             </div>
 
-            <div class="container">
-                <h3>ADSR Envelope</h3>
-                
-                <!-- ADSR Visualizer -->
-                <div style="margin-bottom: 20px; padding: 15px; background-color: #f9f9f9; border-radius: 8px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <label style="font-weight: bold;">Envelope Shape:</label>
-                        <button id="previewADSR" class="button" style="padding: 6px 12px; font-size: 12px; background-color: #4CAF50;">Preview Sound</button>
-                    </div>
-                    <canvas id="adsrCanvas" width="400" height="150" style="width: 100%; max-width: 400px; height: 150px; border: 1px solid #ddd; background-color: white; border-radius: 4px;"></canvas>
-                </div>
-                
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                    <div style="display: flex; flex-direction: column; gap: 5px;">
-                        <label for="attackTime">Attack (s)</label>
-                        <input type="range" id="attackSlider" min="0.01" max="2" step="0.01" value="0.01" style="width: 100%;">
-                        <input type="number" id="attackTime" value="0.01" min="0.01" max="2" step="0.01" style="width: 80px;">
-                    </div>
-                    <div style="display: flex; flex-direction: column; gap: 5px;">
-                        <label for="decayTime">Decay (s)</label>
-                        <input type="range" id="decaySlider" min="0.01" max="2" step="0.01" value="0.1" style="width: 100%;">
-                        <input type="number" id="decayTime" value="0.1" min="0.01" max="2" step="0.01" style="width: 80px;">
-                    </div>
-                    <div style="display: flex; flex-direction: column; gap: 5px;">
-                        <label for="sustainLevel">Sustain</label>
-                        <input type="range" id="sustainSlider" min="0" max="1" step="0.01" value="0.5" style="width: 100%;">
-                        <input type="number" id="sustainLevel" value="0.5" min="0" max="1" step="0.01" style="width: 80px;">
-                    </div>
-                    <div style="display: flex; flex-direction: column; gap: 5px;">
-                        <label for="releaseTime">Release (s)</label>
-                        <input type="range" id="releaseSlider" min="0.01" max="5" step="0.01" value="1.0" style="width: 100%;">
-                        <input type="number" id="releaseTime" value="1.0" min="0.01" max="5" step="0.01" style="width: 80px;">
-                    </div>
-                </div>
-            </div>
-
-            <div class="container">
-                <h3>🌊 LFO (Low-Frequency Oscillator)</h3>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                    <div style="display: flex; flex-direction: column; gap: 5px;">
-                        <label for="lfoType">Waveform</label>
-                        <select id="lfoType" style="width: 100%;">
-                            <option value="sine">Sine (Smooth)</option>
-                            <option value="square">Square (Hard Steps)</option>
-                            <option value="sawtooth">Sawtooth (Ramp)</option>
-                            <option value="triangle">Triangle (Linear)</option>
-                        </select>
-                    </div>
-                    <div style="display: flex; flex-direction: column; gap: 5px;">
-                        <label for="lfoRate">Rate (Hz)</label>
-                        <input type="range" id="lfoRateSlider" min="0.1" max="20" step="0.1" value="5" style="width: 100%;">
-                        <input type="number" id="lfoRate" value="5" min="0.1" max="20" step="0.1" style="width: 80px;">
-                    </div>
-                    <div style="display: flex; flex-direction: column; gap: 5px;">
-                        <label for="lfoDepth">Depth</label>
-                        <input type="range" id="lfoDepthSlider" min="0" max="100" step="1" value="0" style="width: 100%;">
-                        <input type="number" id="lfoDepth" value="0" min="0" max="100" step="1" style="width: 80px;">
-                    </div>
-                    <div style="display: flex; flex-direction: column; gap: 5px;">
-                        <label for="lfoTarget">Target Parameter</label>
-                        <select id="lfoTarget" style="width: 100%;">
-                            <option value="vibrato">Pitch (Vibrato)</option>
-                            <option value="tremolo">Volume (Tremolo)</option>
-                            <option value="filter">Filter Cutoff</option>
-                            <option value="pan">Stereo Pan</option>
-                        </select>
-                    </div>
-                </div>
-                <div style="margin-top: 15px; padding: 10px; background-color: #f0f0f0; border-radius: 5px;">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <label><input type="checkbox" id="lfoEnabled"> Enable LFO</label>
-                        <div id="lfoVisualization" style="flex: 1; height: 40px; background: linear-gradient(90deg, #ddd 0%, #4CAF50 50%, #ddd 100%); border-radius: 3px; position: relative;">
-                            <div id="lfoIndicator" style="position: absolute; top: 0; bottom: 0; width: 3px; background: #f44336; transition: left 0.1s;"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="container">
-                <h3>🎛️ Effects Chain</h3>
-                
-                <!-- Effects Chain Display -->
-                <div style="margin-bottom: 20px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <label><strong>Active Effects Chain:</strong></label>
-                        <div style="display: flex; gap: 10px;">
-                            <button id="previewEffectsChain" class="button" style="background-color: #4CAF50; padding: 6px 12px; font-size: 14px;">🔊 Preview Sound</button>
-                            <button id="clearEffectsChain" class="button" style="background-color: #ff9800; padding: 6px 12px; font-size: 14px;">Clear All</button>
-                            <button id="bypassAllEffects" class="button" style="background-color: #9E9E9E; padding: 6px 12px; font-size: 14px;">Bypass All</button>
-                        </div>
-                    </div>
-                    <div id="effectsChainDisplay" style="min-height: 60px; background-color: #f9f9f9; border: 2px dashed #ccc; border-radius: 8px; padding: 15px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                        <div class="effects-placeholder">No effects active - Add effects below</div>
-                    </div>
-                </div>
-
-                <!-- Add Effects Section -->
-                <div style="margin-bottom: 20px;">
-                    <label><strong>Add Effects:</strong></label>
-                    <div id="effectsLibrary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px;">
-                        <button class="effect-add-button" data-effect="reverb">🏛️ Reverb</button>
-                        <button class="effect-add-button" data-effect="delay">⏰ Delay</button>
-                        <button class="effect-add-button" data-effect="distortion">🔥 Distortion</button>
-                        <button class="effect-add-button" data-effect="chorus">🌊 Chorus</button>
-                        <button class="effect-add-button" data-effect="filter">🎚️ Filter</button>
-                        <button class="effect-add-button" data-effect="compressor">📦 Compressor</button>
-                        <button class="effect-add-button" data-effect="eq">📊 EQ</button>
-                        <button class="effect-add-button" data-effect="phaser">🌀 Phaser</button>
-                    </div>
-                </div>
-
-                <!-- Effect Parameters Panel -->
-                <div id="effectParametersPanel" style="display: none; background-color: #f0f0f0; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <h4 id="currentEffectTitle" style="margin: 0;">Effect Parameters</h4>
-                        <button id="closeEffectPanel" class="button" style="background-color: #f44336; padding: 4px 8px; font-size: 12px;">×</button>
-                    </div>
-                    <div id="effectParametersContent">
-                        <!-- Dynamic content based on selected effect -->
-                    </div>
-                </div>
-
-                <!-- Global Effects Controls -->
-                <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <label for="effectsWetDry">Wet/Dry Mix:</label>
-                        <input type="range" id="effectsWetDry" min="0" max="100" value="50" style="width: 100px;">
-                        <span id="effectsWetDryValue">50%</span>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <label for="effectsGain">Effects Gain:</label>
-                        <input type="range" id="effectsGain" min="0" max="200" value="100" style="width: 100px;">
-                        <span id="effectsGainValue">100%</span>
-                    </div>
-                </div>
-
-                <p style="color: #666; font-size: 14px; margin-top: 15px; margin-bottom: 0;">
-                    Build custom effects chains by adding effects above. Drag to reorder, click to edit parameters. Effects are applied in order from left to right.
-                </p>
-            </div>
 
             <div class="container">
                 <h3>Step Sequencer</h3>
