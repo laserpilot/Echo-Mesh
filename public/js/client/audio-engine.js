@@ -595,6 +595,42 @@ export class ClientAudioEngine {
         }
     }
     
+    // Stop all active sounds (panic stop)
+    stopAllSounds() {
+        if (!this.audioContext) return;
+        
+        console.log('Stopping all active audio nodes');
+        
+        try {
+            // Disconnect all nodes from destination (this effectively stops all audio)
+            // Note: This is a more aggressive approach since we don't track individual oscillators
+            if (this.audioContext.destination) {
+                // Get all connected sources and disconnect them
+                // This is a simplified approach - in a more complex system we'd track active nodes
+                
+                // Create a new audio context to completely reset the audio state
+                const oldContext = this.audioContext;
+                
+                // Close the old context asynchronously to avoid blocking
+                setTimeout(async () => {
+                    try {
+                        await oldContext.close();
+                        console.log('Old audio context closed');
+                    } catch (error) {
+                        console.warn('Error closing old audio context:', error);
+                    }
+                }, 100);
+                
+                // Reinitialize audio context
+                this.initAudio().catch(error => {
+                    console.error('Failed to reinitialize audio context:', error);
+                });
+            }
+        } catch (error) {
+            console.error('Error during panic stop:', error);
+        }
+    }
+    
     // Set master volume
     setMasterVolume(volume) {
         this.masterVolume = Math.max(0, Math.min(1, volume));

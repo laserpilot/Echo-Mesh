@@ -10,6 +10,7 @@ export class ClientManager {
         this.unassignedClients = new Set();
         this.clientPitches = new Map();
         this.clientPositions = new Map();
+        this.clientLastNotes = new Map(); // Track last note played on each client
         this.soloMode = false;
         
         // DOM elements
@@ -164,8 +165,24 @@ export class ClientManager {
         
         this.uiController.logMessage(`Updated client list: ${this.clients.length} clients`);
         
+        // Add compact layout class for many clients (fallback for browsers without :has() support)
+        this.updateGridCompactness();
+        
         // Update groups UI as well
         this.updateGroupsUI();
+    }
+    
+    // Update grid compactness based on number of clients
+    updateGridCompactness() {
+        if (!this.elements.clientsGrid) return;
+        
+        // Remove existing compact class
+        this.elements.clientsGrid.classList.remove('many-clients');
+        
+        // Add compact class if there are many clients (for browsers without :has() support)
+        if (this.clients.length >= 8) {
+            this.elements.clientsGrid.classList.add('many-clients');
+        }
     }
     
     // Add "no clients" card
@@ -190,11 +207,58 @@ export class ClientManager {
         const octaveOffset = clientPitch ? clientPitch.octaveOffset : 0;
         const semitoneOffset = clientPitch ? clientPitch.semitoneOffset : 0;
         
+        // Find which group this client is in
+        const clientGroup = this.getClientGroup(clientId);
+        const availableGroups = Array.from(this.clientGroups.values());
+        
+        const groupInfo = clientGroup ? 
+            `<div class="client-group-info" style="background: #e3f2fd; padding: 4px 8px; border-radius: 3px; margin-bottom: 8px; font-size: 11px;">
+                Group: <strong>${clientGroup.name}</strong>
+                <button class="remove-from-group-btn" data-client="${clientId}" style="margin-left: 8px; padding: 1px 4px; font-size: 10px; background: #ff9800; border: none; border-radius: 2px; cursor: pointer;">Remove</button>
+            </div>` :
+            `<div class="client-group-info" style="background: #f5f5f5; padding: 4px 8px; border-radius: 3px; margin-bottom: 8px; font-size: 11px; color: #666;">
+                Not in any group
+            </div>`;
+            
+        const assignGroupSection = availableGroups.length > 0 && !clientGroup ? 
+            `<div class="assign-group-section" style="margin-bottom: 8px; font-size: 11px;">
+                <select class="client-group-select" data-client="${clientId}" style="width: 100%; font-size: 11px; padding: 2px;">
+                    <option value="">Assign to group...</option>
+                    ${availableGroups.map(group => 
+                        `<option value="${group.id}">${group.name}</option>`
+                    ).join('')}
+                </select>
+            </div>` : '';
+
         const clientCard = document.createElement('div');
         clientCard.className = 'client-card';
+        clientCard.id = `client-${clientId}`;
         clientCard.innerHTML = `
             <div class="client-id">${shortId}</div>
             <p>Connected</p>
+            
+            ${groupInfo}
+            ${assignGroupSection}
+            
+            <div class="sound-settings-indicator" style="background: #e8f5e8; border: 1px solid #c8e6c9; border-radius: 3px; padding: 4px; margin: 4px 0; font-size: 10px;">
+                <div style="font-weight: bold; margin-bottom: 2px; color: #2e7d32;">Current Sound Settings</div>
+                <div class="waveform-indicator" style="margin: 2px 0;">
+                    <span style="color: #666;">Wave:</span> <span class="waveform-value" style="font-weight: bold;">sine</span>
+                </div>
+                <div class="adsr-indicator" style="margin: 2px 0;">
+                    <span style="color: #666;">ADSR:</span> <span class="adsr-value" style="font-weight: bold;">0.01/0.1/0.5/1.0</span>
+                </div>
+                <div class="effects-indicator" style="margin: 2px 0;">
+                    <span style="color: #666;">Effects:</span> <span class="effects-value" style="font-weight: bold;">None</span>
+                </div>
+                <div class="last-note-indicator" style="margin: 2px 0; padding: 2px; background: #fff3e0; border-radius: 2px;">
+                    <span style="color: #666;">Last Note:</span> <span class="last-note-value" style="font-weight: bold; color: #e65100;">None</span>
+                    <span class="note-frequency" style="color: #999; font-size: 9px;"></span>
+                </div>
+                <div class="last-updated" style="margin-top: 3px; color: #888; font-size: 9px;">
+                    Updated: <span class="timestamp">Never</span>
+                </div>
+            </div>
             
             <div class="pitch-controls" style="margin: 8px 0; padding: 8px; background-color: #f5f5f5; border-radius: 4px;">
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
@@ -252,6 +316,25 @@ export class ClientManager {
             this.setClientPitch(clientId, 0, 0);
         });
         
+        // Add event listener for remove from group button
+        const removeGroupBtn = clientCard.querySelector('.remove-from-group-btn');
+        removeGroupBtn?.addEventListener('click', () => {
+            this.removeClientFromAllGroups(clientId);
+            this.updateClientList(this.clients); // Refresh the client display
+            this.updateGroupsUI(); // Refresh the groups display
+        });
+        
+        // Add event listener for group assignment dropdown
+        const groupSelect = clientCard.querySelector('.client-group-select');
+        groupSelect?.addEventListener('change', (e) => {
+            const groupId = e.target.value;
+            if (groupId) {
+                this.addClientToGroup(clientId, groupId);
+                this.updateClientList(this.clients); // Refresh the client display
+                this.updateGroupsUI(); // Refresh the groups display
+            }
+        });
+        
         this.elements.clientsGrid.appendChild(clientCard);
     }
     
@@ -264,14 +347,114 @@ export class ClientManager {
     }
     
     // Trigger sound on specific client
-    triggerClientSound(clientId, sound) {
+    triggerClientSound(clientId, sound, frequency = null) {
         // Get current LFO and effects settings
         const lfoConfig = window.controllerApp?.getAudioController()?.getLFOConfig() || {};
         const effectsConfig = window.controllerApp?.getAudioController()?.getEffectsConfig() || {};
+        const adsrConfig = window.controllerApp?.getAudioController()?.getADSRConfig() || {
+            attack: 0.01, decay: 0.1, sustain: 0.5, release: 1.0
+        };
         
-        this.websocketController.triggerSound([clientId], sound, null, lfoConfig, effectsConfig);
+        // If no frequency provided, generate a default one for this client
+        const finalFrequency = frequency || this.generateFrequencyForClient(clientId);
+        
+        this.websocketController.triggerSound([clientId], sound, finalFrequency, lfoConfig, effectsConfig);
         const shortId = clientId.substring(0, 8).toUpperCase();
         this.uiController.logMessage(`Playing ${sound} on client ${shortId}`);
+        
+        // Update the sound settings indicator for this client
+        this.updateClientSoundIndicator(clientId, sound, adsrConfig, lfoConfig, effectsConfig, finalFrequency);
+    }
+    
+    // Update client sound settings indicator
+    updateClientSoundIndicator(clientId, waveform, adsrConfig, lfoConfig, effectsConfig, frequency = null) {
+        const clientCard = document.getElementById(`client-${clientId}`);
+        if (!clientCard) return;
+        
+        const waveformValue = clientCard.querySelector('.waveform-value');
+        const adsrValue = clientCard.querySelector('.adsr-value');
+        const effectsValue = clientCard.querySelector('.effects-value');
+        const lastNoteValue = clientCard.querySelector('.last-note-value');
+        const noteFrequency = clientCard.querySelector('.note-frequency');
+        const timestamp = clientCard.querySelector('.timestamp');
+        
+        if (waveformValue) {
+            waveformValue.textContent = waveform || 'sine';
+        }
+        
+        if (adsrValue && adsrConfig) {
+            const adsrText = `${adsrConfig.attack}/${adsrConfig.decay}/${adsrConfig.sustain}/${adsrConfig.release}`;
+            adsrValue.textContent = adsrText;
+        }
+        
+        if (effectsValue) {
+            const activeEffects = [];
+            if (effectsConfig) {
+                if (effectsConfig.reverb && effectsConfig.reverb.enabled) activeEffects.push('Reverb');
+                if (effectsConfig.delay && effectsConfig.delay.enabled) activeEffects.push('Delay');
+                if (effectsConfig.distortion && effectsConfig.distortion.enabled) activeEffects.push('Distortion');
+                if (effectsConfig.filter && effectsConfig.filter.enabled) activeEffects.push('Filter');
+                if (effectsConfig.compressor && effectsConfig.compressor.enabled) activeEffects.push('Compressor');
+                if (effectsConfig.eq && effectsConfig.eq.enabled) activeEffects.push('EQ');
+                if (effectsConfig.chorus && effectsConfig.chorus.enabled) activeEffects.push('Chorus');
+            }
+            if (lfoConfig && lfoConfig.enabled) activeEffects.push('LFO');
+            
+            effectsValue.textContent = activeEffects.length > 0 ? activeEffects.join(', ') : 'None';
+        }
+        
+        // Update note information if frequency is provided
+        if (frequency && lastNoteValue && noteFrequency) {
+            const noteName = this.frequencyToNote(frequency);
+            lastNoteValue.textContent = noteName;
+            noteFrequency.textContent = `(${Math.round(frequency)}Hz)`;
+            
+            // Store the last note for this client
+            this.clientLastNotes.set(clientId, {
+                note: noteName,
+                frequency: frequency,
+                timestamp: new Date()
+            });
+            
+            // Flash the note indicator
+            const noteIndicator = clientCard.querySelector('.last-note-indicator');
+            if (noteIndicator) {
+                noteIndicator.style.backgroundColor = '#ffcc80';
+                setTimeout(() => {
+                    noteIndicator.style.backgroundColor = '#fff3e0';
+                }, 500);
+            }
+        }
+        
+        if (timestamp) {
+            const now = new Date();
+            timestamp.textContent = now.toLocaleTimeString();
+        }
+        
+        // Flash the indicator to show it was updated
+        const indicator = clientCard.querySelector('.sound-settings-indicator');
+        if (indicator) {
+            indicator.style.backgroundColor = '#c8e6c9';
+            setTimeout(() => {
+                indicator.style.backgroundColor = '#e8f5e8';
+            }, 300);
+        }
+    }
+    
+    // Update sound indicators for all clients (when global settings change)
+    updateAllClientSoundIndicators() {
+        const audioController = window.controllerApp?.getAudioController();
+        if (!audioController) return;
+        
+        const lfoConfig = audioController.getLFOConfig() || {};
+        const effectsConfig = audioController.getEffectsConfig() || {};
+        const adsrConfig = audioController.getADSRConfig() || {
+            attack: 0.01, decay: 0.1, sustain: 0.5, release: 1.0
+        };
+        
+        this.clients.forEach(clientId => {
+            this.updateClientSoundIndicator(clientId, 'sine', adsrConfig, lfoConfig, effectsConfig);
+        });
     }
     
     // Generate frequency for client based on ID
@@ -418,6 +601,16 @@ export class ClientManager {
     // Get client pitch settings
     getClientPitch(clientId) {
         return this.clientPitches.get(clientId);
+    }
+    
+    // Get which group a client is in
+    getClientGroup(clientId) {
+        for (const group of this.clientGroups.values()) {
+            if (group.clients.has(clientId)) {
+                return group;
+            }
+        }
+        return null;
     }
     
     // Set client pitch

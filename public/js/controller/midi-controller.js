@@ -280,54 +280,120 @@ export class MidiController {
         this.startProgressTracking();
     }
     
-    // Schedule all MIDI notes for playback
+    // Schedule all MIDI notes for playback (with density control)
     scheduleAllNotes(strategy, tempoMultiplier, volumeMultiplier, lfoConfig, effectsConfig, startTime) {
         const clients = this.websocketController.getClients();
         const enabledTracks = this.getEnabledTracks();
         
-        let noteCounter = 0;
-        
+        // Collect all notes with timing
+        let allNotes = [];
         enabledTracks.forEach((track, trackIndex) => {
             track.notes.forEach(note => {
-                const scheduledPlayTime = startTime + (note.time * 1000 / tempoMultiplier);
-                const frequency = 440 * Math.pow(2, (note.midi - 69) / 12);
-                const velocity = (note.velocity || 0.8) * volumeMultiplier;
-                
-                // Determine target client based on strategy
-                const clientId = this.selectClientByStrategy(strategy, noteCounter, trackIndex, note, clients);
-                
-                // Create ADSR envelope based on note duration
-                const duration = note.duration * 1000 / tempoMultiplier;
-                const adsr = {
-                    attack: Math.min(0.1, duration * 0.1),
-                    decay: Math.min(0.2, duration * 0.2),
-                    sustain: velocity,
-                    release: Math.min(1.0, duration * 0.3)
-                };
-                
-                // Schedule the note
-                this.websocketController.scheduleNote(
-                    [clientId],
-                    'sine',
-                    frequency,
-                    scheduledPlayTime,
-                    adsr,
-                    lfoConfig.enabled ? lfoConfig : null,
-                    0, // pan
-                    effectsConfig.chain && effectsConfig.chain.length > 0 ? effectsConfig : null
-                );
-                
-                this.state.scheduledNotes.push({
-                    time: scheduledPlayTime,
-                    clientId: clientId,
-                    note: note
+                allNotes.push({
+                    ...note,
+                    trackIndex: trackIndex,
+                    scheduledTime: startTime + (note.time * 1000 / tempoMultiplier)
                 });
-                
-                noteCounter++;
             });
         });
         
-        this.uiController.logMessage(`Scheduled ${noteCounter} MIDI notes across ${clients.length} clients`);
+        // Sort notes by time
+        allNotes.sort((a, b) => a.scheduledTime - b.scheduledTime);
+        
+        // Apply density control - limit concurrent notes
+        const MAX_CONCURRENT_NOTES = 8; // Limit to 8 simultaneous notes
+        const NOTE_SPACING_MS = 10; // Minimum 10ms between notes
+        
+        let adjustedNotes = this.applyDensityControl(allNotes, MAX_CONCURRENT_NOTES, NOTE_SPACING_MS);
+        
+        this.uiController.logMessage(`Processing ${adjustedNotes.length} notes (${allNotes.length - adjustedNotes.length} filtered for density control)`);
+        
+        // Schedule notes in chunks to prevent overwhelming the system
+        this.scheduleNotesInChunks(adjustedNotes, strategy, volumeMultiplier, lfoConfig, effectsConfig, clients);
+    }
+    
+    // Apply density control to prevent overwhelming playback
+    applyDensityControl(notes, maxConcurrent, minSpacing) {
+        let filteredNotes = [];
+        let lastNoteTime = 0;
+        let concurrentNotes = [];
+        
+        notes.forEach(note => {
+            // Remove notes that have finished playing from concurrent list
+            concurrentNotes = concurrentNotes.filter(n => 
+                (note.scheduledTime - n.scheduledTime) < (n.duration * 1000)
+            );
+            
+            // Check if we can add this note
+            const canAdd = concurrentNotes.length < maxConcurrent && 
+                          (note.scheduledTime - lastNoteTime) >= minSpacing;
+            
+            if (canAdd) {
+                filteredNotes.push(note);
+                concurrentNotes.push(note);
+                lastNoteTime = note.scheduledTime;
+            }
+        });
+        
+        return filteredNotes;
+    }
+    
+    // Schedule notes in smaller chunks to prevent system overload
+    scheduleNotesInChunks(notes, strategy, volumeMultiplier, lfoConfig, effectsConfig, clients) {
+        const CHUNK_SIZE = 50; // Process 50 notes at a time
+        const CHUNK_DELAY = 100; // 100ms delay between chunks
+        
+        let noteCounter = 0;
+        
+        for (let i = 0; i < notes.length; i += CHUNK_SIZE) {
+            const chunk = notes.slice(i, i + CHUNK_SIZE);
+            
+            // Schedule this chunk with a delay
+            setTimeout(() => {
+                if (!this.state.isPlaying) return; // Stop if playback was stopped
+                
+                chunk.forEach(note => {
+                    const frequency = 440 * Math.pow(2, (note.midi - 69) / 12);
+                    const velocity = (note.velocity || 0.8) * volumeMultiplier;
+                    
+                    // Determine target client based on strategy
+                    const clientId = this.selectClientByStrategy(strategy, noteCounter, note.trackIndex, note, clients);
+                    
+                    // Create ADSR envelope based on note duration
+                    const duration = note.duration * 1000;
+                    const adsr = {
+                        attack: Math.min(0.1, duration * 0.1),
+                        decay: Math.min(0.2, duration * 0.2),
+                        sustain: velocity,
+                        release: Math.min(1.0, duration * 0.3)
+                    };
+                    
+                    // Schedule the note
+                    this.websocketController.scheduleNote(
+                        [clientId],
+                        'sine',
+                        frequency,
+                        note.scheduledTime,
+                        adsr,
+                        lfoConfig.enabled ? lfoConfig : null,
+                        0, // pan
+                        effectsConfig.chain && effectsConfig.chain.length > 0 ? effectsConfig : null
+                    );
+                    
+                    this.state.scheduledNotes.push({
+                        time: note.scheduledTime,
+                        clientId: clientId,
+                        note: note
+                    });
+                    
+                    noteCounter++;
+                });
+                
+                if (i === 0) {
+                    this.uiController.logMessage(`Started MIDI playback - scheduling ${notes.length} notes across ${clients.length} clients`);
+                }
+            }, Math.floor(i / CHUNK_SIZE) * CHUNK_DELAY);
+        }
     }
     
     // Get enabled tracks
@@ -375,7 +441,18 @@ export class MidiController {
         this.state.scheduledNotes = [];
         this.updatePlaybackUI();
         this.stopProgressTracking();
-        this.uiController.logMessage('MIDI playback stopped');
+        
+        // Send stop message to all clients to actually stop playing sounds
+        const clients = this.websocketController.getClients();
+        if (clients.length > 0) {
+            this.websocketController.broadcast({
+                type: 'stopAllNotes',
+                timestamp: Date.now()
+            });
+            this.uiController.logMessage('MIDI playback stopped - stop signal sent to all clients');
+        } else {
+            this.uiController.logMessage('MIDI playback stopped');
+        }
     }
     
     // Pause MIDI playback (for future implementation)

@@ -135,6 +135,16 @@ export class ClientApp {
         this.websocketClient.onMessage(MESSAGE_TYPES.SET_VOLUME, (data) => {
             this.handleSetVolume(data);
         });
+        
+        // Panic stop
+        this.websocketClient.onMessage(MESSAGE_TYPES.PANIC_STOP, (data) => {
+            this.handlePanicStop(data);
+        });
+        
+        // Stop all notes (MIDI stop)
+        this.websocketClient.onMessage(MESSAGE_TYPES.STOP_ALL_NOTES, (data) => {
+            this.handleStopAllNotes(data);
+        });
     }
     
     // Set up UI event handlers
@@ -148,6 +158,9 @@ export class ClientApp {
         this.elements.stopMetronomeButton?.addEventListener('click', () => {
             this.handleStopMetronomeRequest();
         });
+        
+        // Group assignment color buttons
+        this.setupGroupAssignmentHandlers();
     }
     
     // Set up audio activation on user interaction
@@ -317,6 +330,24 @@ export class ClientApp {
         this.logMessage(`Volume set to ${Math.round(volume * 100)}%`);
     }
     
+    // Handle panic stop
+    handlePanicStop(data) {
+        console.log('PANIC STOP received - stopping all sounds');
+        
+        // Stop all sounds in the audio engine
+        if (this.audioEngine) {
+            this.audioEngine.stopAllSounds();
+        }
+        
+        // Release all piano keyboard notes
+        if (this.pianoKeyboard) {
+            this.pianoKeyboard.releaseAllNotes();
+        }
+        
+        this.logMessage('PANIC STOP - All sounds stopped');
+        this.updateStatus('All sounds stopped');
+    }
+    
     // Handle re-sync request
     handleResyncRequest() {
         if (!this.websocketClient.isConnected) {
@@ -347,6 +378,74 @@ export class ClientApp {
         
         this.logMessage('Requesting metronome stop from client');
         this.websocketClient.requestStopMetronome();
+    }
+    
+    // Set up group assignment color button handlers
+    setupGroupAssignmentHandlers() {
+        const colorButtons = document.querySelectorAll('.color-button');
+        const currentGroupDisplay = document.getElementById('currentGroupDisplay');
+        
+        colorButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const groupNumber = button.getAttribute('data-group');
+                const groupColor = button.getAttribute('data-color');
+                
+                this.assignToGroup(groupNumber, groupColor, button, currentGroupDisplay);
+            });
+        });
+    }
+    
+    // Assign client to a group
+    assignToGroup(groupNumber, groupColor, button, displayElement) {
+        // Remove previous group selections
+        document.querySelectorAll('.color-button').forEach(btn => {
+            btn.classList.remove('selected');
+        });
+        
+        // Remove previous background group classes
+        document.body.classList.remove('group-1', 'group-2', 'group-3', 'group-4', 'group-5', 'group-6');
+        
+        // Add selected class to clicked button
+        button.classList.add('selected');
+        
+        // Add background color class to body
+        document.body.classList.add(`group-${groupNumber}`);
+        
+        // Update display
+        displayElement.textContent = `Current group: ${groupNumber}`;
+        displayElement.style.color = groupColor;
+        displayElement.style.fontWeight = 'bold';
+        
+        // Send group assignment to controller
+        if (this.websocketClient && this.websocketClient.isConnected) {
+            this.websocketClient.sendMessage(CONSTANTS.MESSAGE_TYPES.CLIENT_GROUP_ASSIGNMENT, {
+                groupNumber: parseInt(groupNumber),
+                groupColor: groupColor,
+                clientId: this.websocketClient.clientId
+            });
+            
+            this.logMessage(`Assigned to Group ${groupNumber}`);
+        }
+        
+        console.log(`Client assigned to group ${groupNumber} with color ${groupColor}`);
+    }
+    
+    // Handle stop all notes message (from MIDI stop)
+    handleStopAllNotes(data) {
+        console.log('Stop all notes received - stopping MIDI playback');
+        
+        // Stop all sounds in the audio engine
+        if (this.audioEngine) {
+            this.audioEngine.stopAllSounds();
+        }
+        
+        // Release all piano keyboard notes
+        if (this.pianoKeyboard) {
+            this.pianoKeyboard.releaseAllNotes();
+        }
+        
+        this.logMessage('MIDI playback stopped - all notes released');
+        this.updateStatus('MIDI stopped');
     }
     
     // Show visual feedback for metronome

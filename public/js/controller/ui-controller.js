@@ -48,7 +48,10 @@ export class UIController {
             metronomeBpm: document.getElementById('metronomeBpm'),
             startMetronomeButton: document.getElementById('startMetronomeButton'),
             stopMetronomeButton: document.getElementById('stopMetronomeButton'),
-            metronomeStatus: document.getElementById('metronomeStatus')
+            metronomeStatus: document.getElementById('metronomeStatus'),
+            
+            // Global controls
+            panicStopButton: document.getElementById('panicStopButton')
         };
     }
     
@@ -107,6 +110,11 @@ export class UIController {
         
         this.elements.stopMetronomeButton?.addEventListener('click', () => {
             this.handleStopMetronome();
+        });
+        
+        // Global control buttons
+        this.elements.panicStopButton?.addEventListener('click', () => {
+            this.handlePanicStop();
         });
     }
     
@@ -339,6 +347,17 @@ export class UIController {
         }
         if (this.elements.metronomeStatus) {
             this.elements.metronomeStatus.textContent = 'Stopped';
+        }
+    }
+    
+    // Handle panic stop button
+    handlePanicStop() {
+        // Call the global panic stop method on the controller app
+        if (window.controllerApp) {
+            window.controllerApp.panicStop();
+        } else {
+            console.warn('Controller app not found for panic stop');
+            this.logMessage('PANIC STOP failed - controller app not available');
         }
     }
     

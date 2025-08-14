@@ -32,6 +32,7 @@ export class SpatialController {
         // Current chord settings
         this.currentKey = 'C';
         this.currentScale = 'major';
+        this.currentOctave = 4; // Default to octave 4 (mid)
         this.currentChord = 1; // 1-7 for scale degrees
         
         // Chord assignments for keys 1-7 (maps key number to {degree, chordType})
@@ -136,6 +137,7 @@ export class SpatialController {
         // Musical settings
         const spatialKey = document.getElementById('spatialKey');
         const spatialScale = document.getElementById('spatialScale');
+        const spatialOctave = document.getElementById('spatialOctave');
         const waveSpeed = document.getElementById('waveSpeed');
         const waveSpeedValue = document.getElementById('waveSpeedValue');
         
@@ -150,6 +152,13 @@ export class SpatialController {
             spatialScale.addEventListener('change', (e) => {
                 this.currentScale = e.target.value;
                 this.updateChordControllerSettings();
+            });
+        }
+        
+        if (spatialOctave) {
+            spatialOctave.addEventListener('change', (e) => {
+                this.currentOctave = parseInt(e.target.value);
+                console.log(`Spatial octave changed to: ${this.currentOctave}`);
             });
         }
         
@@ -628,12 +637,14 @@ export class SpatialController {
             const chordToneIndex = clientIndex % chord.tones.length;
             const chordTone = chord.tones[chordToneIndex];
             
-            this.websocketController.triggerSound([clientId], 'sine', chordTone.frequency);
+            // Apply octave adjustment to the frequency
+            const adjustedFrequency = chordTone.frequency * Math.pow(2, this.currentOctave - 4);
+            this.websocketController.triggerSound([clientId], 'sine', adjustedFrequency);
             
             const shortId = clientId.substring(0, 8).toUpperCase();
             const intervalNames = ['Root', '3rd', '5th', '7th', '9th', '11th', '13th'];
             const intervalName = intervalNames[chordToneIndex] || `+${chordTone.interval}`;
-            console.log(`Triggered ${chordTone.name} (${intervalName}, ${chordTone.frequency}Hz) on client ${shortId} - ${degree}${chordType}`);
+            console.log(`Triggered ${chordTone.name} (${intervalName}, ${adjustedFrequency}Hz) on client ${shortId} - ${degree}${chordType}`);
         } else {
             // Fallback to root note
             const note = this.chordController.getNoteForChordDegree(
@@ -643,9 +654,11 @@ export class SpatialController {
             );
             
             if (note) {
-                this.websocketController.triggerSound([clientId], 'sine', note.frequency);
+                // Apply octave adjustment to the frequency
+                const adjustedFrequency = note.frequency * Math.pow(2, this.currentOctave - 4);
+                this.websocketController.triggerSound([clientId], 'sine', adjustedFrequency);
                 const shortId = clientId.substring(0, 8).toUpperCase();
-                console.log(`Triggered ${note.name} (Root, ${note.frequency}Hz) on client ${shortId}`);
+                console.log(`Triggered ${note.name} (Root, ${adjustedFrequency}Hz) on client ${shortId}`);
             } else {
                 this.websocketController.triggerSound([clientId], 'sine');
             }
@@ -670,16 +683,17 @@ export class SpatialController {
         // Get chord intervals for the specified type
         const intervals = this.chordController.chordTypes[chordType];
         
-        // Build chord tones
+        // Build chord tones with octave adjustment
         const tones = intervals.map(interval => {
-            const frequency = rootNote.frequency * Math.pow(2, interval / 12);
+            const baseFrequency = rootNote.frequency * Math.pow(2, interval / 12);
+            const adjustedFrequency = baseFrequency * Math.pow(2, this.currentOctave - 4);
             const midiNote = rootNote.midiNote + interval;
             const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
             const noteName = noteNames[midiNote % 12] + Math.floor(midiNote / 12);
             
             return {
                 name: noteName,
-                frequency: Math.round(frequency * 100) / 100,
+                frequency: Math.round(adjustedFrequency * 100) / 100,
                 midiNote: midiNote,
                 interval: interval
             };

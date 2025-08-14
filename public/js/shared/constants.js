@@ -13,7 +13,10 @@ export const CONSTANTS = {
         METRONOME_STATE: 'metronomeState',
         SET_VOLUME: 'setVolume',
         STOP_METRONOME: 'stopMetronome',
-        CLIENT_PLAYING_NOTE: 'clientPlayingNote'
+        CLIENT_PLAYING_NOTE: 'clientPlayingNote',
+        PANIC_STOP: 'panic_stop',
+        CLIENT_GROUP_ASSIGNMENT: 'clientGroupAssignment',
+        STOP_ALL_NOTES: 'stopAllNotes'
     },
 
     // Audio constants

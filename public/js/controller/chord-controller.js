@@ -178,10 +178,10 @@ export class ChordController {
     // Convert musical note duration to milliseconds based on BPM
     // Assumes 4/4 time signature where whole note = 4 beats
     noteDurationToMs(noteDuration, bpm) {
-        const beats = this.noteDurations[noteDuration] || 1; // Default to whole note
-        const beatsPerMinute = bpm * 4; // 4 beats per measure in 4/4 time
-        const msPerBeat = 60000 / beatsPerMinute; // 60000 ms per minute
-        return Math.round(beats * msPerBeat * 4); // Multiply by 4 because whole note = 4 beats
+        const beats = this.noteDurations[noteDuration] || 1; // Default to whole note (1 = whole note = 4 beats)
+        const msPerBeat = 60000 / bpm; // milliseconds per beat
+        const wholeNoteDuration = msPerBeat * 4; // A whole note = 4 beats
+        return Math.round(beats * wholeNoteDuration);
     }
     
     // Get current chord duration in milliseconds
@@ -193,9 +193,9 @@ export class ChordController {
     
     // Convert milliseconds back to closest note duration (for compatibility)
     msToNoteDuration(ms, bpm) {
-        const beatsPerMinute = bpm * 4;
-        const msPerBeat = 60000 / beatsPerMinute;
-        const beats = (ms / msPerBeat) / 4;
+        const msPerBeat = 60000 / bpm;
+        const wholeNoteDuration = msPerBeat * 4; // A whole note = 4 beats
+        const beats = ms / wholeNoteDuration;
         
         // Find closest note duration
         let closestDuration = 'whole';

@@ -57,6 +57,10 @@
                     <option value="blues">Blues</option>
                 </select>
             </div>
+            
+            <div class="global-control">
+                <button id="panicStopButton" class="global-button" style="background-color: #f44336; color: white; font-weight: bold; border: 2px solid #d32f2f; padding: 8px 16px;">⏹️ PANIC STOP</button>
+            </div>
         </div>
     </div>
 
@@ -1024,6 +1028,17 @@
                     </div>
                     
                     <div>
+                        <label for="spatialOctave">Octave:</label>
+                        <select id="spatialOctave" style="width: 100%;">
+                            <option value="2">2 (Bass)</option>
+                            <option value="3">3 (Low)</option>
+                            <option value="4" selected>4 (Mid)</option>
+                            <option value="5">5 (High)</option>
+                            <option value="6">6 (Treble)</option>
+                        </select>
+                    </div>
+                    
+                    <div>
                         <label for="waveSpeed">Wave Speed:</label>
                         <input type="range" id="waveSpeed" min="0.5" max="5" step="0.1" value="2" style="width: 100%;">
                         <span id="waveSpeedValue">2.0</span>
@@ -1044,7 +1059,7 @@
 
             <div class="container">
                 <h3>Spatial Canvas</h3>
-                <div style="position: relative; border: 2px solid #333; border-radius: 10px; margin: 20px 0; background: linear-gradient(45deg, #1a1a1a 25%, transparent 25%), linear-gradient(-45deg, #1a1a1a 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #1a1a1a 75%), linear-gradient(-45deg, transparent 75%, #1a1a1a 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px;">
+                <div style="position: relative; border: 2px solid #333; border-radius: 10px; margin: 20px 0; background: linear-gradient(45deg, #e8e8e8 25%, transparent 25%), linear-gradient(-45deg, #e8e8e8 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e8e8e8 75%), linear-gradient(-45deg, transparent 75%, #e8e8e8 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px;">
                     <canvas id="spatialCanvas" width="800" height="600" style="display: block; border-radius: 8px; cursor: crosshair;">
                         Your browser doesn't support canvas
                     </canvas>

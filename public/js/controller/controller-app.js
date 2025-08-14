@@ -117,6 +117,58 @@ export class ControllerApp {
         }
     }
     
+    // Global panic stop - stops all active sounds and sequences
+    panicStop() {
+        console.log('PANIC STOP triggered - stopping all sounds and sequences');
+        
+        try {
+            // Stop metronome
+            if (this.metronomeController) {
+                this.metronomeController.stopMetronome();
+            }
+            
+            // Stop chord progressions
+            if (this.chordController) {
+                this.chordController.stopChordProgression();
+                this.chordController.stopQueuePlayback();
+            }
+            
+            // Stop pattern controller sequences
+            if (this.patternController) {
+                this.patternController.stopAll();
+            }
+            
+            // Stop MIDI playback
+            if (this.midiController) {
+                this.midiController.stopMidi();
+            }
+            
+            // Stop spatial controller sequences
+            if (this.spatialController) {
+                this.spatialController.stopAllSequences();
+            }
+            
+            // Send stop all message to all clients
+            if (this.websocketController) {
+                this.websocketController.broadcast({
+                    type: 'panic_stop',
+                    timestamp: Date.now()
+                });
+            }
+            
+            // Log the panic stop
+            if (this.uiController) {
+                this.uiController.logMessage('PANIC STOP executed - all sounds stopped');
+            }
+            
+        } catch (error) {
+            console.error('Error during panic stop:', error);
+            if (this.uiController) {
+                this.uiController.logMessage(`Panic stop error: ${error.message}`);
+            }
+        }
+    }
+    
     // Get WebSocket controller
     getWebSocketController() {
         return this.websocketController;

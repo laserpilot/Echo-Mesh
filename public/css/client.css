@@ -8,6 +8,32 @@ body {
     justify-content: center;
     align-items: center;
     position: relative;
+    transition: background-color 0.3s ease;
+}
+
+/* Group assignment background colors */
+body.group-1 { background-color: rgba(255, 107, 107, 0.15); }
+body.group-2 { background-color: rgba(78, 205, 196, 0.15); }
+body.group-3 { background-color: rgba(69, 183, 209, 0.15); }
+body.group-4 { background-color: rgba(150, 206, 180, 0.15); }
+body.group-5 { background-color: rgba(255, 217, 61, 0.15); }
+body.group-6 { background-color: rgba(189, 131, 206, 0.15); }
+
+/* Color button styles */
+.color-button {
+    transition: all 0.2s ease;
+    border: 2px solid #ddd !important;
+}
+
+.color-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.color-button.selected {
+    border: 3px solid #333 !important;
+    box-shadow: 0 0 15px rgba(0,0,0,0.3);
+    transform: scale(1.1);
 }
 
 h1 {

@@ -980,6 +980,27 @@ const createMessageHandler = (clientId) => (message) => {
         }
         break;
 
+      case 'clientGroupAssignment':
+        // Handle client self-assignment to group
+        console.log(`Client ${clientId} assigned to group ${data.groupNumber} with color ${data.groupColor}`);
+        
+        // Store the group assignment
+        const client = Array.from(clients.values()).find(c => c.id === clientId);
+        if (client) {
+          client.groupNumber = data.groupNumber;
+          client.groupColor = data.groupColor;
+        }
+        
+        // Broadcast to all controllers (not clients)
+        broadcast({
+          type: 'clientGroupAssignment',
+          clientId: clientId,
+          groupNumber: data.groupNumber,
+          groupColor: data.groupColor,
+          timestamp: Date.now()
+        }, clientId); // Exclude the assigning client from broadcast
+        break;
+
       default:
         console.log(`Unknown message type from ${clientId}: ${data.type}`);
     }
