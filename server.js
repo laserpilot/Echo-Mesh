@@ -985,10 +985,10 @@ const createMessageHandler = (clientId) => (message) => {
         console.log(`Client ${clientId} assigned to group ${data.groupNumber} with color ${data.groupColor}`);
         
         // Store the group assignment
-        const client = Array.from(clients.values()).find(c => c.id === clientId);
-        if (client) {
-          client.groupNumber = data.groupNumber;
-          client.groupColor = data.groupColor;
+        const assigningClient = Array.from(clients.values()).find(c => c.id === clientId);
+        if (assigningClient) {
+          assigningClient.groupNumber = data.groupNumber;
+          assigningClient.groupColor = data.groupColor;
         }
         
         // Broadcast to all controllers (not clients)
