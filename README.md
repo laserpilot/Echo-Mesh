@@ -38,6 +38,7 @@ npm start
   - 2 devices: Alternating notes for stereo effects
   - 4+ devices: Distributed polyphony across zones
 - **Visual Feedback**: Real-time keyboard showing note assignments
+- **MIDI Clock Sync**: Synchronize with external DAWs, sequencers, and drum machines
 
 ### 🎵 **Advanced Musical Features**
 - **Chord Progressions**: I-V-vi-IV and 10+ preset progressions with Roman numeral support
@@ -52,6 +53,7 @@ npm start
 - **Real-time Control**: Live performance interface with modular controller design
 - **Chord Progression Engine**: Server-side chord generation with arpeggio patterns
 - **Metronome & Sync**: Built-in click track with client synchronization
+- **MIDI Clock Input**: Sync to external devices - DAWs, drum machines, sequencers
 - **Effects Preview**: Real-time effects preview on controller before sending to clients
 - **Client Activity Monitoring**: Visual feedback showing which devices are active
 - **Volume & Pan Controls**: Individual client volume control and master volume
@@ -100,6 +102,13 @@ Controller (laptop/desktop)     Mobile Clients (phones/tablets)
 3. Choose **Broadcast** (all devices) or **Distributed** (spatial) mode
 4. Play keyboard and watch notes distribute across your device orchestra
 5. Use the visual keyboard to see real-time note assignments
+
+### MIDI Clock Synchronization
+1. Connect MIDI device that sends clock (DAW, drum machine, sequencer)
+2. Go to **🎭 Perform** section → **⏰ MIDI Clock Sync**
+3. Select your MIDI device from the dropdown
+4. Click **Start MIDI Clock** to begin listening for timing signals
+5. Click **Sync Metronome** to sync Echo Mesh tempo to external clock
 
 ### Advanced Workflows
 - **Chord Progressions**: Choose from 10+ preset progressions with Roman numeral notation, custom BPM, and arpeggio patterns

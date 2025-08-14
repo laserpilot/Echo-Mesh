@@ -923,6 +923,55 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- MIDI Clock Section -->
+            <div class="container">
+                <h3>⏰ MIDI Clock Sync</h3>
+                <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
+                    Synchronize Echo Mesh with external MIDI devices, DAWs, or sequencers using MIDI Clock.
+                </p>
+                
+                <!-- Device Selection -->
+                <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-bottom: 15px; align-items: end;">
+                    <div>
+                        <label for="midiClockDevice"><strong>MIDI Clock Device:</strong></label>
+                        <select id="midiClockDevice" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="">Select MIDI Device...</option>
+                        </select>
+                    </div>
+                    <button id="midiClockEnable" class="button" style="background-color: #4caf50; white-space: nowrap;">
+                        Start MIDI Clock
+                    </button>
+                </div>
+                
+                <!-- Status Display -->
+                <div style="display: grid; grid-template-columns: 1fr auto auto; gap: 15px; margin-bottom: 15px; align-items: center;">
+                    <div>
+                        <label><strong>Status:</strong></label>
+                        <div id="midiClockStatus" style="font-weight: bold; color: #666;">
+                            MIDI Clock ready
+                        </div>
+                    </div>
+                    <div style="text-align: center;">
+                        <label style="display: block; font-size: 12px; color: #666;">BPM</label>
+                        <div id="midiClockBpm" style="font-size: 24px; font-weight: bold; color: #2196F3;">
+                            -- BPM
+                        </div>
+                    </div>
+                    <button id="midiClockSync" class="button" style="background-color: #FF9800; white-space: nowrap;">
+                        Sync Metronome
+                    </button>
+                </div>
+                
+                <!-- Info -->
+                <div style="background-color: #f0f8ff; border: 1px solid #b3d9ff; border-radius: 4px; padding: 12px; font-size: 14px;">
+                    <strong>How to use:</strong><br>
+                    1. Connect a MIDI device that sends clock (DAW, drum machine, sequencer)<br>
+                    2. Select the device from the dropdown<br>
+                    3. Start MIDI Clock to listen for clock signals<br>
+                    4. Use "Sync Metronome" to sync Echo Mesh tempo to the external clock
+                </div>
+            </div>
         </div>
 
         <!-- Spatial Waves Section -->

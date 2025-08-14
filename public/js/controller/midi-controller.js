@@ -14,6 +14,20 @@ export class MidiController {
             currentFile: null
         };
         
+        // MIDI clock state
+        this.clockState = {
+            enabled: false,
+            midiAccess: null,
+            connectedDevices: [],
+            clockTicks: 0,
+            isReceivingClock: false,
+            lastClockTime: 0,
+            bpm: 120,
+            clockStartTime: 0,
+            isRunning: false,
+            onBeatCallback: null
+        };
+        
         // Distribution strategies
         this.distributionStrategies = {
             'round-robin': 'Distribute notes evenly across all clients',
@@ -26,6 +40,7 @@ export class MidiController {
         this.setupElements();
         this.setupEventHandlers();
         this.setupGlobalFunctions();
+        this.initializeMidiClock();
     }
     
     // Set up DOM elements
@@ -42,7 +57,14 @@ export class MidiController {
             tempoValue: document.getElementById('midiTempoValue'),
             volumeSlider: document.getElementById('midiVolumeSlider'),
             volumeValue: document.getElementById('midiVolumeValue'),
-            trackList: document.getElementById('midiTrackList')
+            trackList: document.getElementById('midiTrackList'),
+            
+            // MIDI Clock elements
+            clockEnableButton: document.getElementById('midiClockEnable'),
+            clockDeviceSelect: document.getElementById('midiClockDevice'),
+            clockStatus: document.getElementById('midiClockStatus'),
+            clockBpmDisplay: document.getElementById('midiClockBpm'),
+            clockSyncButton: document.getElementById('midiClockSync')
         };
     }
     
@@ -78,6 +100,15 @@ export class MidiController {
             if (this.elements.volumeValue) {
                 this.elements.volumeValue.textContent = `${e.target.value}%`;
             }
+        });
+        
+        // MIDI Clock controls
+        this.elements.clockEnableButton?.addEventListener('click', () => {
+            this.toggleMidiClock();
+        });
+        
+        this.elements.clockSyncButton?.addEventListener('click', () => {
+            this.syncToMidiClock();
         });
     }
     
@@ -405,9 +436,263 @@ export class MidiController {
         return { ...this.state };
     }
     
+    // Initialize MIDI Clock functionality
+    async initializeMidiClock() {
+        try {
+            if (!navigator.requestMIDIAccess) {
+                console.warn('Web MIDI API not supported');
+                this.updateClockStatus('Web MIDI API not supported');
+                return;
+            }
+            
+            this.clockState.midiAccess = await navigator.requestMIDIAccess();
+            this.updateMidiDeviceList();
+            this.updateClockStatus('MIDI Clock ready');
+            
+            // Listen for device changes
+            this.clockState.midiAccess.onstatechange = () => {
+                this.updateMidiDeviceList();
+            };
+            
+        } catch (error) {
+            console.error('Failed to initialize MIDI Clock:', error);
+            this.updateClockStatus('MIDI Clock initialization failed');
+        }
+    }
+    
+    // Update MIDI device list
+    updateMidiDeviceList() {
+        if (!this.elements.clockDeviceSelect || !this.clockState.midiAccess) return;
+        
+        this.elements.clockDeviceSelect.innerHTML = '<option value="">Select MIDI Device...</option>';
+        this.clockState.connectedDevices = [];
+        
+        for (let input of this.clockState.midiAccess.inputs.values()) {
+            const option = document.createElement('option');
+            option.value = input.id;
+            option.textContent = `${input.name} (${input.manufacturer || 'Unknown'})`;
+            this.elements.clockDeviceSelect.appendChild(option);
+            
+            this.clockState.connectedDevices.push({
+                id: input.id,
+                name: input.name,
+                input: input
+            });
+        }
+        
+        this.uiController.logMessage(`Found ${this.clockState.connectedDevices.length} MIDI input devices`);
+    }
+    
+    // Toggle MIDI Clock listening
+    toggleMidiClock() {
+        if (!this.clockState.enabled) {
+            const selectedDeviceId = this.elements.clockDeviceSelect?.value;
+            if (!selectedDeviceId) {
+                this.uiController.logMessage('Please select a MIDI device first');
+                return;
+            }
+            
+            this.startMidiClock(selectedDeviceId);
+        } else {
+            this.stopMidiClock();
+        }
+    }
+    
+    // Start listening for MIDI Clock
+    startMidiClock(deviceId) {
+        const device = this.clockState.connectedDevices.find(d => d.id === deviceId);
+        if (!device) {
+            this.uiController.logMessage('Selected MIDI device not found');
+            return;
+        }
+        
+        this.clockState.enabled = true;
+        this.clockState.clockTicks = 0;
+        this.clockState.isReceivingClock = false;
+        this.clockState.isRunning = false;
+        
+        // Listen for MIDI messages
+        device.input.onmidimessage = (message) => {
+            this.handleMidiClockMessage(message);
+        };
+        
+        this.updateClockUI();
+        this.updateClockStatus(`Listening to ${device.name}`);
+        this.uiController.logMessage(`Started MIDI Clock sync with ${device.name}`);
+    }
+    
+    // Stop MIDI Clock listening
+    stopMidiClock() {
+        this.clockState.enabled = false;
+        this.clockState.isReceivingClock = false;
+        this.clockState.isRunning = false;
+        
+        // Stop listening on all devices
+        this.clockState.connectedDevices.forEach(device => {
+            device.input.onmidimessage = null;
+        });
+        
+        this.updateClockUI();
+        this.updateClockStatus('MIDI Clock stopped');
+        this.uiController.logMessage('Stopped MIDI Clock sync');
+    }
+    
+    // Handle incoming MIDI Clock messages
+    handleMidiClockMessage(message) {
+        const [status, data1, data2] = message.data;
+        const currentTime = performance.now();
+        
+        switch (status) {
+            case 0xF8: // MIDI Clock (24 times per quarter note)
+                this.handleClockTick(currentTime);
+                break;
+                
+            case 0xFA: // MIDI Start
+                this.handleClockStart(currentTime);
+                break;
+                
+            case 0xFB: // MIDI Continue  
+                this.handleClockContinue(currentTime);
+                break;
+                
+            case 0xFC: // MIDI Stop
+                this.handleClockStop();
+                break;
+                
+            case 0xF2: // Song Position Pointer
+                this.handleSongPosition(data1, data2);
+                break;
+        }
+    }
+    
+    // Handle MIDI Clock tick (24 ppqn)
+    handleClockTick(timestamp) {
+        if (!this.clockState.enabled) return;
+        
+        this.clockState.isReceivingClock = true;
+        this.clockState.clockTicks++;
+        
+        // Calculate BPM based on clock timing
+        if (this.clockState.lastClockTime > 0) {
+            const timeDiff = timestamp - this.clockState.lastClockTime;
+            // 24 ticks per quarter note, so 24 ticks = 1 beat
+            // BPM = 60000ms / (time per beat in ms)
+            // Time per beat = 24 * timeDiff (time per tick)
+            if (timeDiff > 0) {
+                const timePerBeat = 24 * timeDiff;
+                this.clockState.bpm = Math.round(60000 / timePerBeat);
+                this.updateBpmDisplay();
+            }
+        }
+        
+        this.clockState.lastClockTime = timestamp;
+        
+        // Trigger beat events every 24 ticks (quarter note)
+        if (this.clockState.clockTicks % 24 === 0) {
+            this.onMidiClockBeat();
+        }
+        
+        // Update status every second (roughly)
+        if (this.clockState.clockTicks % 120 === 0) { // 120 ticks ≈ 1 second at 120 BPM
+            this.updateClockStatus('Receiving MIDI Clock');
+        }
+    }
+    
+    // Handle MIDI Start
+    handleClockStart(timestamp) {
+        this.clockState.isRunning = true;
+        this.clockState.clockStartTime = timestamp;
+        this.clockState.clockTicks = 0;
+        this.updateClockStatus('MIDI Clock Started');
+        this.uiController.logMessage('MIDI Clock: Start received');
+    }
+    
+    // Handle MIDI Continue
+    handleClockContinue(timestamp) {
+        this.clockState.isRunning = true;
+        this.updateClockStatus('MIDI Clock Running');
+        this.uiController.logMessage('MIDI Clock: Continue received');
+    }
+    
+    // Handle MIDI Stop
+    handleClockStop() {
+        this.clockState.isRunning = false;
+        this.updateClockStatus('MIDI Clock Stopped');
+        this.uiController.logMessage('MIDI Clock: Stop received');
+    }
+    
+    // Handle Song Position Pointer
+    handleSongPosition(lsb, msb) {
+        const position = lsb | (msb << 7);
+        this.uiController.logMessage(`MIDI Clock: Song position ${position}`);
+    }
+    
+    // Called on every MIDI Clock beat (quarter note)
+    onMidiClockBeat() {
+        if (this.clockState.onBeatCallback) {
+            this.clockState.onBeatCallback(this.clockState.bpm);
+        }
+        
+        // Trigger metronome sync if enabled
+        this.syncToMidiClock();
+    }
+    
+    // Sync Echo Mesh metronome to MIDI Clock
+    syncToMidiClock() {
+        if (!this.clockState.isReceivingClock || !this.clockState.isRunning) {
+            this.uiController.logMessage('No MIDI Clock signal to sync to');
+            return;
+        }
+        
+        if (!this.websocketController.isConnected) {
+            this.uiController.logMessage('WebSocket not connected');
+            return;
+        }
+        
+        // Start Echo Mesh metronome at the detected BPM
+        this.websocketController.startMetronome(this.clockState.bpm);
+        this.uiController.logMessage(`Synced metronome to MIDI Clock: ${this.clockState.bpm} BPM`);
+    }
+    
+    // Update MIDI Clock UI
+    updateClockUI() {
+        if (this.elements.clockEnableButton) {
+            this.elements.clockEnableButton.textContent = this.clockState.enabled ? 'Stop MIDI Clock' : 'Start MIDI Clock';
+            this.elements.clockEnableButton.style.background = this.clockState.enabled ? '#f44336' : '#4caf50';
+        }
+    }
+    
+    // Update clock status display
+    updateClockStatus(status) {
+        if (this.elements.clockStatus) {
+            this.elements.clockStatus.textContent = status;
+            this.elements.clockStatus.style.color = 
+                status.includes('ready') || status.includes('Receiving') || status.includes('Running') ? '#4caf50' : 
+                status.includes('fail') || status.includes('error') ? '#f44336' : '#666';
+        }
+    }
+    
+    // Update BPM display
+    updateBpmDisplay() {
+        if (this.elements.clockBpmDisplay) {
+            this.elements.clockBpmDisplay.textContent = `${this.clockState.bpm} BPM`;
+        }
+    }
+    
+    // Set callback for beat events
+    setMidiClockBeatCallback(callback) {
+        this.clockState.onBeatCallback = callback;
+    }
+    
+    // Get MIDI Clock state
+    getMidiClockState() {
+        return { ...this.clockState };
+    }
+    
     // Clean up resources
     destroy() {
         this.stopProgressTracking();
+        this.stopMidiClock();
         this.state.isPlaying = false;
         this.state.scheduledNotes = [];
     }
