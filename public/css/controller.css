@@ -477,21 +477,47 @@ h2 {
     margin: 4px 0 !important;
     padding: 4px !important;
     font-size: 10px !important;
+    overflow: hidden; /* Prevent overflow from container */
+    box-sizing: border-box;
+}
+
+.client-card .pitch-controls div {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 4px;
+    overflow: hidden;
 }
 
 .client-card .pitch-controls label {
-    font-size: 10px !important;
-    min-width: 40px !important;
+    font-size: 9px !important;
+    min-width: 32px !important;
+    max-width: 32px !important;
+    flex-shrink: 0;
 }
 
 .client-card .pitch-controls input[type="range"] {
     height: 3px !important;
+    flex: 1;
+    min-width: 0; /* Allow shrinking */
+    max-width: 100%;
 }
 
 .client-card .pitch-controls .octave-value,
 .client-card .pitch-controls .semitone-value {
-    font-size: 10px !important;
-    min-width: 15px !important;
+    font-size: 9px !important;
+    min-width: 12px !important;
+    max-width: 18px !important;
+    flex-shrink: 0;
+    text-align: center;
+}
+
+.client-card .reset-pitch {
+    font-size: 9px !important;
+    padding: 1px 4px !important;
+    margin-top: 2px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
 }
 
 /* Compact group info within client cards */

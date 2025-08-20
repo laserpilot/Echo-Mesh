@@ -111,8 +111,134 @@ export class WebSocketController extends WebSocketBase {
         this.onMessage('error', (data) => {
             console.error('Server error:', data.message);
         });
+        
+        // Handle registration rejection
+        this.onMessage('registrationRejected', (data) => {
+            console.error('Controller registration rejected:', data.message);
+            this.handleRegistrationRejection(data);
+        });
     }
     
+    
+    // Handle registration rejection
+    handleRegistrationRejection(data) {
+        const message = data.message || 'Controller registration was rejected';
+        
+        // Stop any further reconnection attempts
+        if (this.ws) {
+            this.maxReconnectAttempts = 1; // Prevent auto-reconnection
+        }
+        
+        if (data.reason === 'controllerExists') {
+            // Show user-friendly error message
+            this.showControllerExistsError();
+        }
+        
+        this.serverStatus = 'rejected';
+        this.notifyStatusCallbacks('rejected', data);
+    }
+    
+    // Show error message when another controller exists
+    showControllerExistsError() {
+        // Create overlay if it doesn't exist
+        let overlay = document.getElementById('controllerExistsOverlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'controllerExistsOverlay';
+            overlay.className = 'controller-exists-overlay';
+            overlay.innerHTML = `
+                <div class="controller-exists-modal">
+                    <h2>⚠️ Controller Already Active</h2>
+                    <p>Another controller is already connected to this Echo Mesh network. Only one controller is allowed at a time.</p>
+                    <div class="controller-exists-buttons">
+                        <button onclick="location.reload()" class="retry-button">Retry Connection</button>
+                        <button onclick="location.href='/'" class="home-button">Go Home</button>
+                    </div>
+                </div>
+            `;
+            
+            // Add styles
+            const style = document.createElement('style');
+            style.textContent = `
+                .controller-exists-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(0, 0, 0, 0.8);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 10000;
+                    backdrop-filter: blur(5px);
+                }
+                
+                .controller-exists-modal {
+                    background: white;
+                    padding: 40px;
+                    border-radius: 20px;
+                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+                    text-align: center;
+                    max-width: 400px;
+                    margin: 20px;
+                }
+                
+                .controller-exists-modal h2 {
+                    margin: 0 0 20px 0;
+                    color: #d32f2f;
+                    font-size: 24px;
+                }
+                
+                .controller-exists-modal p {
+                    margin: 0 0 30px 0;
+                    color: #666;
+                    font-size: 16px;
+                    line-height: 1.5;
+                }
+                
+                .controller-exists-buttons {
+                    display: flex;
+                    gap: 15px;
+                    justify-content: center;
+                    flex-wrap: wrap;
+                }
+                
+                .controller-exists-buttons button {
+                    padding: 12px 24px;
+                    border: none;
+                    border-radius: 8px;
+                    font-size: 16px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                }
+                
+                .retry-button {
+                    background: #2196F3;
+                    color: white;
+                }
+                
+                .retry-button:hover {
+                    background: #1976D2;
+                }
+                
+                .home-button {
+                    background: #f5f5f5;
+                    color: #333;
+                }
+                
+                .home-button:hover {
+                    background: #e0e0e0;
+                }
+            `;
+            
+            document.head.appendChild(style);
+            document.body.appendChild(overlay);
+        }
+        
+        overlay.style.display = 'flex';
+    }
     
     // Handle clients update
     handleClientsUpdate(data) {
@@ -288,9 +414,10 @@ export class WebSocketController extends WebSocketBase {
     registerAsController() {
         console.log('Registering as controller...');
         
-        // Send null ID to indicate this is a controller
+        // Send explicit controller registration
         return this.sendMessage(CONSTANTS.MESSAGE_TYPES.REGISTER, {
-            id: null
+            id: null,
+            clientType: 'controller'
         });
     }
     

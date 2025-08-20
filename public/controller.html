@@ -167,7 +167,10 @@
             </div>
 
             <div class="container">
-                <h3>Connected Clients</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3>Connected Clients</h3>
+                    <button id="refreshButton" class="button" style="background-color: #4CAF50;">Refresh Clients</button>
+                </div>
                 <div class="clients-grid" id="clients-grid">
                     <!-- Connected clients will appear here -->
                     <div class="client-card">
@@ -193,6 +196,18 @@
                             No groups created yet. Create a group to organize your clients.
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <div class="container">
+                <h3>🔧 Testing & Utilities</h3>
+                <div class="controls-grid">
+                    <label for="delayTime">Test Delay (ms):</label>
+                    <input type="number" id="delayTime" value="500" min="100" max="2000">
+
+                    <button id="playSequenceButton" class="button">Play Test Sequence</button>
+                    <button id="playReverseButton" class="button">Play Reverse</button>
+                    <button id="playAllButton" class="button">Play All</button>
                 </div>
             </div>
 
@@ -465,19 +480,6 @@
                 </div>
             </div>
 
-            <div class="container">
-                <h3>🔧 Testing & Utilities</h3>
-                <div class="controls-grid">
-                    <button id="refreshButton" class="button">Refresh Clients</button>
-                    
-                    <label for="delayTime">Test Delay (ms):</label>
-                    <input type="number" id="delayTime" value="500" min="100" max="2000">
-
-                    <button id="playSequenceButton" class="button">Play Test Sequence</button>
-                    <button id="playReverseButton" class="button">Play Reverse</button>
-                    <button id="playAllButton" class="button">Play All</button>
-                </div>
-            </div>
         </div>
 
         <!-- Compose Section -->

@@ -274,19 +274,14 @@ export class ClientManager {
                 <button class="button reset-pitch" data-client="${clientId}" style="font-size: 10px; padding: 2px 6px; margin-top: 4px;">Reset</button>
             </div>
             
-            <button class="button sound" data-client="${clientId}" data-sound="sine">Sine</button>
-            <button class="button sound" data-client="${clientId}" data-sound="square">Square</button>
-            <button class="button sound" data-client="${clientId}" data-sound="sawtooth">Sawtooth</button>
-            <button class="button sound" data-client="${clientId}" data-sound="triangle">Triangle</button>
+            <button class="button test-tone" data-client="${clientId}" style="width: 100%; margin-top: 4px;">Test Tone</button>
         `;
         
-        // Add event listeners to sound buttons
-        clientCard.querySelectorAll('.button.sound').forEach(button => {
-            button.addEventListener('click', () => {
-                const clientId = button.getAttribute('data-client');
-                const sound = button.getAttribute('data-sound');
-                this.triggerClientSound(clientId, sound);
-            });
+        // Add event listener to test tone button
+        const testToneButton = clientCard.querySelector('.button.test-tone');
+        testToneButton?.addEventListener('click', () => {
+            const clientId = testToneButton.getAttribute('data-client');
+            this.triggerTestTone(clientId);
         });
         
         // Add event listeners to pitch controls
@@ -364,6 +359,22 @@ export class ClientManager {
         
         // Update the sound settings indicator for this client
         this.updateClientSoundIndicator(clientId, sound, adsrConfig, lfoConfig, effectsConfig, finalFrequency);
+    }
+    
+    // Trigger test tone with random note
+    triggerTestTone(clientId) {
+        // Generate random frequency from a musical scale (C major pentatonic)
+        const baseFrequency = 220; // A3
+        const pentatonicSteps = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21]; // 2 octaves of C major pentatonic
+        const randomStep = pentatonicSteps[Math.floor(Math.random() * pentatonicSteps.length)];
+        const randomFrequency = baseFrequency * Math.pow(2, randomStep / 12);
+        
+        // Always use sine wave for test tone
+        this.triggerClientSound(clientId, 'sine', randomFrequency);
+        
+        const shortId = clientId.substring(0, 8).toUpperCase();
+        const noteName = this.frequencyToNote(randomFrequency);
+        this.uiController.logMessage(`Test tone (${noteName}, ${Math.round(randomFrequency)}Hz) on client ${shortId}`);
     }
     
     // Update client sound settings indicator

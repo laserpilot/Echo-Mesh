@@ -22,12 +22,15 @@ export class ClientApp {
             pianoKeyboard: document.getElementById('pianoKeyboard'),
             resyncButton: document.getElementById('resyncButton'),
             stopMetronomeButton: document.getElementById('stopMetronomeButton'),
-            log: document.getElementById('log')
+            log: document.getElementById('log'),
+            audioActivationOverlay: document.getElementById('audioActivationOverlay'),
+            audioActivationButton: document.getElementById('audioActivationButton')
         };
         
         // State
         this.isInitialized = false;
         this.logEntries = [];
+        this.audioActivated = false;
     }
     
     // Initialize the client application
@@ -165,25 +168,50 @@ export class ClientApp {
     
     // Set up audio activation on user interaction
     setupAudioActivation() {
-        const activateAudio = async () => {
+        // Show overlay initially
+        if (this.elements.audioActivationOverlay) {
+            this.elements.audioActivationOverlay.style.display = 'flex';
+        }
+        
+        const activateAudio = async (event) => {
+            // Prevent event bubbling
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
             try {
                 await this.audioEngine.initAudio();
+                this.audioActivated = true;
                 this.logMessage('Audio context activated');
+                
+                // Hide the overlay
+                if (this.elements.audioActivationOverlay) {
+                    this.elements.audioActivationOverlay.style.display = 'none';
+                }
                 
                 const shortId = this.websocketClient.getShortClientId();
                 this.updateStatus(`Audio enabled. Client ${shortId}`);
             } catch (error) {
                 this.logMessage(`Error activating audio: ${error.message}`);
+                console.error('Audio activation failed:', error);
             }
-            
-            // Remove event listeners after first interaction
-            document.removeEventListener('touchstart', activateAudio);
-            document.removeEventListener('click', activateAudio);
         };
         
-        // Listen for any user interaction to enable audio
-        document.addEventListener('touchstart', activateAudio, { once: true });
-        document.addEventListener('click', activateAudio, { once: true });
+        // Add click handler to the activation button
+        if (this.elements.audioActivationButton) {
+            this.elements.audioActivationButton.addEventListener('click', activateAudio);
+        }
+        
+        // Also listen for clicks on the overlay background (but not the modal)
+        if (this.elements.audioActivationOverlay) {
+            this.elements.audioActivationOverlay.addEventListener('click', (event) => {
+                // Only activate if clicking the overlay background, not the modal
+                if (event.target === this.elements.audioActivationOverlay) {
+                    activateAudio(event);
+                }
+            });
+        }
     }
     
     // Connect to WebSocket server

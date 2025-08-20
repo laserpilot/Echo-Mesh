@@ -53,12 +53,26 @@ export class WebSocketClient extends WebSocketBase {
     attemptRegistration() {
         const storedId = localStorage.getItem('echoMeshClientId');
         
+        // Validate stored ID before using it
+        let validStoredId = null;
+        if (storedId && storedId !== 'CONTROLL' && this.isValidUUID(storedId)) {
+            validStoredId = storedId;
+            console.log('Using stored client ID:', validStoredId);
+        } else {
+            if (storedId) {
+                console.log('Invalid stored ID found, clearing:', storedId);
+                localStorage.removeItem('echoMeshClientId');
+            }
+            console.log('No valid stored ID, requesting new one');
+        }
+        
         const doRegistration = () => {
             if (this.registrationRetries < this.maxRegistrationRetries && this.isConnected) {
                 console.log(`Registration attempt ${this.registrationRetries + 1}/${this.maxRegistrationRetries}`);
                 
                 this.sendMessage(CONSTANTS.MESSAGE_TYPES.REGISTER, {
-                    id: storedId
+                    id: validStoredId,
+                    clientType: 'client'
                 });
                 
                 this.registrationRetries++;
@@ -82,7 +96,7 @@ export class WebSocketClient extends WebSocketBase {
     
     // Handle ID assignment from server
     handleIdAssignment(data) {
-        if (data.id && data.id !== this.clientId) {
+        if (data.id && data.id !== this.clientId && this.isValidUUID(data.id)) {
             this.clientId = data.id;
             localStorage.setItem('echoMeshClientId', this.clientId);
             
@@ -93,6 +107,11 @@ export class WebSocketClient extends WebSocketBase {
             
             // Notify status callbacks
             this.notifyStatusCallbacks('registered', { clientId: this.clientId });
+        } else if (data.id && !this.isValidUUID(data.id)) {
+            console.error('Received invalid client ID from server:', data.id);
+            // Clear any invalid stored ID and try to re-register
+            localStorage.removeItem('echoMeshClientId');
+            this.clientId = null;
         }
     }
     
@@ -169,6 +188,14 @@ export class WebSocketClient extends WebSocketBase {
     // Request to stop metronome
     requestStopMetronome() {
         return this.sendMessage(CONSTANTS.MESSAGE_TYPES.STOP_METRONOME);
+    }
+    
+    // Validate UUID format
+    isValidUUID(uuid) {
+        if (!uuid || typeof uuid !== 'string') return false;
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const controllerRegex = /^controller-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        return uuidRegex.test(uuid) || controllerRegex.test(uuid);
     }
     
     // Clean up client resources

@@ -107,6 +107,11 @@ const getClientIds = () => {
     .map(c => c.id);
 };
 
+// Check if a controller is already connected
+const hasActiveController = () => {
+  return Array.from(clients.values()).some(c => c.isController);
+};
+
 // Musical theory constants and functions
 const MUSICAL_DATA = {
   keys: {
@@ -578,16 +583,39 @@ wss.on('connection', (ws, req) => {
         let isNew = false;
         let isController = false;
 
-        // Check if this is a controller (sends null ID)
-        if (clientId === null) {
+        // Check registration type explicitly
+        if (data.clientType === 'controller') {
+          // Check if a controller is already connected
+          if (hasActiveController()) {
+            console.log('Controller connection rejected: another controller is already active');
+            ws.send(JSON.stringify({
+              type: 'registrationRejected',
+              reason: 'controllerExists',
+              message: 'Another controller is already connected. Only one controller is allowed at a time.'
+            }));
+            ws.close(4001, 'Controller already exists');
+            return;
+          }
+          
           clientId = 'controller-' + randomUUID();
           isController = true;
           isNew = true;
-        } else if (!clientId || clientId === 'CONTROLL' || !isValidClientId(clientId) || ![...clients.values()].some(c => c.id === clientId)) {
-          // If the client has no ID, invalid ID (including 'CONTROLL'), or its ID is not in our list, it's a new client.
-          clientId = randomUUID();
-          isNew = true;
-          console.log('Generated new client ID due to invalid or missing stored ID');
+        } else if (data.clientType === 'client') {
+          // This is a client registration
+          if (!clientId || clientId === 'CONTROLL' || !isValidClientId(clientId) || ![...clients.values()].some(c => c.id === clientId)) {
+            // If the client has no ID, invalid ID (including 'CONTROLL'), or its ID is not in our list, it's a new client.
+            clientId = randomUUID();
+            isNew = true;
+            console.log('Generated new client ID due to invalid or missing stored ID');
+          }
+        } else {
+          // Legacy support: if no clientType is specified, treat as client for backward compatibility
+          if (!clientId || clientId === 'CONTROLL' || !isValidClientId(clientId) || ![...clients.values()].some(c => c.id === clientId)) {
+            // If the client has no ID, invalid ID (including 'CONTROLL'), or its ID is not in our list, it's a new client.
+            clientId = randomUUID();
+            isNew = true;
+            console.log('Generated new client ID due to invalid or missing stored ID');
+          }
         }
 
         const client = { 
