@@ -95,9 +95,12 @@ apps/web            Svelte 5 + Vite; /  = phone (player), /conduct = conductor
   - Server-authoritative patch, groups and colors.
   - Devices show their own patch so propagation is visible.
   - Self-assign color groups on the phone.
-- [ ] **3. MIDI keyboard + distribution**
-  - Web MIDI on the conductor, feeding the same noteDown/noteUp path as the computer keyboard.
-  - Velocity, sustain pedal, and spatial allocation (needs positions from phase 4).
+- [x] **3. MIDI keyboard + distribution** (spatial allocation waits for phase 4 positions)
+  - Web MIDI on the conductor (Chrome/Edge), hot-plug, input picker, activity light.
+  - Velocity and sustain pedal (CC64); all-notes-off (CC120/123) releases everything.
+  - Keyboard, mouse and MIDI share one `LiveNotes` state machine (unit tested).
+  - Notes are stamped from the MIDI event's own timestamp, so main-thread delays don't add jitter.
+  - Not built: MIDI clock in/out, channel → group routing (after phase 2 groups).
 - [ ] **4. Spatial waves**
   - Place devices on a stage map; waves propagate as scheduled cues.
   - Each device computes its own hit time from its position: one message per wave, not per device.

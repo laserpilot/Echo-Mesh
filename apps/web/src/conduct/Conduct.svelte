@@ -4,6 +4,8 @@
   import { SvelteSet } from 'svelte/reactivity';
   import type { Distribution, Metronome, PlayerInfo } from '@echo/protocol';
   import { Connection } from '../lib/connection.svelte.ts';
+  import { LiveNotes } from '../lib/live-notes.ts';
+  import { MidiInput } from '../lib/midi.svelte.ts';
   import { Scheduler, type Fired } from '../lib/scheduler.ts';
   import DeviceTile from './DeviceTile.svelte';
   import Keyboard from './Keyboard.svelte';
@@ -59,9 +61,8 @@
   const flash = () => conn.send({ t: 'cue', target: 'all', cue: { kind: 'flash' } });
   const panic = () => {
     conn.send({ t: 'panic' });
-    noteIds.clear();
+    notes.reset();
     keysDown.clear();
-    heldMidi.clear();
   };
   const setDistribution = (mode: Distribution) => conn.send({ t: 'distribution', mode });
   const setMetronome = (m: Partial<Metronome>) => conn.send({ t: 'metronome', metronome: m });
@@ -70,34 +71,39 @@
 
   // ---- live playing ----
   let octave = $state(4);
-  const heldMidi = new SvelteSet<number>();
-  /** midi → note id of the sounding note */
-  const noteIds = new Map<number, number>();
+
+  /**
+   * Stamp notes here: this page is synced too, so end-to-end latency stays
+   * constant. `local` is when the event really happened (a MIDI event's own
+   * timestamp), so main-thread delays don't add jitter.
+   */
+  const stamp = (local?: number) =>
+    conn.pinger.ready ? (local ?? performance.now()) + conn.pinger.offset() + conn.state.playoutMs : undefined;
+
+  const notes = new LiveNotes((m) => conn.send(m), stamp, new SvelteSet<number>());
+
   /** computer key → midi it started (so an octave shift mid-hold still releases it) */
   const keysDown = new Map<string, number>();
-  let nextNote = Math.floor(Math.random() * 1e6) * 1000;
 
-  /** Stamp notes here: this page is synced too, so the end-to-end latency stays constant. */
-  const stamp = () => (conn.pinger.ready ? conn.serverNow() + conn.state.playoutMs : undefined);
+  const midi = new MidiInput((e, ts) => {
+    if (e.type === 'noteOn') notes.down(e.midi, e.velocity, ts);
+    else if (e.type === 'noteOff') notes.up(e.midi, ts);
+    else if (e.type === 'sustain') notes.sustain(e.on, ts);
+    else notes.releaseAll(ts);
+  });
+  void midi.autoEnable();
 
-  function noteDown(midi: number, velocity = 0.8) {
-    if (noteIds.has(midi)) return;
-    const note = ++nextNote;
-    noteIds.set(midi, note);
-    heldMidi.add(midi);
-    conn.send({ t: 'noteOn', note, midi, velocity, at: stamp() });
-  }
-
-  function noteUp(midi: number) {
-    const note = noteIds.get(midi);
-    if (note === undefined) return;
-    noteIds.delete(midi);
-    heldMidi.delete(midi);
-    conn.send({ t: 'noteOff', note, at: stamp() });
-  }
+  /** light the activity dot briefly on each message */
+  let midiBlink = $state(false);
+  $effect(() => {
+    if (!midi.activity) return;
+    midiBlink = true;
+    const t = setTimeout(() => (midiBlink = false), 80);
+    return () => clearTimeout(t);
+  });
 
   function releaseAll() {
-    for (const midi of [...noteIds.keys()]) noteUp(midi);
+    notes.releaseAll();
     keysDown.clear();
   }
 
@@ -109,7 +115,7 @@
       if (!e.repeat && !keysDown.has(k)) {
         const midi = 12 * (octave + 1) + semi;
         keysDown.set(k, midi);
-        noteDown(midi);
+        notes.down(midi);
       }
       return;
     }
@@ -128,7 +134,7 @@
     const midi = keysDown.get(k);
     if (midi === undefined) return;
     keysDown.delete(k);
-    noteUp(midi);
+    notes.up(midi);
   }
 
   const fmt = (n: number | undefined, d = 1) => (n === undefined ? '–' : n.toFixed(d));
@@ -210,7 +216,25 @@
         {/each}
         <span class="octave muted">octave <b class="mono">{octave}</b> <small>(Z / X)</small></span>
       </div>
-      <Keyboard {octave} held={heldMidi} onDown={(m) => noteDown(m)} onUp={noteUp} />
+      <Keyboard {octave} held={notes.sounding} onDown={(m) => notes.down(m)} onUp={(m) => notes.up(m)} />
+      <div class="midi">
+        <span class="midi-dot" class:on={midiBlink} class:ready={midi.status === 'ready'}></span>
+        {#if midi.status === 'unsupported'}
+          <span class="muted">MIDI needs Chrome or Edge</span>
+        {:else if midi.status === 'off'}
+          <button onclick={() => midi.enable()}>Enable MIDI keyboard</button>
+        {:else if midi.status === 'denied'}
+          <span class="muted">MIDI permission denied: allow it in the site settings</span>
+        {:else if midi.inputs.length === 0}
+          <span class="muted">MIDI on, no devices connected</span>
+        {:else}
+          <select bind:value={midi.selected} aria-label="MIDI input">
+            <option value="all">All MIDI inputs ({midi.inputs.length})</option>
+            {#each midi.inputs as p (p.id)}<option value={p.id}>{p.name}</option>{/each}
+          </select>
+        {/if}
+        {#if notes.pedal}<span class="pedal">pedal</span>{/if}
+      </div>
     </div>
     <SoundPanel patch={conn.state.patch} onChange={(patch) => conn.send({ t: 'patch', patch })} />
   </section>
@@ -456,6 +480,47 @@
 
   .octave {
     margin-left: auto;
+  }
+
+  .midi {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    min-height: 28px;
+  }
+
+  .midi button,
+  .midi select {
+    padding: 4px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+    color: var(--text);
+    font: inherit;
+  }
+
+  .midi-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+
+  .midi-dot.ready {
+    background: color-mix(in srgb, var(--ok) 35%, var(--surface-2));
+  }
+
+  .midi-dot.on {
+    background: var(--ok);
+  }
+
+  .pedal {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--accent) 35%, var(--surface-2));
+    font-size: 12px;
   }
 
   .octave b {

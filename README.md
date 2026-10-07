@@ -19,6 +19,8 @@ pnpm dev
 
 Conductor controls:
 - **A–K** play notes; **Z / X** change octave. "One phone each" spreads a chord across phones.
+- **MIDI keyboard**: click "Enable MIDI keyboard" under the piano. This needs Chrome or Edge.
+  Velocity and the sustain pedal work, and hot-plugging is picked up automatically.
 - **Space** starts or stops the beat, **↑ ↓** change tempo, **Enter** flashes every phone.
 - **Click** (top bar) puts a click or short note on every beat.
   - *all phones*: every phone plays every beat. Flams mean sync error.
