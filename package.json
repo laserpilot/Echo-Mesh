@@ -1,17 +1,21 @@
 {
-    "name": "echo-mesh",
-    "version": "1.0.0",
-    "description": "Echo Mesh - A distributed mobile orchestra using web audio synthesis",
-    "main": "server.js",
-    "scripts": {
-        "start": "node server.js",
-        "dev": "nodemon server.js"
-    },
-    "dependencies": {
-        "express": "^4.18.2",
-        "ws": "^8.14.2"
-    },
-    "devDependencies": {
-        "nodemon": "^3.0.1"
-    }
+  "name": "echo-mesh",
+  "private": true,
+  "version": "2.0.0-alpha",
+  "description": "A distributed mobile orchestra — phones as synchronized voices",
+  "type": "module",
+  "packageManager": "pnpm@12.8.1",
+  "scripts": {
+    "dev": "concurrently -k -n server,web -c blue,magenta \"pnpm --filter @echo/server dev\" \"pnpm --filter @echo/web dev\"",
+    "build": "pnpm --filter @echo/web build",
+    "start": "pnpm --filter @echo/server start",
+    "test": "vitest run",
+    "typecheck": "tsc -p . && pnpm --filter @echo/web check"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "concurrently": "^10.0.5",
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.3"
+  }
 }

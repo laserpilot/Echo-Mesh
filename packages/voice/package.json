@@ -1,0 +1,14 @@
+{
+  "name": "@echo/voice",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@echo/protocol": "workspace:*"
+  },
+  "devDependencies": {
+    "node-web-audio-api": "^2.2.0"
+  }
+}

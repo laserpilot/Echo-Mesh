@@ -1,0 +1,41 @@
+:root {
+  --bg: #0b0b10;
+  --surface: #15151d;
+  --surface-2: #1e1e29;
+  --line: #2a2a38;
+  --text: #ecebf3;
+  --muted: #8d8ba3;
+  --accent: #7c6cff;
+  --ok: #3ddc97;
+  --warn: #ffb547;
+  --bad: #ff5c6c;
+  --flash: #f4f1ff;
+  --radius: 14px;
+  --mono: ui-monospace, 'SF Mono', Menlo, monospace;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.4 system-ui, -apple-system, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.mono {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}

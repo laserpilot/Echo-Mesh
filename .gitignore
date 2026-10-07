@@ -20,4 +20,6 @@ Thumbs.db
 
 # Build artifacts (if any)
 dist/
-build/
+build/dist/
+.vite/
+.playwright-mcp/
