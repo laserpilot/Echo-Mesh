@@ -1,4 +1,5 @@
-import { DEFAULT_METRONOME, DEFAULT_PATCH, DEFAULT_PORT, WS_PATH, type ClientMessage, type Role, type ServerMessage, type SharedState } from '@echo/protocol';
+import { DEFAULT_HARMONY, DEFAULT_METRONOME, DEFAULT_PATCH, DEFAULT_PORT, WS_PATH, type ClientMessage, type Role, type ServerMessage, type SharedState } from '@echo/protocol';
+import { HarmonyTimeline } from '@echo/music';
 import { ClockPinger, DEFAULT_TRANSPORT, TransportTimeline, type ClockEstimate } from '@echo/sync';
 
 type Handler<T extends ServerMessage['t']> = (m: Extract<ServerMessage, { t: T }>) => void;
@@ -29,11 +30,14 @@ export class Connection {
     patch: DEFAULT_PATCH,
     distribution: 'round-robin',
     metronome: DEFAULT_METRONOME,
+    harmony: DEFAULT_HARMONY,
   });
   clock = $state<ClockEstimate | null>(null);
 
   readonly pinger: ClockPinger;
   readonly timeline = new TransportTimeline();
+  /** progression versions by the beat they take effect */
+  readonly harmony = new HarmonyTimeline();
   #ws: WebSocket | null = null;
   #handlers = new Map<string, Set<(m: ServerMessage) => void>>();
   #retryMs = 500;
@@ -78,6 +82,7 @@ export class Connection {
       if (m.t === 'welcome' || m.t === 'state') {
         this.state = m.state;
         this.timeline.apply(m.state.transport);
+        this.harmony.apply(m.state.harmony);
       }
       this.#handlers.get(m.t)?.forEach((fn) => fn(m));
     };

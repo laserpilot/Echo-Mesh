@@ -47,6 +47,8 @@ class SimPhone {
   panics = 0;
   trimMs = 0;
   seat: { index: number; count: number } | null = null;
+  group: number | null = null;
+  pos: { x: number; y: number } | null = null;
   state: SharedState | null = null;
   id = '';
 
@@ -100,11 +102,11 @@ class SimPhone {
       case 'panic':
         this.panics++;
         break;
-      case 'trim':
-        this.trimMs = m.ms;
-        break;
-      case 'seat':
+      case 'self':
+        this.trimMs = m.trimMs;
         this.seat = { index: m.index, count: m.count };
+        this.group = m.group;
+        this.pos = m.pos;
         break;
     }
   }
@@ -297,6 +299,46 @@ describe('sync over real websockets', () => {
       for (const s of seats) expect(s?.count).toBe(phones.length);
       expect(new Set(seats.map((s) => s?.index)).size).toBe(phones.length);
       expect(seats.every((s) => s!.index >= 0)).toBe(true);
+    });
+
+    it('phones pick their own group; the conductor can override; seats follow the map', async () => {
+      phones[0]!.send({ t: 'group', group: 4 });
+      conductor.send({ t: 'group', id: phones[1]!.id, group: 2 });
+      phones[2]!.send({ t: 'group', group: 5, id: phones[3]!.id }); // a player can't set someone else's
+      await sleep(400);
+      expect(phones[0]!.group).toBe(4);
+      expect(phones[1]!.group).toBe(2);
+      expect(phones[2]!.group).toBe(5);
+      expect(phones[3]!.group).toBeNull();
+
+      // placed phones come first, left to right
+      conductor.send({ t: 'place', id: phones[4]!.id, pos: { x: 0.9, y: 0.5 } });
+      conductor.send({ t: 'place', id: phones[5]!.id, pos: { x: 0.1, y: 0.5 } });
+      await sleep(400);
+      expect(phones[5]!.seat?.index).toBe(0);
+      expect(phones[4]!.seat?.index).toBe(1);
+      expect(phones[5]!.pos).toEqual({ x: 0.1, y: 0.5 });
+      // then by group: 2 (phones[1]) before 4 (phones[0]) before 5 (phones[2]) before none (phones[3])
+      expect([1, 0, 2, 3].map((i) => phones[i]!.seat?.index)).toEqual([2, 3, 4, 5]);
+    });
+
+    it('starting the loop with the transport stopped starts both, from the top', async () => {
+      conductor.send({ t: 'transport', action: 'stop' });
+      await sleep(100);
+      conductor.send({ t: 'harmony', harmony: { playing: true, key: 9, scale: 'minor' } });
+      await sleep(300);
+      expect(server.state.transport.running).toBe(true);
+      expect(phones[0]!.state?.harmony).toMatchObject({ playing: true, key: 9, scale: 'minor', anchorBeat: 0, fromBeat: 0 });
+      await sleep(1000); // into the first bar
+      conductor.send({ t: 'harmony', harmony: { pattern: 'arp' } });
+      await sleep(300);
+      const h = phones[0]!.state!.harmony;
+      expect(h.pattern).toBe('arp');
+      expect(h.fromBeat % 4).toBe(0); // lands on a bar line
+      expect(h.fromBeat).toBeGreaterThan(0);
+      conductor.send({ t: 'panic' });
+      await sleep(200);
+      expect(server.state.harmony.playing).toBe(false);
     });
 
     it('metronome settings are shared state', async () => {

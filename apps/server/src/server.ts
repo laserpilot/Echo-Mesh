@@ -7,16 +7,20 @@ import { performance } from 'node:perf_hooks';
 import { WebSocketServer, type WebSocket } from 'ws';
 import {
   ClientMessage,
+  DEFAULT_HARMONY,
   DEFAULT_METRONOME,
   DEFAULT_PATCH,
   WS_PATH,
   type PlayerInfo,
   type PlayerStats,
+  type Pos,
+  type SelfInfo,
   type ServerMessage,
   type SharedState,
 } from '@echo/protocol';
 import { DEFAULT_TRANSPORT, retempo, startTransport } from '@echo/sync';
 import { Allocator } from './allocator.ts';
+import { editHarmony, onTransportStart } from './harmony.ts';
 
 export interface ServerOptions {
   port: number;
@@ -34,6 +38,8 @@ interface Player {
   remoteAddress: string;
   stats: PlayerStats | null;
   trimMs: number;
+  group: number | null;
+  pos: Pos | null;
 }
 
 /** extra lead on transport start so every device sees a clean count-in */
@@ -60,10 +66,11 @@ export async function createServer(opts: ServerOptions) {
     patch: { ...DEFAULT_PATCH },
     distribution: 'round-robin',
     metronome: { ...DEFAULT_METRONOME },
+    harmony: { ...DEFAULT_HARMONY },
   };
   const allocator = new Allocator();
-  /** last seat sent to each player, so we only send changes */
-  const seats = new Map<string, string>();
+  /** last `self` message sent to each player, so we only send changes */
+  const sentSelf = new Map<string, string>();
   const players = new Map<string, Player>();
   const conductors = new Set<WebSocket>();
 
@@ -92,7 +99,25 @@ export async function createServer(opts: ServerOptions) {
       stats: p.stats,
       trimMs: p.trimMs,
       holding: allocator.holding(p.id),
+      group: p.group,
+      pos: p.pos,
+      seat: seatOrder().indexOf(p.id),
     }));
+  }
+
+  /**
+   * The room order that voices, arps and the metronome rotation follow:
+   * placed devices left→right (then front→back), then unplaced ones by group.
+   */
+  function seatOrder(): string[] {
+    return eligible()
+      .map((id) => players.get(id)!)
+      .sort((a, b) => {
+        if (a.pos && b.pos) return a.pos.x - b.pos.x || a.pos.y - b.pos.y || a.id.localeCompare(b.id);
+        if (a.pos || b.pos) return a.pos ? -1 : 1;
+        return (a.group ?? 99) - (b.group ?? 99) || a.id.localeCompare(b.id);
+      })
+      .map((p) => p.id);
   }
 
   /** devices that can play right now: connected, tapped in, clock locked */
@@ -104,23 +129,23 @@ export async function createServer(opts: ServerOptions) {
     for (const id of ids) send(players.get(id)?.ws, msg);
   }
 
-  /** tell each player its place in the metronome rotation, when it changes */
-  function updateSeats(): void {
-    const order = eligible().sort();
+  /** tell each player about itself (seat, group, position, trim) when any of it changes */
+  function updateSelf(): void {
+    const order = seatOrder();
     for (const p of players.values()) {
-      if (!p.ws) { seats.delete(p.id); continue; }
-      const seat = { index: order.indexOf(p.id), count: order.length };
-      const key = `${seat.index}/${seat.count}`;
-      if (seats.get(p.id) === key) continue;
-      seats.set(p.id, key);
-      send(p.ws, { t: 'seat', ...seat });
+      if (!p.ws) { sentSelf.delete(p.id); continue; }
+      const info: SelfInfo = { index: order.indexOf(p.id), count: order.length, group: p.group, pos: p.pos, trimMs: p.trimMs };
+      const key = JSON.stringify(info);
+      if (sentSelf.get(p.id) === key) continue;
+      sentSelf.set(p.id, key);
+      send(p.ws, { t: 'self', ...info });
     }
   }
 
   const rosterTimer = setInterval(() => {
     const t = now();
     for (const [id, p] of players) if (!p.ws && t - p.lastSeen > PLAYER_TTL_MS) players.delete(id);
-    updateSeats();
+    updateSelf();
     if (conductors.size === 0) return;
     const msg = JSON.stringify({ t: 'roster', players: roster(), serverTime: t } satisfies ServerMessage);
     for (const ws of conductors) if (ws.readyState === ws.OPEN) ws.send(msg);
@@ -179,11 +204,17 @@ export async function createServer(opts: ServerOptions) {
           const id = msg.id && /^[\w-]{4,64}$/.test(msg.id) ? msg.id : randomUUID();
           const existing = players.get(id);
           if (existing?.ws && existing.ws !== ws) existing.ws.close(4000, 'replaced by newer connection');
-          player = { id, ws, lastSeen: s1, remoteAddress, stats: existing?.stats ?? null, trimMs: existing?.trimMs ?? 0 };
+          player = {
+            id, ws, lastSeen: s1, remoteAddress,
+            stats: existing?.stats ?? null,
+            trimMs: existing?.trimMs ?? 0,
+            group: existing?.group ?? null,
+            pos: existing?.pos ?? null,
+          };
           players.set(id, player);
-          seats.delete(id); // new socket: resend its seat
+          sentSelf.delete(id); // new socket: resend everything
           send(ws, { t: 'welcome', id, role, serverTime: now(), state });
-          if (player.trimMs) send(ws, { t: 'trim', ms: player.trimMs });
+          updateSelf();
           return;
         }
 
@@ -191,7 +222,15 @@ export async function createServer(opts: ServerOptions) {
           if (!player) return;
           const wasReady = player.stats?.clock.ready;
           player.stats = msg.stats;
-          if (!wasReady && msg.stats.clock.ready) updateSeats(); // join the rotation right away
+          if (!wasReady && msg.stats.clock.ready) updateSelf(); // take a seat right away
+          return;
+        }
+
+        case 'group': {
+          const target = role === 'conductor' ? (msg.id ? players.get(msg.id) : undefined) : player;
+          if (!target) return;
+          target.group = msg.group;
+          updateSelf();
           return;
         }
       }
@@ -207,6 +246,7 @@ export async function createServer(opts: ServerOptions) {
             msg.action === 'start'
               ? startTransport(state.transport, now(), state.playoutMs + START_LEAD_MS)
               : { ...state.transport, running: false };
+          if (msg.action === 'start') state.harmony = onTransportStart(state.harmony);
           broadcastState();
           return;
         case 'tempo':
@@ -229,6 +269,24 @@ export async function createServer(opts: ServerOptions) {
           state.metronome = { ...state.metronome, ...msg.metronome };
           broadcastState();
           return;
+        case 'harmony': {
+          // pressing play on the loop with the transport stopped starts both together
+          if (msg.harmony.playing && !state.transport.running) {
+            state.transport = startTransport(state.transport, now(), state.playoutMs + START_LEAD_MS);
+            state.harmony = onTransportStart({ ...state.harmony, ...msg.harmony, arp: { ...state.harmony.arp, ...msg.harmony.arp } });
+          } else {
+            state.harmony = editHarmony(state.harmony, msg.harmony, state.transport, now() + state.playoutMs);
+          }
+          broadcastState();
+          return;
+        }
+        case 'place': {
+          const p = players.get(msg.id);
+          if (!p) return;
+          p.pos = msg.pos;
+          updateSelf();
+          return;
+        }
         case 'noteOn': {
           // a re-used id means the old note is over
           const prev = allocator.noteOff(msg.note);
@@ -248,6 +306,7 @@ export async function createServer(opts: ServerOptions) {
         case 'panic':
           allocator.clear();
           state.transport = { ...state.transport, running: false };
+          state.harmony = { ...state.harmony, playing: false, fromBeat: 0 };
           for (const p of players.values()) send(p.ws, { t: 'panic' });
           broadcastState();
           return;
@@ -255,7 +314,7 @@ export async function createServer(opts: ServerOptions) {
           const p = players.get(msg.id);
           if (!p) return;
           p.trimMs = msg.ms;
-          send(p.ws, { t: 'trim', ms: msg.ms });
+          updateSelf();
           return;
         }
         case 'cue': {

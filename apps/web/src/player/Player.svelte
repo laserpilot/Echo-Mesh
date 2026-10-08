@@ -1,9 +1,13 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
+  import { GROUPS, stageDistance, type Cue, type SelfInfo } from '@echo/protocol';
+  import { planBeat, type BeatPlan } from '@echo/music';
+  import { beatAt } from '@echo/sync';
+  import { VoiceEngine, noteName } from '@echo/voice';
   import { AudioClock, SOUND_ENABLED } from '../lib/audio.ts';
   import { Connection } from '../lib/connection.svelte.ts';
+  import { HarmonyPlayer, waveNote } from '../lib/harmony-player.ts';
   import { Scheduler, type Fired, type Planned } from '../lib/scheduler.ts';
-  import { VoiceEngine, noteName } from '@echo/voice';
 
   const conn = new Connection('player');
   conn.connect();
@@ -11,65 +15,98 @@
   let joined = $state(false);
   let audio: AudioClock | null = null;
   let scheduler: Scheduler | null = null;
+  let engine: VoiceEngine | null = null;
+  let harmonyPlayer: HarmonyPlayer | null = null;
   let flashEl: HTMLDivElement | undefined = $state();
   let beatInBar = $state(-1);
   let beatsPerBar = $state(4);
   let reportTimer: ReturnType<typeof setInterval> | undefined;
-  let engine: VoiceEngine | null = null;
-  let trimMs = 0;
-  /** notes this device is sounding, newest last */
+  let wakeLock: WakeLockSentinel | null = null;
+  let picking = $state(false);
+
+  /** everything the server tells this phone about itself */
+  let me = $state<SelfInfo>({ index: -1, count: 0, group: null, pos: null, trimMs: 0 });
+  conn.on('self', ({ t: _t, ...info }) => (me = info));
+  const groupColor = $derived(me.group !== null ? GROUPS[me.group]!.color : null);
+
+  /** live notes this device is sounding, newest last */
   let held = $state<{ note: number; midi: number }[]>([]);
   const showing = $derived(held.at(-1));
+  /** the progression as this phone sees it, updated every beat */
+  let chord = $state<BeatPlan | null>(null);
+  let padOn = $state(false);
 
   /** one hue per pitch class, so every phone playing an E glows the same color */
   const hue = (midi: number) => (midi % 12) * 30;
+  const beatSec = () => 60 / conn.timeline.current.bpm;
 
   $effect(() => {
     const patch = conn.state.patch;
     engine?.setPatch(patch);
   });
 
-  conn.on('trim', (m) => (trimMs = m.ms));
+  // transport stopped: let the pad go
+  $effect(() => {
+    if (!conn.state.transport.running && audio) {
+      harmonyPlayer?.releasePad(audio.ctx.currentTime);
+      padOn = false;
+      chord = null;
+    }
+  });
 
-  /** place in the metronome rotation */
-  let seat = { index: -1, count: 0 };
-  conn.on('seat', (m) => (seat = { index: m.index, count: m.count }));
+  conn.on('panic', () => {
+    engine?.panic();
+    harmonyPlayer?.reset();
+    scheduler?.clear();
+    held = [];
+    chord = null;
+    padOn = false;
+  });
 
-  /** does this device sound/flash beat `beat`? */
-  function mine(beat: number): boolean {
+  /** does this device sound/flash metronome beat `beat`? */
+  function metronomeMine(beat: number): boolean {
     const m = conn.state.metronome;
     if (m.sound === 'off') return false;
     if (m.who === 'all') return true;
-    return seat.count > 0 && seat.index >= 0 && beat % seat.count === seat.index;
+    return me.count > 0 && me.index >= 0 && beat % me.count === me.index;
   }
-  conn.on('panic', () => {
-    engine?.panic();
-    scheduler?.clear();
-    held = [];
-  });
+
+  /** a wave reaches this phone later the farther it is from the origin; unplaced phones sit it out */
+  function adjustCue(at: number, cue: Cue): number | null {
+    if (cue.kind !== 'wave') return at;
+    if (!me.pos) return null;
+    return at + (stageDistance(me.pos, cue) / cue.speed) * 1000;
+  }
 
   function playAudio(e: Fired, ctxTime: number) {
-    if (!engine) return;
+    if (!engine || !harmonyPlayer) return;
     // positive trim = this device's output is slow, so start it earlier
-    const t = ctxTime - trimMs / 1000;
+    const t = ctxTime - me.trimMs / 1000;
     if (e.kind === 'beat') {
-      if (!mine(e.beat)) return;
+      harmonyPlayer.beat(conn.harmony.at(e.beat), e.beat, e.beatsPerBar, beatSec(), t, me);
+      if (!metronomeMine(e.beat)) return;
       const accent = e.beatInBar === 0;
       const m = conn.state.metronome;
       if (m.sound === 'click') engine.click(t, accent);
       else if (m.sound === 'note') {
-        // ids below zero never collide with the conductor's live notes
         const id = -1 - (e.beat % 1_000_000);
-        const beatSec = 60 / conn.timeline.current.bpm;
         engine.noteOn(id, m.midi + (accent ? 12 : 0), accent ? 0.9 : 0.7, t);
-        engine.noteOff(id, t + Math.min(beatSec * 0.5, 0.3));
+        engine.noteOff(id, t + Math.min(beatSec() * 0.5, 0.3));
       }
       return;
     }
     if (e.cue.kind === 'noteOn') engine.noteOn(e.cue.note, e.cue.midi, e.cue.velocity, t);
     else if (e.cue.kind === 'noteOff') engine.noteOff(e.cue.note, t);
+    else if (e.cue.kind === 'wave') harmonyPlayer.wave(waveMidi(e.at), t);
   }
-  let wakeLock: WakeLockSentinel | null = null;
+
+  function waveMidi(at: number): number {
+    const tr = conn.timeline.current;
+    const beat = Math.floor(beatAt(tr, at));
+    const h = conn.harmony.at(beat) ?? conn.harmony.latest;
+    const plan = tr.running && h ? planBeat(h, beat, tr.beatsPerBar, me) : null;
+    return waveNote(h, plan, me);
+  }
 
   const sync = $derived.by(() => {
     if (conn.status === 'replaced') return { label: 'opened in another tab', tone: 'bad' };
@@ -85,37 +122,53 @@
   const probe: { beat: number; wallMs: number }[] = [];
   if (import.meta.env.DEV) (window as unknown as { __echoProbe: typeof probe }).__echoProbe = probe;
 
-  function fire(e: Planned) {
-    if (import.meta.env.DEV && e.kind === 'beat') {
-      probe.push({ beat: e.beat, wallMs: performance.timeOrigin + e.local });
-      if (probe.length > 64) probe.shift();
-    }
-    if (e.kind === 'beat') {
-      beatInBar = e.beatInBar;
-      beatsPerBar = e.beatsPerBar;
-      // with a metronome running, flash only on the beats this phone plays
-      if (conn.state.metronome.sound !== 'off' && !mine(e.beat)) return;
-    } else if (e.cue.kind === 'noteOff') {
-      const note = e.cue.note;
-      held = held.filter((h) => h.note !== note);
-      return;
-    } else if (e.cue.kind === 'noteOn') {
-      const { note, midi } = e.cue;
-      held = [...held.filter((h) => h.note !== note), { note, midi }];
-    }
-    const strong = e.kind === 'cue' || e.beatInBar === 0;
-    const color =
-      e.kind === 'beat' ? (strong ? 'var(--flash)' : 'var(--accent)')
-      : e.cue.kind === 'noteOn' ? `hsl(${hue(e.cue.midi)} 85% 65%)`
-      : e.cue.kind === 'flash' ? (e.cue.color ?? 'var(--flash)')
-      : 'var(--flash)';
+  function flash(color: string, strength = 1, ms = 260) {
     flashEl?.animate(
       [
-        { opacity: strong ? 1 : 0.55, background: color },
+        { opacity: strength, background: color },
         { opacity: 0, background: color },
       ],
-      { duration: strong ? 260 : 160, easing: 'cubic-bezier(.2,.7,.3,1)' },
+      { duration: ms, easing: 'cubic-bezier(.2,.7,.3,1)' },
     );
+  }
+
+  function fire(e: Planned) {
+    if (e.kind === 'beat') {
+      if (import.meta.env.DEV) {
+        probe.push({ beat: e.beat, wallMs: performance.timeOrigin + e.local });
+        if (probe.length > 64) probe.shift();
+      }
+      beatInBar = e.beatInBar;
+      beatsPerBar = e.beatsPerBar;
+      const h = conn.harmony.at(e.beat);
+      chord = h ? planBeat(h, e.beat, e.beatsPerBar, me) : null;
+      padOn = !!(chord?.pad && chord.midi !== null);
+      // arp turns: flash in this phone's color on each of them
+      if (chord?.midi != null) {
+        const c = groupColor ?? `hsl(${hue(chord.midi)} 85% 65%)`;
+        for (const f of chord.arp) setTimeout(() => flash(c, 0.9, 200), f * beatSec() * 1000);
+      }
+      if (conn.state.metronome.sound !== 'off' && metronomeMine(e.beat) && !chord) {
+        flash(e.beatInBar === 0 ? 'var(--flash)' : 'var(--accent)', e.beatInBar === 0 ? 1 : 0.55, 160);
+      }
+      return;
+    }
+    const cue = e.cue;
+    if (cue.kind === 'noteOff') {
+      held = held.filter((h) => h.note !== cue.note);
+    } else if (cue.kind === 'noteOn') {
+      held = [...held.filter((h) => h.note !== cue.note), { note: cue.note, midi: cue.midi }];
+      flash(`hsl(${hue(cue.midi)} 85% 65%)`);
+    } else if (cue.kind === 'wave') {
+      flash(groupColor ?? 'var(--flash)', 1, 420);
+    } else {
+      flash(cue.color ?? 'var(--flash)');
+    }
+  }
+
+  function pickGroup(group: number | null) {
+    conn.send({ t: 'group', group });
+    picking = false;
   }
 
   async function keepAwake() {
@@ -135,9 +188,10 @@
     await audio.resume();
     engine = new VoiceEngine(audio.ctx, audio.master);
     engine.setPatch(conn.state.patch);
+    harmonyPlayer = new HarmonyPlayer(engine);
     joined = true;
     void keepAwake();
-    scheduler = new Scheduler(conn, audio, fire, playAudio);
+    scheduler = new Scheduler(conn, audio, fire, playAudio, adjustCue);
     scheduler.start();
     reportTimer = setInterval(report, 1000);
   }
@@ -179,7 +233,8 @@
   });
 </script>
 
-<main>
+<main style:--group={groupColor ?? 'transparent'} class:grouped={groupColor !== null}>
+  <div class="tint"></div>
   <div class="flash" bind:this={flashEl}></div>
 
   {#if !joined}
@@ -194,6 +249,12 @@
       <span class="name">{noteName(showing.midi)}</span>
       {#if held.length > 1}<span class="more">+{held.length - 1}</span>{/if}
     </div>
+  {:else if chord && chord.midi !== null}
+    <div class="note" class:dim={!padOn} style:--h={hue(chord.midi)}>
+      <span class="glow"></span>
+      <span class="chord">{chord.roman} · {chord.letter}</span>
+      <span class="name">{noteName(chord.midi)}</span>
+    </div>
   {:else}
     <div class="beats" aria-label="beat">
       {#each { length: beatsPerBar } as _, i}
@@ -202,7 +263,22 @@
     </div>
   {/if}
 
+  {#if picking}
+    <div class="picker" role="dialog" aria-label="Pick your color">
+      <p>Pick your color</p>
+      <div class="swatches">
+        {#each GROUPS as g, i (g.name)}
+          <button style:background={g.color} class:on={me.group === i} onclick={() => pickGroup(i)} aria-label={g.name}></button>
+        {/each}
+      </div>
+      <button class="clear" onclick={() => pickGroup(null)}>No color</button>
+    </div>
+  {/if}
+
   <footer>
+    {#if joined}
+      <button class="swatch" onclick={() => (picking = !picking)} aria-label="Pick your color" style:background={groupColor ?? 'var(--surface-2)'}></button>
+    {/if}
     <span class="status {sync.tone}"><i></i>{sync.label}</span>
     {#if conn.id}<span class="mono id">{conn.id.slice(0, 4)}</span>{/if}
     {#if !SOUND_ENABLED}<span class="muted">silent build</span>{/if}
@@ -219,6 +295,79 @@
     user-select: none;
     -webkit-user-select: none;
     touch-action: manipulation;
+  }
+
+  .tint {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .grouped .tint {
+    background: radial-gradient(circle at 50% 120%, color-mix(in srgb, var(--group) 40%, transparent), transparent 70%);
+  }
+
+  .note.dim .glow {
+    opacity: 0.35;
+  }
+
+  .note.dim .name {
+    opacity: 0.6;
+  }
+
+  .chord {
+    position: absolute;
+    top: 22%;
+    font-size: 20px;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+  }
+
+  .picker {
+    position: absolute;
+    inset: auto 16px 64px;
+    padding: 18px;
+    border-radius: 18px;
+    background: var(--surface);
+    box-shadow: 0 10px 40px rgb(0 0 0 / 0.5);
+    text-align: center;
+    z-index: 2;
+  }
+
+  .picker p {
+    margin: 0 0 12px;
+    font-weight: 600;
+  }
+
+  .swatches {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .swatches button {
+    aspect-ratio: 1.4;
+    border-radius: 14px;
+    border: 3px solid transparent;
+  }
+
+  .swatches button.on {
+    border-color: var(--text);
+  }
+
+  .clear {
+    margin-top: 12px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+  }
+
+  .swatch {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    border: 2px solid var(--line);
   }
 
   .flash {

@@ -2,7 +2,8 @@
   import { onDestroy } from 'svelte';
   import QRCode from 'qrcode';
   import { SvelteSet } from 'svelte/reactivity';
-  import type { Distribution, Metronome, PlayerInfo } from '@echo/protocol';
+  import type { Distribution, HarmonySettings, Metronome, PlayerInfo, Pos } from '@echo/protocol';
+  import { planBeat } from '@echo/music';
   import { Connection } from '../lib/connection.svelte.ts';
   import { LiveNotes } from '../lib/live-notes.ts';
   import { MidiInput } from '../lib/midi.svelte.ts';
@@ -10,7 +11,9 @@
   import DeviceTile from './DeviceTile.svelte';
   import Keyboard from './Keyboard.svelte';
   import { KEYMAP } from './keymap.ts';
+  import LoopPanel from './LoopPanel.svelte';
   import SoundPanel from './SoundPanel.svelte';
+  import StageMap from './StageMap.svelte';
 
   const conn = new Connection('conductor');
   conn.connect();
@@ -23,8 +26,15 @@
 
   conn.on('roster', (m) => (players = m.players.sort((a, b) => a.id.localeCompare(b.id))));
 
+  /** step of the loop sounding now, for highlighting */
+  let currentStep = $state(-1);
+
   const scheduler = new Scheduler(conn, null, (e: Fired) => {
-    if (e.kind === 'beat') beatInBar = e.beatInBar;
+    if (e.kind === 'beat') {
+      beatInBar = e.beatInBar;
+      const h = conn.harmony.at(e.beat);
+      currentStep = h ? (planBeat(h, e.beat, e.beatsPerBar, { index: -1, count: 0 })?.stepIndex ?? -1) : -1;
+    }
     pulse++;
   });
   scheduler.start();
@@ -65,6 +75,12 @@
     keysDown.clear();
   };
   const setDistribution = (mode: Distribution) => conn.send({ t: 'distribution', mode });
+  const editLoop = (harmony: Partial<HarmonySettings>) => conn.send({ t: 'harmony', harmony });
+  const place = (id: string, pos: Pos | null) => conn.send({ t: 'place', id, pos });
+  const setGroup = (id: string, group: number | null) => conn.send({ t: 'group', id, group });
+  let waveSpeed = $state(1);
+  const sendWave = (pos: Pos) =>
+    conn.send({ t: 'cue', target: 'all', at: stamp(), cue: { kind: 'wave', ...pos, speed: waveSpeed } });
   const setMetronome = (m: Partial<Metronome>) => conn.send({ t: 'metronome', metronome: m });
   const CLICK_SOUNDS: [Metronome['sound'], string][] = [['off', 'off'], ['click', 'click'], ['note', 'note']];
   const CLICK_WHO: [Metronome['who'], string][] = [['all', 'all phones'], ['rotate', 'rotate']];
@@ -123,6 +139,7 @@
     if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
     else if (e.key === 'Enter') flash();
     else if (e.key === 'Escape') panic();
+    else if (k === 'l') editLoop({ playing: !conn.state.harmony.playing });
     else if (k === 'z') octave = Math.max(0, octave - 1);
     else if (k === 'x') octave = Math.min(8, octave + 1);
     else if (e.key === 'ArrowUp') setBpm(transport.bpm + (e.shiftKey ? 10 : 1));
@@ -203,9 +220,10 @@
   </header>
 
   <section class="play-area">
-    <div class="play-left">
+    <LoopPanel harmony={conn.state.harmony} current={currentStep} onChange={editLoop} />
+    <div class="play-right">
       <div class="dist" role="radiogroup" aria-label="note distribution">
-        <span class="muted">Notes go to</span>
+        <span class="muted">Live notes go to</span>
         {#each [['round-robin', 'one phone each'], ['all', 'every phone']] as [mode, label] (mode)}
           <button
             class:on={conn.state.distribution === mode}
@@ -236,10 +254,25 @@
         {#if notes.pedal}<span class="pedal">pedal</span>{/if}
       </div>
     </div>
+  </section>
+
+  <section class="sound-row">
     <SoundPanel patch={conn.state.patch} onChange={(patch) => conn.send({ t: 'patch', patch })} />
   </section>
 
   <main>
+    <section class="map">
+      <div class="map-head">
+        <h2>Room</h2>
+        <label class="speed" title="How fast waves travel across the room">
+          <small>wave speed</small>
+          <input type="range" min="0.2" max="4" step="0.1" bind:value={waveSpeed} />
+          <span class="mono">{waveSpeed.toFixed(1)}</span>
+        </label>
+      </div>
+      <StageMap {players} {waveSpeed} leadMs={conn.state.playoutMs} onPlace={place} onWave={sendWave} />
+    </section>
+
     <section class="devices">
       <div class="summary">
         <div><b class="mono">{summary.online}</b> devices</div>
@@ -259,25 +292,36 @@
       {:else}
         <div class="grid">
           {#each players as p (p.id)}
-            <DeviceTile player={p} {pulse} onTrim={(ms) => conn.send({ t: 'trim', id: p.id, ms })} />
+            <DeviceTile
+              player={p}
+              {pulse}
+              onTrim={(ms) => conn.send({ t: 'trim', id: p.id, ms })}
+              onGroup={(g) => setGroup(p.id, g)}
+            />
           {/each}
         </div>
       {/if}
-    </section>
 
-    <aside>
-      <div class="qr">{@html qrSvg}</div>
-      <a class="mono url" href={joinUrl} target="_blank" rel="noreferrer">{joinUrl}</a>
-      <p class="muted">Phones join here. Tap once to start.</p>
-      <dl class="keys">
-        <dt>A–K</dt><dd>play notes</dd>
-        <dt>Z X</dt><dd>octave</dd>
-        <dt>Space</dt><dd>start / stop beat</dd>
-        <dt>Enter</dt><dd>flash all</dd>
-        <dt>↑ ↓</dt><dd>tempo (⇧ ×10)</dd>
-        <dt>Esc</dt><dd>panic</dd>
-      </dl>
-    </aside>
+      <details class="join" open={players.length === 0}>
+        <summary>Join code &amp; shortcuts</summary>
+        <div class="join-body">
+          <div class="qr">{@html qrSvg}</div>
+          <div>
+            <a class="mono url" href={joinUrl} target="_blank" rel="noreferrer">{joinUrl}</a>
+            <p class="muted">Phones join here. Tap once to start.</p>
+            <dl class="keys">
+              <dt>A–K</dt><dd>play notes</dd>
+              <dt>Z X</dt><dd>octave</dd>
+              <dt>L</dt><dd>start / stop loop</dd>
+              <dt>Space</dt><dd>start / stop beat</dd>
+              <dt>Enter</dt><dd>flash all</dd>
+              <dt>↑ ↓</dt><dd>tempo (⇧ ×10)</dd>
+              <dt>Esc</dt><dd>panic</dd>
+            </dl>
+          </div>
+        </div>
+      </details>
+    </section>
   </main>
 </div>
 
@@ -446,17 +490,75 @@
 
   .play-area {
     display: grid;
-    grid-template-columns: minmax(320px, 520px) 1fr;
+    grid-template-columns: minmax(360px, 1fr) minmax(320px, 520px);
     gap: 16px 32px;
-    align-items: center;
+    align-items: start;
     padding: 16px 20px;
     border-bottom: 1px solid var(--line);
   }
 
-  .play-left {
+  .play-right {
     display: flex;
     flex-direction: column;
     gap: 10px;
+  }
+
+  .sound-row {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .map {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .map-head {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  h2 {
+    margin: 0;
+    font-size: 15px;
+  }
+
+  .speed {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+  }
+
+  .speed input {
+    accent-color: var(--accent);
+    width: 110px;
+  }
+
+  .join {
+    margin-top: 16px;
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    background: var(--surface);
+  }
+
+  .join summary {
+    cursor: pointer;
+    color: var(--muted);
+  }
+
+  .join-body {
+    display: flex;
+    gap: 16px;
+    margin-top: 10px;
+  }
+
+  .join-body .qr {
+    width: 150px;
+    flex: none;
   }
 
   .dist {
@@ -546,9 +648,10 @@
   main {
     flex: 1;
     display: grid;
-    grid-template-columns: 1fr 240px;
-    gap: 20px;
+    grid-template-columns: minmax(0, 1.4fr) minmax(320px, 1fr);
+    gap: 24px;
     padding: 20px;
+    align-items: start;
   }
 
   .summary {
@@ -572,18 +675,6 @@
 
   .empty {
     padding: 48px 0;
-    text-align: center;
-  }
-
-  aside {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    padding: 16px;
-    border-radius: var(--radius);
-    background: var(--surface);
-    align-self: start;
     text-align: center;
   }
 
@@ -622,8 +713,9 @@
     color: var(--muted);
   }
 
-  @media (max-width: 720px) {
-    main {
+  @media (max-width: 1000px) {
+    main,
+    .play-area {
       grid-template-columns: 1fr;
     }
   }

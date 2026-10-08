@@ -200,6 +200,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@echo/music':
+        specifier: workspace:*
+        version: link:../../packages/music
       '@echo/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
@@ -228,6 +231,12 @@ importers:
       vite:
         specifier: ^8.3.2
         version: 8.3.2(@types/node@26.6.4)(esbuild@0.28.2)(tsx@4.23.15)
+
+  packages/music:
+    dependencies:
+      '@echo/protocol':
+        specifier: workspace:*
+        version: link:../protocol
 
   packages/protocol:
     dependencies:

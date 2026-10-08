@@ -92,6 +92,76 @@ export type Metronome = z.infer<typeof MetronomeSchema>;
 
 export const DEFAULT_METRONOME: Metronome = { sound: 'click', who: 'all', midi: 72 };
 
+/** Six section colors (a 2×3 grid on the phone). Index = group id. */
+export const GROUPS = [
+  { name: 'red', color: '#ff5c6c' },
+  { name: 'orange', color: '#ff9f43' },
+  { name: 'yellow', color: '#ffd84d' },
+  { name: 'green', color: '#3ddc97' },
+  { name: 'blue', color: '#4da3ff' },
+  { name: 'purple', color: '#b07cff' },
+] as const;
+const groupId = z.number().int().min(0).max(GROUPS.length - 1).nullable();
+
+/** room depth ÷ width, as drawn on the stage map */
+export const STAGE_ASPECT = 0.62;
+
+/** distance on the stage in widths (y is scaled by the aspect, so rings are round) */
+export function stageDistance(a: { x: number; y: number }, b: { x: number; y: number }): number {
+  return Math.hypot(a.x - b.x, (a.y - b.y) * STAGE_ASPECT);
+}
+
+/** position on the stage map, 0..1 on both axes (x: left→right, y: front→back) */
+export const PosSchema = z.object({ x: z.number().min(0).max(1), y: z.number().min(0).max(1) });
+export type Pos = z.infer<typeof PosSchema>;
+
+export const ChordStepSchema = z.object({
+  degree: z.number().int().min(1).max(7),
+  seventh: z.boolean(),
+  bars: z.number().int().min(1).max(8),
+});
+
+/**
+ * A progression loop. Phones compute their own notes from this and the
+ * transport, like the metronome: no per-note messages.
+ */
+export const HarmonySchema = z.object({
+  /** tonic pitch class, C = 0 */
+  key: z.number().int().min(0).max(11),
+  scale: z.enum(['major', 'minor', 'dorian', 'mixolydian']),
+  /** octave of the tonic for the lowest voice (C4 = middle C) */
+  octave: z.number().int().min(1).max(6),
+  steps: z.array(ChordStepSchema).max(16),
+  pattern: z.enum(['pad', 'arp', 'both']),
+  arp: z.object({
+    /** notes per beat across the whole room */
+    rate: z.number().int().min(1).max(4),
+    direction: z.enum(['up', 'down', 'updown', 'random']),
+  }),
+  playing: z.boolean(),
+});
+export type HarmonySettings = z.infer<typeof HarmonySchema>;
+
+/** what the server broadcasts: settings plus when they take effect */
+export interface Harmony extends HarmonySettings {
+  /** beat on which steps[0] starts */
+  anchorBeat: number;
+  /** beat from which this version applies (changes land on the next bar) */
+  fromBeat: number;
+}
+
+export const DEFAULT_HARMONY: Harmony = {
+  key: 0,
+  scale: 'major',
+  octave: 3,
+  steps: [1, 5, 6, 4].map((degree) => ({ degree, seventh: false, bars: 1 })),
+  pattern: 'pad',
+  arp: { rate: 2, direction: 'up' },
+  playing: false,
+  anchorBeat: 0,
+  fromBeat: 0,
+};
+
 /** how live notes are spread across devices */
 export const Distribution = z.enum(['all', 'round-robin']);
 export type Distribution = z.infer<typeof Distribution>;
@@ -105,6 +175,17 @@ export const CueSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('flash'), color: z.string().max(32).optional() }),
   z.object({ kind: z.literal('noteOn'), note: noteId, midi, velocity: z.number().min(0).max(1) }),
   z.object({ kind: z.literal('noteOff'), note: noteId }),
+  /**
+   * A ripple from a point on the stage map. Each phone plays when the ring
+   * reaches it: at + distance / speed. One message for the whole room.
+   */
+  z.object({
+    kind: z.literal('wave'),
+    x: z.number().min(0).max(1),
+    y: z.number().min(0).max(1),
+    /** map units per second (1 = crosses the room in ~1 s) */
+    speed: z.number().min(0.05).max(20),
+  }),
 ]);
 export type Cue = z.infer<typeof CueSchema>;
 
@@ -122,6 +203,8 @@ export const ClientMessage = z.discriminatedUnion('t', [
   }),
   z.object({ t: z.literal('ping'), n: z.number(), c0: z.number() }),
   z.object({ t: z.literal('report'), stats: PlayerStatsSchema }),
+  /** pick a section color; players set their own, the conductor passes `id` */
+  z.object({ t: z.literal('group'), group: groupId, id: z.string().max(64).optional() }),
 
   // conductor only
   z.object({ t: z.literal('transport'), action: z.enum(['start', 'stop']) }),
@@ -130,6 +213,10 @@ export const ClientMessage = z.discriminatedUnion('t', [
   z.object({ t: z.literal('patch'), patch: PatchSchema.partial() }),
   z.object({ t: z.literal('distribution'), mode: Distribution }),
   z.object({ t: z.literal('metronome'), metronome: MetronomeSchema.partial() }),
+  /** edit the progression loop; changes land on the next bar */
+  z.object({ t: z.literal('harmony'), harmony: HarmonySchema.partial() }),
+  /** place a device on the stage map (null = unplace) */
+  z.object({ t: z.literal('place'), id: z.string().max(64), pos: PosSchema.nullable() }),
   /** live notes; `at` is stamped by the conductor (it is synced too) so latency stays constant */
   z.object({ t: z.literal('noteOn'), note: noteId, midi, velocity: z.number().min(0).max(1), at: z.number().optional() }),
   z.object({ t: z.literal('noteOff'), note: noteId, at: z.number().optional() }),
@@ -158,6 +245,17 @@ export interface SharedState {
   patch: Patch;
   distribution: Distribution;
   metronome: Metronome;
+  harmony: Harmony;
+}
+
+/** everything about one device that only that device needs */
+export interface SelfInfo {
+  /** place in the room order (voices, arps, metronome rotation); -1 = not playing */
+  index: number;
+  count: number;
+  group: number | null;
+  pos: Pos | null;
+  trimMs: number;
 }
 
 export interface PlayerInfo {
@@ -170,6 +268,10 @@ export interface PlayerInfo {
   trimMs: number;
   /** notes this device is holding right now */
   holding: number;
+  group: number | null;
+  pos: Pos | null;
+  /** seat in the room order, -1 if not playing */
+  seat: number;
 }
 
 export type ServerMessage =
@@ -179,9 +281,7 @@ export type ServerMessage =
   | { t: 'roster'; players: PlayerInfo[]; serverTime: number }
   | { t: 'cue'; at: number; cue: Cue }
   | { t: 'panic' }
-  | { t: 'trim'; ms: number }
-  /** this device's place in the rotation; index -1 = not playing (not tapped in / not synced) */
-  | { t: 'seat'; index: number; count: number }
+  | ({ t: 'self' } & SelfInfo)
   | { t: 'error'; message: string };
 
 export const WS_PATH = '/ws';

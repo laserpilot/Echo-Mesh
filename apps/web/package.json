@@ -9,6 +9,7 @@
     "check": "svelte-check --tsconfig ./tsconfig.json"
   },
   "dependencies": {
+    "@echo/music": "workspace:*",
     "@echo/protocol": "workspace:*",
     "@echo/sync": "workspace:*",
     "@echo/voice": "workspace:*",

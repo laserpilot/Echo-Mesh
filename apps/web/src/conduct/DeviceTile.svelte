@@ -1,7 +1,21 @@
 <script lang="ts">
-  import type { PlayerInfo } from '@echo/protocol';
+  import { GROUPS, type PlayerInfo } from '@echo/protocol';
 
-  let { player, pulse, onTrim }: { player: PlayerInfo; pulse: number; onTrim: (ms: number) => void } = $props();
+  let {
+    player,
+    pulse,
+    onTrim,
+    onGroup,
+  }: {
+    player: PlayerInfo;
+    pulse: number;
+    onTrim: (ms: number) => void;
+    onGroup: (group: number | null) => void;
+  } = $props();
+
+  /** click the color chip to cycle: none → red → … → purple → none */
+  const nextGroup = () => onGroup(player.group === null ? 0 : player.group + 1 < GROUPS.length ? player.group + 1 : null);
+  const groupColor = $derived(player.group !== null ? GROUPS[player.group]!.color : null);
 
   let el: HTMLDivElement | undefined = $state();
 
@@ -40,6 +54,15 @@
   <div class="head">
     <i></i>
     <span class="mono id">{player.id.slice(0, 4)}</span>
+    {#if player.seat >= 0}<span class="seat mono" title="place in the room order">#{player.seat + 1}</span>{/if}
+    <button
+      class="group"
+      class:set={groupColor !== null}
+      style:background={groupColor ?? 'transparent'}
+      onclick={nextGroup}
+      title={`Group: ${player.group !== null ? GROUPS[player.group]!.name : 'none'} (click to change)`}
+      aria-label="change group"
+    ></button>
     <span class="device">{device}</span>
   </div>
   {#if s?.clock.ready}
@@ -104,6 +127,24 @@
   .id {
     font-weight: 600;
     font-size: 13px;
+  }
+
+  .seat {
+    color: var(--muted);
+    font-size: 11px;
+  }
+
+  .group {
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border-radius: 5px;
+    border: 1.5px dashed var(--line);
+  }
+
+  .group.set {
+    border-style: solid;
+    border-color: transparent;
   }
 
   .device {

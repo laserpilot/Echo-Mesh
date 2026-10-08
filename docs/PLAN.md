@@ -14,6 +14,7 @@ A rewrite of v1 (kept on the `refactor-modular-architecture` branch). Goals:
 packages/protocol   wire types + zod validation (one source of truth for every message)
 packages/sync       pure timing math: clock sync, audio-clock mapping, transport, ping loop
 packages/voice      per-device synth (standard WebAudio only — runs in browsers and in Node tests)
+packages/music      music theory + the per-beat "what does this phone play" plan
 apps/server         Node http + ws; authoritative session state; serves the built web app
 apps/web            Svelte 5 + Vite; /  = phone (player), /conduct = conductor
 ```
@@ -91,19 +92,26 @@ apps/web            Svelte 5 + Vite; /  = phone (player), /conduct = conductor
   - Live notes from the conductor's computer keyboard and on-screen piano, with all / round-robin distribution.
   - Panic, per-device trim, and `navigator.audioSession = 'playback'` (iOS ringer switch).
   - Not built: Tone.js samplers. They can plug into the same bus later.
-- [ ] **2. Session model**
-  - Server-authoritative patch, groups and colors.
-  - Devices show their own patch so propagation is visible.
-  - Self-assign color groups on the phone.
+- [x] **2a. Groups**: six colors. Phones self-assign from a 2×3 grid; the conductor can override from the tile.
+  The phone shows its color. Each device gets a single `self` message (seat, group, position, trim).
+- [x] **2b. Progression loop**: key, scale, presets borrowed from v1 (minor keys fixed), editable chord chips,
+  pad / arp / both. Phones compute their own notes per beat from shared state: no per-note messages.
+  Edits land on the next bar. Each phone plays one chord tone, walking up the chord in room order;
+  extra phones double an octave up. The arp steps through phones in room order (↑ ↓ ↕ random).
+- [ ] **2c. Session model**: phones display their current patch; per-group patches; save/load sessions;
+  persist groups and positions across server restarts (currently lost on restart).
 - [x] **3. MIDI keyboard + distribution** (spatial allocation waits for phase 4 positions)
   - Web MIDI on the conductor (Chrome/Edge), hot-plug, input picker, activity light.
   - Velocity and sustain pedal (CC64); all-notes-off (CC120/123) releases everything.
   - Keyboard, mouse and MIDI share one `LiveNotes` state machine (unit tested).
   - Notes are stamped from the MIDI event's own timestamp, so main-thread delays don't add jitter.
   - Not built: MIDI clock in/out, channel → group routing (after phase 2 groups).
-- [ ] **4. Spatial waves**
-  - Place devices on a stage map; waves propagate as scheduled cues.
-  - Each device computes its own hit time from its position: one message per wave, not per device.
+- [x] **4. Stage map + waves**
+  - Drag devices onto a top-down room map. Placed devices define the room order (left → right).
+  - Click the floor to send a wave: one message. Each phone adds `distance / speed` and plays its
+    chord tone (or its tone in the loop's first chord when the loop is stopped).
+  - Measured in Chrome: hits landed within ~3 ms of expected (playout + distance ÷ speed).
+  - Next: wave shapes (line sweeps, spirals), waves on the beat, and spatial live-note allocation.
 - [ ] **5. Performance UX**: one-screen performance view, scenes/presets, panic, save/load
 - [ ] **6. Installation mode**: unattended operation, auto-rejoin, wake lock (needs HTTPS), kiosk
 - [ ] **7. Hosted**: internet deployment, rooms, audience QR join

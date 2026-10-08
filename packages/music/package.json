@@ -1,0 +1,11 @@
+{
+  "name": "@echo/music",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@echo/protocol": "workspace:*"
+  }
+}

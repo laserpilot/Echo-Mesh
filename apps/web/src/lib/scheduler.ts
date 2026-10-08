@@ -41,11 +41,16 @@ export class Scheduler {
     private readonly audio: AudioClock | null,
     private readonly onFire: (e: Planned) => void,
     private readonly onAudio?: (e: Fired, ctxTime: number) => void,
+    /** per-device retiming of a cue (e.g. a wave reaching this phone later); null = skip it */
+    private readonly adjustCue: (at: number, cue: Cue) => number | null = (at) => at,
   ) {}
 
   start(): void {
     this.#off.push(
-      this.conn.on('cue', (m) => this.#cues.push({ at: m.at, cue: m.cue })),
+      this.conn.on('cue', (m) => {
+        const at = this.adjustCue(m.at, m.cue);
+        if (at !== null) this.#cues.push({ at, cue: m.cue });
+      }),
       this.conn.on('state', (m) => {
         if (!m.state.transport.running) this.#visual = this.#visual.filter((p) => p.kind !== 'beat');
       }),
